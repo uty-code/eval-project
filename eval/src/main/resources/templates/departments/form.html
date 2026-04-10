@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'departments', ~{}, ~{})}">
+<head>
+    <title th:text="${isNew ? '신규 부서 등록' : '부서 정보 수정'} + ' - EES 사원 평가 시스템'">부서 등록 - EES</title>
+</head>
+<body>
+    <div id="page-content" class="container-fluid py-4">
+
+        <!-- Page Header / Breadcrumb -->
+        <div class="row align-items-center mb-4">
+            <div class="col">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/}" class="text-primary text-decoration-none">대시보드</a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/departments}" class="text-primary text-decoration-none">부서 관리</a>
+                        </li>
+                        <li class="breadcrumb-item active text-muted"
+                            th:text="${isNew ? '신규 등록' : '정보 수정'}">신규 등록</li>
+                    </ol>
+                </nav>
+                <h1 class="fw-bold fs-3 mb-0"
+                    th:text="${isNew ? '신규 부서 등록' : '부서 정보 수정'}">신규 부서 등록</h1>
+            </div>
+        </div>
+
+        <!-- Flash Error Message -->
+        <div th:if="${errorMessage}"
+             class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show"
+             role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Form Card -->
+        <div class="glass-card p-4">
+            <form th:action="${isNew ? '/departments' : '/departments/' + department.deptId()}"
+                  method="post" id="dept-form">
+
+                <!-- 수정 시 낙관적 락 version 전송 -->
+                <input th:unless="${isNew}" type="hidden" name="version" th:value="${department.version()}">
+
+                <div class="row g-4">
+                    <!-- 부서명 -->
+                    <div class="col-md-6">
+                        <label for="deptName" class="form-label text-muted small">
+                            부서명 <span class="text-danger">*</span>
+                        </label>
+                        <input type="text"
+                               class="form-control"
+                               id="deptName"
+                               name="deptName"
+                               th:value="${department.deptName()}"
+                               placeholder="예: 개발팀"
+                               maxlength="100"
+                               required>
+                        <div class="invalid-feedback">부서명을 입력해 주세요.</div>
+                    </div>
+
+                    <!-- 상위 부서 선택 -->
+                    <div class="col-md-6">
+                        <label for="parentDeptId" class="form-label text-muted small">상위 부서</label>
+                        <select class="form-select" id="parentDeptId" name="parentDeptId">
+                            <option value="">-- 최상위 부서 (없음) --</option>
+                            <option th:each="dept : ${allDepartments}"
+                                    th:value="${dept.deptId()}"
+                                    th:text="${dept.deptName()}"
+                                    th:selected="${department.parentDeptId() != null
+                                                  and department.parentDeptId() == dept.deptId()}"
+                                    th:disabled="${department.deptId() != null
+                                                  and department.deptId() == dept.deptId()}">
+                                부서명
+                            </option>
+                        </select>
+                        <div class="form-text text-muted small">선택하지 않으면 최상위 부서로 등록됩니다.</div>
+                    </div>
+                </div>
+
+                <!-- 수정 시 현재 정보 표시 -->
+                <div th:unless="${isNew}" class="mt-4 p-3 rounded-3" style="background: rgba(255,255,255,0.05);">
+                    <div class="row g-3 text-muted small">
+                        <div class="col-md-4">
+                            <span class="me-2">소속 인원:</span>
+                            <span class="fw-semibold text-white"
+                                  th:text="${department.employeeCount()} + '명'">0명</span>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="me-2">등록일:</span>
+                            <span class="fw-semibold text-white"
+                                  th:text="${department.createdAt() != null} ? ${#temporals.format(department.createdAt(), 'yyyy-MM-dd')} : '-'">-</span>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="me-2">최종 수정:</span>
+                            <span class="fw-semibold text-white"
+                                  th:text="${department.updatedAt() != null} ? ${#temporals.format(department.updatedAt(), 'yyyy-MM-dd')} : '-'">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 버튼 영역 -->
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-secondary border-opacity-25">
+                    <a th:href="@{/departments}" class="btn btn-outline-light px-4">취소</a>
+                    <button type="submit" class="btn btn-primary px-4" id="btn-submit">
+                        <i class="bi me-2"
+                           th:classappend="${isNew ? 'bi-plus-circle' : 'bi-check-lg'}"></i>
+                        <span th:text="${isNew ? '부서 등록' : '수정 저장'}">부서 등록</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

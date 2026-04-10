@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ees.eval.mapper.EvaluationPeriodMapper">
+
+    <!-- 차수 ID 기반 단건 조회 -->
+    <select id="findById" resultType="com.ees.eval.domain.EvaluationPeriod">
+        select
+            period_id   as PERIOD_ID,
+            period_year as PERIOD_YEAR,
+            period_name as PERIOD_NAME,
+            status_code as STATUS_CODE,
+            start_date  as START_DATE,
+            end_date    as END_DATE,
+            is_deleted  as IS_DELETED,
+            version     as VERSION,
+            created_at  as CREATED_AT,
+            created_by  as CREATED_BY,
+            updated_at  as UPDATED_AT,
+            updated_by  as UPDATED_BY
+        from evaluation_periods
+        where period_id = #{periodId}
+          and is_deleted = 'n'
+    </select>
+
+    <!-- 삭제되지 않은 전체 차수 목록 조회 -->
+    <select id="findAll" resultType="com.ees.eval.domain.EvaluationPeriod">
+        select
+            period_id   as PERIOD_ID,
+            period_year as PERIOD_YEAR,
+            period_name as PERIOD_NAME,
+            status_code as STATUS_CODE,
+            start_date  as START_DATE,
+            end_date    as END_DATE,
+            is_deleted  as IS_DELETED,
+            version     as VERSION,
+            created_at  as CREATED_AT,
+            created_by  as CREATED_BY,
+            updated_at  as UPDATED_AT,
+            updated_by  as UPDATED_BY
+        from evaluation_periods
+        where is_deleted = 'n'
+        order by period_year desc, period_id desc
+    </select>
+
+    <!-- 특정 상태의 차수 목록 조회 (진행 중 중복 체크용) -->
+    <select id="findByStatusCode" resultType="com.ees.eval.domain.EvaluationPeriod">
+        select
+            period_id   as PERIOD_ID,
+            period_year as PERIOD_YEAR,
+            period_name as PERIOD_NAME,
+            status_code as STATUS_CODE,
+            start_date  as START_DATE,
+            end_date    as END_DATE,
+            is_deleted  as IS_DELETED,
+            version     as VERSION,
+            created_at  as CREATED_AT,
+            created_by  as CREATED_BY,
+            updated_at  as UPDATED_AT,
+            updated_by  as UPDATED_BY
+        from evaluation_periods
+        where status_code = #{statusCode}
+          and is_deleted = 'n'
+    </select>
+
+    <!-- 차수 정보 삽입 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="periodId">
+        insert into evaluation_periods (
+            period_year, period_name, status_code,
+            start_date, end_date,
+            is_deleted, version, created_at, created_by
+        ) values (
+            #{periodYear}, #{periodName}, #{statusCode},
+            #{startDate}, #{endDate},
+            #{isDeleted}, #{version}, #{createdAt}, #{createdBy}
+        )
+    </insert>
+
+    <!-- 차수 정보 수정 (낙관적 락 포함) -->
+    <update id="update">
+        update evaluation_periods
+        set period_year = #{periodYear},
+            period_name = #{periodName},
+            status_code = #{statusCode},
+            start_date  = #{startDate},
+            end_date    = #{endDate},
+            version     = #{version} + 1,
+            updated_at  = #{updatedAt},
+            updated_by  = #{updatedBy}
+        where period_id = #{periodId}
+          and version   = #{version}
+          and is_deleted = 'n'
+    </update>
+
+    <!-- 차수 논리적 삭제 -->
+    <update id="softDelete">
+        update evaluation_periods
+        set is_deleted = 'y',
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        where period_id = #{periodId}
+          and is_deleted = 'n'
+    </update>
+
+</mapper>

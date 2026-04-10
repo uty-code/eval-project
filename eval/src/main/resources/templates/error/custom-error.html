@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'error', ~{}, ~{})}">
+<head>
+    <title>오류 - EES 사원 평가 시스템</title>
+</head>
+<body>
+
+    <div id="page-content" class="container-fluid py-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="glass-card p-5 text-center">
+                    <div class="mb-4">
+                        <div class="d-inline-flex bg-danger bg-opacity-10 p-4 rounded-4 mb-3">
+                            <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 3rem;"></i>
+                        </div>
+                    </div>
+                    <h2 class="fw-bold text-white mb-2">오류가 발생했습니다</h2>
+                    <p class="text-muted small mb-4" th:text="'상태 코드: ' + ${statusCode}">상태 코드: 500</p>
+
+                    <div class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger text-start mb-4">
+                        <i class="bi bi-exclamation-circle-fill me-2"></i>
+                        <span th:text="${errorMessage}">예상치 못한 오류가 발생했습니다.</span>
+                    </div>
+
+                    <a th:href="@{/}" class="btn btn-primary px-4">
+                        <i class="bi bi-house-door me-2"></i>대시보드로 돌아가기
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

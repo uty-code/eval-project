@@ -1,0 +1,105 @@
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'periods', ~{}, ~{})}">
+<head>
+    <title th:text="${isNew ? '신규 차수 생성' : '차수 정보 수정'} + ' - EES 사원 평가 시스템'">차수 생성 - EES</title>
+</head>
+<body>
+
+    <div id="page-content" class="container-fluid py-4">
+        <!-- Page Header -->
+        <div class="row align-items-center mb-4">
+            <div class="col">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><a th:href="@{/}" class="text-primary text-decoration-none">대시보드</a></li>
+                        <li class="breadcrumb-item"><a th:href="@{/eval/periods}" class="text-primary text-decoration-none">평가 차수 설정</a></li>
+                        <li class="breadcrumb-item active text-muted" th:text="${isNew ? '신규 생성' : '수정'}">신규 생성</li>
+                    </ol>
+                </nav>
+                <h1 class="fw-bold fs-3 mb-0" th:text="${isNew ? '신규 평가 차수 생성' : '평가 차수 정보 수정'}">신규 평가 차수 생성</h1>
+            </div>
+        </div>
+
+        <!-- Flash Error Message -->
+        <div th:if="${errorMessage}" class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Form Card -->
+        <div class="glass-card p-4">
+            <form th:action="${isNew ? '/eval/periods' : '/eval/periods/' + period.periodId()}" 
+                  th:object="${period}" method="post">
+                <!-- 수정 시 낙관적 락 버전 전송 -->
+                <input th:unless="${isNew}" type="hidden" name="version" th:value="*{version}">
+
+                <div class="row g-4">
+                    <!-- 평가 연도 -->
+                    <div class="col-md-6">
+                        <label for="periodYear" class="form-label text-muted small">평가 연도 <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="periodYear" th:field="*{periodYear}"
+                               th:classappend="${#fields.hasErrors('periodYear')} ? 'is-invalid' : ''"
+                               min="2000" max="2100">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('periodYear')}" th:errors="*{periodYear}">연도 오류</div>
+                    </div>
+
+                    <!-- 차수 명칭 -->
+                    <div class="col-md-6">
+                        <label for="periodName" class="form-label text-muted small">차수 명칭 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="periodName" th:field="*{periodName}"
+                               th:classappend="${#fields.hasErrors('periodName')} ? 'is-invalid' : ''"
+                               placeholder="예: 2026년 상반기 정기 평가" maxlength="100">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('periodName')}" th:errors="*{periodName}">차수명 오류</div>
+                    </div>
+
+                    <!-- 시작일 -->
+                    <div class="col-md-6">
+                        <label for="startDate" class="form-label text-muted small">평가 시작일 <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="startDate" th:field="*{startDate}"
+                               th:classappend="${#fields.hasErrors('startDate')} ? 'is-invalid' : ''">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('startDate')}" th:errors="*{startDate}">시작일 오류</div>
+                    </div>
+
+                    <!-- 종료일 -->
+                    <div class="col-md-6">
+                        <label for="endDate" class="form-label text-muted small">평가 종료일 <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="endDate" th:field="*{endDate}"
+                               th:classappend="${#fields.hasErrors('endDate')} ? 'is-invalid' : ''">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('endDate')}" th:errors="*{endDate}">종료일 오류</div>
+                    </div>
+                </div>
+
+                <!-- 상태 표시 (수정 시에만) -->
+                <div th:unless="${isNew}" class="mt-4 p-3 rounded-3" style="background: rgba(255,255,255,0.05);">
+                    <span class="text-muted small me-2">현재 상태:</span>
+                    <span th:switch="${period.statusCode()}">
+                        <span th:case="'PLANNED'" class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-3 py-2">
+                            <i class="bi bi-clock me-1"></i>계획
+                        </span>
+                        <span th:case="'IN_PROGRESS'" class="badge bg-primary bg-opacity-10 text-primary fw-normal px-3 py-2">
+                            <i class="bi bi-play-circle me-1"></i>진행 중
+                        </span>
+                        <span th:case="'COMPLETED'" class="badge bg-success bg-opacity-10 text-success fw-normal px-3 py-2">
+                            <i class="bi bi-check-circle me-1"></i>완료
+                        </span>
+                        <span th:case="'CLOSED'" class="badge bg-dark bg-opacity-25 text-white-50 fw-normal px-3 py-2">
+                            <i class="bi bi-lock me-1"></i>마감
+                        </span>
+                    </span>
+                </div>
+
+                <!-- 버튼 영역 -->
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-secondary border-opacity-25">
+                    <a th:href="@{/eval/periods}" class="btn btn-outline-light px-4">취소</a>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi me-2" th:classappend="${isNew ? 'bi-plus-circle' : 'bi-check-lg'}"></i>
+                        <span th:text="${isNew ? '차수 생성' : '수정 저장'}">차수 생성</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

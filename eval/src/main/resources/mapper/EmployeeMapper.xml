@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ees.eval.mapper.EmployeeMapper">
+
+    <!-- 사원 ID 기반 상세 조회 (positions 테이블 LEFT JOIN으로 직급명 포함) -->
+    <select id="findById" resultType="com.ees.eval.domain.Employee">
+        select
+            e.emp_id       as EMP_ID,
+            e.dept_id      as DEPT_ID,
+            e.position_id  as POSITION_ID,
+            e.username     as USERNAME,
+            e.password     as PASSWORD,
+            e.name         as NAME,
+            e.email        as EMAIL,
+            e.hire_date    as HIRE_DATE,
+            e.is_deleted   as IS_DELETED,
+            e.version      as VERSION,
+            e.created_at   as CREATED_AT,
+            e.created_by   as CREATED_BY,
+            e.updated_at   as UPDATED_AT,
+            e.updated_by   as UPDATED_BY
+        from employees e
+        where e.emp_id = #{empId}
+          and e.is_deleted = 'n'
+    </select>
+
+    <!-- 로그인 아이디(username)로 사원 조회 (Spring Security 인증용) -->
+    <select id="findByUsername" resultType="com.ees.eval.domain.Employee">
+        select
+            e.emp_id       as EMP_ID,
+            e.dept_id      as DEPT_ID,
+            e.position_id  as POSITION_ID,
+            e.username     as USERNAME,
+            e.password     as PASSWORD,
+            e.name         as NAME,
+            e.email        as EMAIL,
+            e.hire_date    as HIRE_DATE,
+            e.is_deleted   as IS_DELETED,
+            e.version      as VERSION,
+            e.created_at   as CREATED_AT,
+            e.created_by   as CREATED_BY,
+            e.updated_at   as UPDATED_AT,
+            e.updated_by   as UPDATED_BY
+        from employees e
+        where e.username = #{username}
+          and e.is_deleted = 'n'
+    </select>
+
+    <!-- 삭제(퇴사) 여부와 무관하게 아이디로 사원 조회 -->
+    <select id="findByUsernameIncludeDeleted" resultType="com.ees.eval.domain.Employee">
+        select
+            e.emp_id       as EMP_ID,
+            e.dept_id      as DEPT_ID,
+            e.position_id  as POSITION_ID,
+            e.username     as USERNAME,
+            e.password     as PASSWORD,
+            e.name         as NAME,
+            e.email        as EMAIL,
+            e.hire_date    as HIRE_DATE,
+            e.is_deleted   as IS_DELETED,
+            e.version      as VERSION,
+            e.created_at   as CREATED_AT,
+            e.created_by   as CREATED_BY,
+            e.updated_at   as UPDATED_AT,
+            e.updated_by   as UPDATED_BY
+        from employees e
+        where e.username = #{username}
+    </select>
+
+    <!-- 삭제되지 않은 전체 사원 목록 조회 -->
+    <select id="findAll" resultType="com.ees.eval.domain.Employee">
+        select
+            e.emp_id       as EMP_ID,
+            e.dept_id      as DEPT_ID,
+            e.position_id  as POSITION_ID,
+            e.username     as USERNAME,
+            e.password     as PASSWORD,
+            e.name         as NAME,
+            e.email        as EMAIL,
+            e.hire_date    as HIRE_DATE,
+            e.is_deleted   as IS_DELETED,
+            e.version      as VERSION,
+            e.created_at   as CREATED_AT,
+            e.created_by   as CREATED_BY,
+            e.updated_at   as UPDATED_AT,
+            e.updated_by   as UPDATED_BY
+        from employees e
+        where e.is_deleted = 'n'
+        order by e.emp_id asc
+    </select>
+
+    <!-- 특정 부서 소속 활성 사원 목록 조회 -->
+    <select id="findByDeptId" resultType="com.ees.eval.domain.Employee">
+        select
+            e.emp_id       as EMP_ID,
+            e.dept_id      as DEPT_ID,
+            e.position_id  as POSITION_ID,
+            e.username     as USERNAME,
+            e.password     as PASSWORD,
+            e.name         as NAME,
+            e.email        as EMAIL,
+            e.hire_date    as HIRE_DATE,
+            e.is_deleted   as IS_DELETED,
+            e.version      as VERSION,
+            e.created_at   as CREATED_AT,
+            e.created_by   as CREATED_BY,
+            e.updated_at   as UPDATED_AT,
+            e.updated_by   as UPDATED_BY
+        from employees e
+        where e.dept_id = #{deptId}
+          and e.is_deleted = 'n'
+        order by e.emp_id asc
+    </select>
+
+    <!-- 사원이 보유한 권한명 목록 조회 (employee_roles + roles JOIN) -->
+    <select id="findRoleNamesByEmpId" resultType="java.lang.String">
+        select
+            r.role_name as ROLE_NAME
+        from employee_roles er
+        inner join roles r on er.role_id = r.role_id
+        where er.emp_id = #{empId}
+          and er.is_deleted = 'n'
+          and r.is_deleted = 'n'
+        order by r.role_id asc
+    </select>
+
+    <!-- 사원 정보 삽입 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="empId">
+        insert into employees (
+            dept_id,
+            position_id,
+            username,
+            password,
+            name,
+            email,
+            hire_date,
+            is_deleted,
+            version,
+            created_at,
+            created_by
+        ) values (
+            #{deptId},
+            #{positionId},
+            #{username},
+            #{password},
+            #{name},
+            #{email},
+            #{hireDate},
+            #{isDeleted},
+            #{version},
+            #{createdAt},
+            #{createdBy}
+        )
+    </insert>
+
+    <!-- 사원-권한 매핑 삽입 (employee_roles) -->
+    <insert id="insertEmployeeRole">
+        insert into employee_roles (
+            emp_id,
+            role_id,
+            is_deleted,
+            version,
+            created_at,
+            created_by
+        ) values (
+            #{empId},
+            #{roleId},
+            'n',
+            0,
+            #{createdAt},
+            #{createdBy}
+        )
+    </insert>
+
+    <!-- 사원 정보 수정 (낙관적 락 버전 체크 포함) -->
+    <update id="update">
+        update employees
+        set dept_id      = #{deptId},
+            position_id  = #{positionId},
+            name         = #{name},
+            email        = #{email},
+            hire_date    = #{hireDate},
+            version      = #{version} + 1,
+            updated_at   = #{updatedAt},
+            updated_by   = #{updatedBy}
+        where emp_id     = #{empId}
+          and version    = #{version}
+          and is_deleted = 'n'
+    </update>
+
+    <!-- 사원 논리적 삭제(Soft Delete) 처리 -->
+    <update id="softDelete">
+        update employees
+        set is_deleted = 'y',
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        where emp_id   = #{empId}
+          and is_deleted = 'n'
+    </update>
+
+</mapper>

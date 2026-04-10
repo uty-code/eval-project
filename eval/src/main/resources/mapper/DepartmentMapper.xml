@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ees.eval.mapper.DepartmentMapper">
+
+    <!-- 부서 ID 기반 단건 조회 (삭제되지 않은 데이터) -->
+    <select id="findById" resultType="com.ees.eval.domain.Department">
+        select
+            d.dept_id        as DEPT_ID,
+            d.parent_dept_id as PARENT_DEPT_ID,
+            d.dept_name      as DEPT_NAME,
+            d.is_deleted     as IS_DELETED,
+            d.version        as VERSION,
+            d.created_at     as CREATED_AT,
+            d.created_by     as CREATED_BY,
+            d.updated_at     as UPDATED_AT,
+            d.updated_by     as UPDATED_BY
+        from departments d
+        where d.dept_id = #{deptId}
+          and d.is_deleted = 'n'
+    </select>
+
+    <!-- 모든 활성 부서 목록 조회 -->
+    <select id="findAll" resultType="com.ees.eval.domain.Department">
+        select
+            d.dept_id        as DEPT_ID,
+            d.parent_dept_id as PARENT_DEPT_ID,
+            d.dept_name      as DEPT_NAME,
+            d.is_deleted     as IS_DELETED,
+            d.version        as VERSION,
+            d.created_at     as CREATED_AT,
+            d.created_by     as CREATED_BY,
+            d.updated_at     as UPDATED_AT,
+            d.updated_by     as UPDATED_BY
+        from departments d
+        where d.is_deleted = 'n'
+        order by d.dept_id asc
+    </select>
+
+    <!-- 최상위 부서(parent_dept_id IS NULL) 목록 조회 -->
+    <select id="findRootDepartments" resultType="com.ees.eval.domain.Department">
+        select
+            d.dept_id        as DEPT_ID,
+            d.parent_dept_id as PARENT_DEPT_ID,
+            d.dept_name      as DEPT_NAME,
+            d.is_deleted     as IS_DELETED,
+            d.version        as VERSION,
+            d.created_at     as CREATED_AT,
+            d.created_by     as CREATED_BY,
+            d.updated_at     as UPDATED_AT,
+            d.updated_by     as UPDATED_BY
+        from departments d
+        where d.parent_dept_id is null
+          and d.is_deleted = 'n'
+        order by d.dept_id asc
+    </select>
+
+    <!-- 특정 상위 부서의 직속 하위 부서 목록 조회 -->
+    <select id="findByParentDeptId" resultType="com.ees.eval.domain.Department">
+        select
+            d.dept_id        as DEPT_ID,
+            d.parent_dept_id as PARENT_DEPT_ID,
+            d.dept_name      as DEPT_NAME,
+            d.is_deleted     as IS_DELETED,
+            d.version        as VERSION,
+            d.created_at     as CREATED_AT,
+            d.created_by     as CREATED_BY,
+            d.updated_at     as UPDATED_AT,
+            d.updated_by     as UPDATED_BY
+        from departments d
+        where d.parent_dept_id = #{parentDeptId}
+          and d.is_deleted = 'n'
+        order by d.dept_id asc
+    </select>
+
+    <!-- 셀프 JOIN을 통한 상위 부서명 조회 -->
+    <select id="findParentDeptName" resultType="java.lang.String">
+        select
+            p.dept_name as PARENT_DEPT_NAME
+        from departments d
+        inner join departments p on d.parent_dept_id = p.dept_id
+        where d.dept_id = #{deptId}
+          and d.is_deleted = 'n'
+          and p.is_deleted = 'n'
+    </select>
+
+    <!-- 해당 부서 소속 활성 사원 인원수 카운트 (평가 통계용) -->
+    <select id="countEmployeesByDeptId" resultType="int">
+        select
+            count(*) as CNT
+        from employees e
+        where e.dept_id = #{deptId}
+          and e.is_deleted = 'n'
+    </select>
+
+    <!-- 부서 정보 삽입 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="deptId">
+        insert into departments (
+            parent_dept_id,
+            dept_name,
+            is_deleted,
+            version,
+            created_at,
+            created_by
+        ) values (
+            #{parentDeptId},
+            #{deptName},
+            #{isDeleted},
+            #{version},
+            #{createdAt},
+            #{createdBy}
+        )
+    </insert>
+
+    <!-- 부서 정보 수정 (낙관적 락 버전 체크 포함) -->
+    <update id="update">
+        update departments
+        set parent_dept_id = #{parentDeptId},
+            dept_name      = #{deptName},
+            version        = #{version} + 1,
+            updated_at     = #{updatedAt},
+            updated_by     = #{updatedBy}
+        where dept_id      = #{deptId}
+          and version      = #{version}
+          and is_deleted   = 'n'
+    </update>
+
+    <!-- 부서 논리적 삭제(Soft Delete) 처리 -->
+    <update id="softDelete">
+        update departments
+        set is_deleted = 'y',
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        where dept_id  = #{deptId}
+          and is_deleted = 'n'
+    </update>
+
+</mapper>

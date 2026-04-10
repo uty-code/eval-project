@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ees.eval.mapper.CommonCodeMapper">
+
+    <!-- 코드 고유 ID를 이용한 상세 조회 (비삭제 데이터) -->
+    <select id="findById" resultType="com.ees.eval.domain.CommonCode">
+        select 
+            code_id as CODE_ID,
+            group_code as GROUP_CODE,
+            code_value as CODE_VALUE,
+            code_name as CODE_NAME,
+            description as DESCRIPTION,
+            is_deleted as IS_DELETED,
+            version as VERSION,
+            created_at as CREATED_AT,
+            created_by as CREATED_BY,
+            updated_at as UPDATED_AT,
+            updated_by as UPDATED_BY
+        from common_codes
+        where code_id = #{codeId}
+          and is_deleted = 'n'
+    </select>
+
+    <!-- 모든 공통 코드 목록 조회 -->
+    <select id="findAll" resultType="com.ees.eval.domain.CommonCode">
+        select 
+            code_id as CODE_ID,
+            group_code as GROUP_CODE,
+            code_value as CODE_VALUE,
+            code_name as CODE_NAME,
+            description as DESCRIPTION,
+            is_deleted as IS_DELETED,
+            version as VERSION,
+            created_at as CREATED_AT,
+            created_by as CREATED_BY,
+            updated_at as UPDATED_AT,
+            updated_by as UPDATED_BY
+        from common_codes
+        where is_deleted = 'n'
+        order by group_code asc, code_id asc
+    </select>
+
+    <!-- 특정 그룹 코드(Group Code)에 해당하는 코드 목록 조회 -->
+    <select id="findByGroupCode" resultType="com.ees.eval.domain.CommonCode">
+        select 
+            code_id as CODE_ID,
+            group_code as GROUP_CODE,
+            code_value as CODE_VALUE,
+            code_name as CODE_NAME,
+            description as DESCRIPTION,
+            is_deleted as IS_DELETED,
+            version as VERSION,
+            created_at as CREATED_AT,
+            created_by as CREATED_BY,
+            updated_at as UPDATED_AT,
+            updated_by as UPDATED_BY
+        from common_codes
+        where group_code = #{groupCode}
+          and is_deleted = 'n'
+        order by code_id asc
+    </select>
+
+    <!-- 공통 코드 삽입 수행 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="codeId">
+        insert into common_codes (
+            group_code,
+            code_value,
+            code_name,
+            description, 
+            is_deleted, 
+            version, 
+            created_at, 
+            created_by
+        ) values (
+            #{groupCode},
+            #{codeValue},
+            #{codeName},
+            #{description}, 
+            #{isDeleted}, 
+            #{version}, 
+            #{createdAt}, 
+            #{createdBy}
+        )
+    </insert>
+
+    <!-- 공통 코드 수정 수행 (낙관적 락 체크) -->
+    <update id="update">
+        update common_codes
+        set group_code = #{groupCode},
+            code_value = #{codeValue},
+            code_name = #{codeName},
+            description = #{description},
+            version = #{version} + 1,
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        where code_id = #{codeId}
+          and version = #{version}
+          and is_deleted = 'n'
+    </update>
+
+    <!-- 공통 코드 논리적 삭제 처리 -->
+    <update id="softDelete">
+        update common_codes
+        set is_deleted = 'y',
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        where code_id = #{codeId}
+    </update>
+
+</mapper>

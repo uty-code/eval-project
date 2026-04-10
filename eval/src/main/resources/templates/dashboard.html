@@ -1,0 +1,239 @@
+<html xmlns:th="http://www.thymeleaf.org" 
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'dashboard', ~{}, ~{})}">
+
+<head>
+    <title>Dashboard - EES 사원 평가 시스템</title>
+</head>
+
+<body>
+
+    <div id="page-content" class="container-fluid py-4">
+        <!-- Dashboard Header -->
+        <div class="row align-items-center mb-4">
+            <div class="col-md-8">
+                <h1 class="fw-bold fs-3 mb-1">시스템 대시보드</h1>
+                <p class="text-muted" th:text="${welcomeMessage}">EES 관리자 페이지에 오신 것을 환영합니다.</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <button class="btn btn-outline-primary btn-sm px-3">
+                    <i class="bi bi-download me-2"></i>리포트 다운로드
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Cards Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="glass-card stat-card">
+                    <div class="stat-icon icon-blue">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <h6 class="text-muted small mb-1">전체 사원 수</h6>
+                    <h3 class="fw-bold mb-0" th:text="${employeeCount + ' 명'}">0 명</h3>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card stat-card">
+                    <div class="stat-icon icon-purple">
+                        <i class="bi bi-diagram-3-fill"></i>
+                    </div>
+                    <h6 class="text-muted small mb-1">전체 부서 수</h6>
+                    <h3 class="fw-bold mb-0" th:text="${departmentCount + ' 개'}">0 개</h3>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card stat-card">
+                    <div class="stat-icon icon-indigo">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <h6 class="text-muted small mb-1">진행 중인 평가 차수</h6>
+                    <h3 class="fw-bold mb-0" th:text="${activePeriodCount + ' 개'}">1 개</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6">
+                <div class="glass-card p-4 h-100">
+                    <h5 class="fw-bold mb-4">전사 등급 분포</h5>
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="gradeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="glass-card p-4 h-100">
+                    <h5 class="fw-bold mb-4">부서별 평균 점수</h5>
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="deptChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Content -->
+        <div class="row g-4">
+            <!-- Recent Activity -->
+            <div class="col-lg-8">
+                <div class="glass-card p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0">인사 현황 (최근 등록)</h5>
+                        <a href="/employees" class="btn btn-link text-primary text-decoration-none p-0 small">전체 보기</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-dark-custom align-middle">
+                            <thead>
+                                <tr class="text-muted small border-bottom border-secondary opacity-50">
+                                    <th class="py-3">이름</th>
+                                    <th class="py-3">부서</th>
+                                    <th class="py-3">직급</th>
+                                    <th class="py-3">상태</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="py-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="bg-secondary bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center"
+                                                style="width: 32px; height: 32px;">
+                                                <i class="bi bi-person text-white"></i>
+                                            </div>
+                                            <span>김관리 (샘플)</span>
+                                        </div>
+                                    </td>
+                                    <td>경영지원팀</td>
+                                    <td>과장</td>
+                                    <td><span class="badge bg-success bg-opacity-10 text-success fw-normal px-2">재직중</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="bg-secondary bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center"
+                                                style="width: 32px; height: 32px;">
+                                                <i class="bi bi-person text-white"></i>
+                                            </div>
+                                            <span>이개발 (샘플)</span>
+                                        </div>
+                                    </td>
+                                    <td>개발팀</td>
+                                    <td>사원</td>
+                                    <td><span class="badge bg-success bg-opacity-10 text-success fw-normal px-2">재직중</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Access -->
+            <div class="col-lg-4">
+                <div class="glass-card p-4 mb-4">
+                    <h5 class="fw-bold mb-3">주요 기능</h5>
+                    <div class="d-grid gap-2">
+                        <a th:href="@{/eval/periods}"
+                            class="btn btn-outline-light text-start py-3 d-flex justify-content-between align-items-center">
+                            <span>평가 차수 설정</span>
+                            <i class="bi bi-calendar-event"></i>
+                        </a>
+                        <a th:href="@{/employees}"
+                            class="btn btn-outline-light text-start py-3 d-flex justify-content-between align-items-center">
+                            <span>사원 명부 관리</span>
+                            <i class="bi bi-people"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 bg-primary bg-opacity-10 border-primary border-opacity-25">
+                    <h6 class="fw-bold mb-2 text-primary">알림</h6>
+                    <p class="text-muted small mb-0">현재 2026년 상반기 정기 평가가 진행 중입니다. 평가 항목 점수 비중을 다시 한번 확인해 주세요.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js and Dashboard Script -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        document.addEventListener('DOMContentLoaded', function() {
+            // 등급 분포 차트 (Doughnut)
+            const gradeData = /*[[${gradeStats}]]*/ {};
+            const gradeCtx = document.getElementById('gradeChart').getContext('2d');
+            new Chart(gradeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(gradeData),
+                    datasets: [{
+                        data: Object.values(gradeData),
+                        backgroundColor: [
+                            '#6366f1', // S
+                            '#8b5cf6', // A
+                            '#a855f7', // B
+                            '#d946ef', // C
+                            '#ec4899'  // D
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // 부서별 점수 차트 (Bar)
+            const deptData = /*[[${deptStats}]]*/ {};
+            const deptCtx = document.getElementById('deptChart').getContext('2d');
+            new Chart(deptCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(deptData),
+                    datasets: [{
+                        label: '평가 점수',
+                        data: Object.values(deptData),
+                        backgroundColor: 'rgba(99, 102, 241, 0.5)',
+                        borderColor: '#6366f1',
+                        borderWidth: 1,
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        });
+        /*]]>*/
+    </script>
+
+</body>
+
+</html>
