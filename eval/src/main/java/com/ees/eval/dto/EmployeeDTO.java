@@ -18,6 +18,7 @@ import java.util.List;
  * @param name 사원 성명
  * @param email 이메일 주소
  * @param hireDate 입사일
+ * @param deptName JOIN으로 가져온 부서 명칭
  * @param positionName JOIN으로 가져온 직급 명칭
  * @param roleNames JOIN으로 가져온 보유 권한 명칭 목록
  * @param isDeleted 삭제 여부 (y/n)
