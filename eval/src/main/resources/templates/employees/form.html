@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'employees', ~{}, ~{})}">
+<head>
+    <title th:text="${isNew ? '신규 사원 등록' : '사원 정보 수정'} + ' - EES 사원 평가 시스템'">사원 관리</title>
+</head>
+<body>
+    <div id="page-content" class="container-fluid py-4">
+        <!-- Page Header -->
+        <div class="row align-items-center mb-4">
+            <div class="col-12">
+                <h1 class="fw-bold fs-3 mb-1" th:text="${isNew ? '신규 사원 등록' : '사원 정보 수정'}">사원 관리</h1>
+                <p class="text-muted" th:text="${isNew ? '새로운 사원의 핵심 정보를 입력하여 시스템에 등록합니다.' : '기존 사원의 정보를 업데이트합니다. 부서 및 직급 변경 시 주의하세요.'}"></p>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <!-- Form Card -->
+                <div class="glass-card p-4 p-md-5">
+                    <form th:action="@{${isNew ? '/employees' : '/employees/' + employee.empId()}}" method="post" id="employee-form" class="needs-validation">
+                        
+                        <input type="hidden" th:if="${!isNew}" name="empId" th:value="${employee.empId()}">
+                        <input type="hidden" th:if="${!isNew}" name="version" th:value="${employee.version()}">
+
+                        <div class="row g-4">
+                            <!-- Account Info Section -->
+                            <div class="col-12">
+                                <h5 class="fw-bold text-primary mb-3"><i class="bi bi-person-badge me-2"></i>계정 정보</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6" th:if="${isNew}">
+                                        <label for="username" class="form-label text-muted small fw-semibold">사번 (아이디) <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white" 
+                                               id="username" name="username" required pattern="[a-zA-Z0-9]+" title="영문, 숫자만 입력 가능">
+                                        <div class="form-text text-muted small">로그인 아이디로 사용되며, 등록 후 수정이 불가능합니다.</div>
+                                    </div>
+                                    <div class="col-md-6" th:if="${!isNew}">
+                                        <label class="form-label text-muted small fw-semibold">사번 (아이디)</label>
+                                        <input type="text" class="form-control bg-dark bg-opacity-10 border-0 text-white-50" 
+                                               th:value="${employee.username()}" readonly disabled>
+                                    </div>
+
+                                    <div class="col-md-6" th:if="${isNew}">
+                                        <label for="password" class="form-label text-muted small fw-semibold">초기 비밀번호 <span class="text-danger">*</span></label>
+                                        <input type="password" class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white" 
+                                               id="password" name="password" required minlength="4">
+                                        <div class="form-text text-muted small">최초 로그인 시 사용할 비밀번호를 입력하세요.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="border-secondary opacity-25 my-4">
+
+                            <!-- Basic Info Section -->
+                            <div class="col-12">
+                                <h5 class="fw-bold text-primary mb-3"><i class="bi bi-card-text me-2"></i>기본 정보</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="name" class="form-label text-muted small fw-semibold">성명 <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white" 
+                                               id="name" name="name" th:value="${employee.name()}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="email" class="form-label text-muted small fw-semibold">이메일 <span class="text-danger">*</span></label>
+                                        <input type="email" class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white" 
+                                               id="email" name="email" th:value="${employee.email()}" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="border-secondary opacity-25 my-4">
+
+                            <!-- HR Info Section -->
+                            <div class="col-12">
+                                <h5 class="fw-bold text-primary mb-3"><i class="bi bi-briefcase me-2"></i>인사 정보</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="deptId" class="form-label text-muted small fw-semibold">소속 부서 <span class="text-danger">*</span></label>
+                                        <select id="deptId" name="deptId" class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white" required>
+                                            <option value="">부서 선택</option>
+                                            <option th:each="dept : ${departments}" 
+                                                    th:value="${dept.deptId()}" 
+                                                    th:text="${dept.deptName()}"
+                                                    th:selected="${employee.deptId() == dept.deptId()}">
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="positionId" class="form-label text-muted small fw-semibold">직급 <span class="text-danger">*</span></label>
+                                        <select id="positionId" name="positionId" class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white" required>
+                                            <option value="">직급 선택</option>
+                                            <option th:each="pos : ${positions}" 
+                                                    th:value="${pos.positionId()}" 
+                                                    th:text="${pos.positionName()}"
+                                                    th:selected="${employee.positionId() == pos.positionId()}">
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="hireDate" class="form-label text-muted small fw-semibold">입사일 <span class="text-danger">*</span></label>
+                                        <input type="date" class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white" 
+                                               id="hireDate" name="hireDate" th:value="${employee.hireDate() != null ? #temporals.format(employee.hireDate(), 'yyyy-MM-dd') : ''}" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Role Info Section (Only for New Employee) -->
+                            <th:block th:if="${isNew}">
+                                <hr class="border-secondary opacity-25 my-4">
+                                <div class="col-12">
+                                    <h5 class="fw-bold text-primary mb-3"><i class="bi bi-shield-lock me-2"></i>초기 권한 설정</h5>
+                                    <div class="p-3 bg-dark bg-opacity-25 border border-secondary border-opacity-25 rounded-3">
+                                        <div class="form-text text-muted small mb-3">
+                                            시스템 접근 권한을 설정합니다. 관리자 권한 부여 시 주의해 주세요.<br>
+                                            (기본 정보 등록 이후 별도의 권한 관리 메뉴에서 수정 가능합니다.)
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-4">
+                                            <div class="form-check" th:each="role : ${roles}">
+                                                <input class="form-check-input bg-dark border-secondary" type="checkbox" name="roleIds" th:value="${role.roleId()}" th:id="'role-' + ${role.roleId()}">
+                                                <label class="form-check-label text-white-50" th:for="'role-' + ${role.roleId()}">
+                                                    <span th:text="${role.roleName() == 'ROLE_ADMIN' ? '관리자 (ADMIN)' : (role.roleName() == 'ROLE_MANAGER' ? '매니저 (MANAGER)' : '일반 사원 (USER)')}"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </th:block>
+
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-end gap-2 mt-5">
+                            <a th:href="@{/employees}" class="btn btn-outline-secondary px-4">취소</a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi" th:classappend="${isNew ? 'bi-plus-circle me-2' : 'bi-save me-2'}"></i>
+                                <span th:text="${isNew ? '등록하기' : '수정하기'}"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
