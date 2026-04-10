@@ -43,3 +43,14 @@ values (1, 1, 'retired_user', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00D
 
 insert into employee_roles (emp_id, role_id, is_deleted, version, created_at, created_by)
 values (2, 3, 'n', 0, getdate(), 1);
+
+-- 평가 차수 시드 데이터
+insert into evaluation_periods (period_year, period_name, status_code, start_date, end_date, is_deleted, version, created_at, created_by)
+values (2026, N'2026년 상반기 평가', 'IN_PROGRESS', '2026-04-01', '2026-06-30', 'n', 0, getdate(), 1);
+
+insert into evaluation_periods (period_year, period_name, status_code, start_date, end_date, is_deleted, version, created_at, created_by)
+values (2026, N'2026년 하반기 평가', 'PLANNED', '2026-07-01', '2026-12-31', 'n', 0, getdate(), 1);
+
+insert into evaluation_periods (period_year, period_name, status_code, start_date, end_date, is_deleted, version, created_at, created_by)
+values (2025, N'2025년 하반기 평가', 'COMPLETED', '2025-07-01', '2025-12-31', 'n', 0, getdate(), 1);
+
