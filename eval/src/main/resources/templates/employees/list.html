@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'employees', ~{}, ~{::#page-scripts})}">
+<head>
+    <title>사원 관리 - EES 사원 평가 시스템</title>
+</head>
+<body>
+    <div id="page-content" class="container-fluid py-4">
+
+        <!-- Page Header -->
+        <div class="row align-items-center mb-4">
+            <div class="col-md-8">
+                <h1 class="fw-bold fs-3 mb-1">사원 관리</h1>
+                <p class="text-muted">사원의 기본 정보, 부서, 직급 및 재직 상태를 등록하고 관리합니다.</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a th:href="@{/employees/new}" class="btn btn-primary px-4" id="btn-new-employee">
+                    <i class="bi bi-person-plus-fill me-2"></i>신규 사원 등록
+                </a>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}"
+             class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show"
+             role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${errorMessage}"
+             class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show"
+             role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="glass-card p-3 d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width:46px;height:46px;background:rgba(99,102,241,0.15);">
+                        <i class="bi bi-people-fill text-primary fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">전체 사원 수</div>
+                        <div class="fw-bold fs-4" th:text="${employees.size()}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-3 d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width:46px;height:46px;background:rgba(16,185,129,0.15);">
+                        <i class="bi bi-person-check-fill text-success fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">재직 중</div>
+                        <div class="fw-bold fs-4" th:text="${activeCount}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-3 d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width:46px;height:46px;background:rgba(245,158,11,0.15);">
+                        <i class="bi bi-person-badge-fill text-warning fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">올해 입사자</div>
+                        <div class="fw-bold fs-4" th:text="${thisYearHired}">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Filter Card -->
+        <div class="glass-card p-4 mb-4">
+            <form th:action="@{/employees}" method="get" id="search-form">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="searchName" class="form-label text-muted small fw-semibold">사원 성명</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-secondary border-opacity-50">
+                                <i class="bi bi-search text-muted"></i>
+                            </span>
+                            <input type="text" id="searchName" name="searchName"
+                                   class="form-control bg-transparent border-secondary border-opacity-50"
+                                   placeholder="이름으로 검색..."
+                                   th:value="${searchName}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="searchDeptId" class="form-label text-muted small fw-semibold">부서</label>
+                        <select id="searchDeptId" name="searchDeptId"
+                                class="form-select bg-transparent border-secondary border-opacity-50">
+                            <option value="">전체 부서</option>
+                            <option th:each="dept : ${departments}"
+                                    th:value="${dept.deptId()}"
+                                    th:text="${dept.deptName()}"
+                                    th:selected="${searchDeptId != null && searchDeptId == dept.deptId()}">
+                                부서명
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="searchStatus" class="form-label text-muted small fw-semibold">재직 상태</label>
+                        <select id="searchStatus" name="searchStatus"
+                                class="form-select bg-transparent border-secondary border-opacity-50">
+                            <option value="">전체</option>
+                            <option value="ACTIVE" th:selected="${searchStatus == 'ACTIVE'}">재직</option>
+                            <option value="LEAVE" th:selected="${searchStatus == 'LEAVE'}">휴직</option>
+                            <option value="RETIRED" th:selected="${searchStatus == 'RETIRED'}">퇴사</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1" id="btn-search">
+                            <i class="bi bi-search me-1"></i>검색
+                        </button>
+                        <a th:href="@{/employees}" class="btn btn-outline-secondary" id="btn-reset-search" title="초기화">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Employee Table -->
+        <div class="glass-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted small">
+                    총 <strong th:text="${employees.size()}" class="text-white">0</strong>명의 사원이 조회되었습니다.
+                </span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-dark-custom align-middle mb-0" id="employee-table">
+                    <thead>
+                        <tr class="text-muted small border-bottom border-secondary opacity-50">
+                            <th class="py-3">사번</th>
+                            <th class="py-3">성명</th>
+                            <th class="py-3">부서</th>
+                            <th class="py-3">직급</th>
+                            <th class="py-3">이메일</th>
+                            <th class="py-3">입사일</th>
+                            <th class="py-3 text-center">권한</th>
+                            <th class="py-3 text-center">재직 상태</th>
+                            <th class="py-3 text-center">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 데이터 없을 경우 안내 문구 -->
+                        <tr th:if="${#lists.isEmpty(employees)}">
+                            <td colspan="9" class="text-center text-muted py-5">
+                                <i class="bi bi-people fs-1 d-block mb-3 opacity-50"></i>
+                                등록된 사원이 없습니다. 신규 사원을 등록해 주세요.
+                            </td>
+                        </tr>
+                        <!-- 사원 목록 반복 출력 -->
+                        <tr th:each="emp : ${employees}" th:id="'emp-' + ${emp.empId()}">
+                            <!-- 사번 -->
+                            <td class="py-3">
+                                <span class="badge bg-secondary bg-opacity-20 text-secondary fw-normal px-2 py-1"
+                                      th:text="${emp.username()}">EMP001</span>
+                            </td>
+                            <!-- 성명 + 아바타 -->
+                            <td class="py-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold small"
+                                         style="width:34px;height:34px;background:rgba(99,102,241,0.2);color:#818cf8;flex-shrink:0;"
+                                         th:text="${emp.name() != null && !emp.name().isEmpty()} ? ${emp.name().substring(0,1)} : '?'">
+                                        홍
+                                    </div>
+                                    <span class="fw-semibold" th:text="${emp.name()}">홍길동</span>
+                                </div>
+                            </td>
+                            <!-- 부서 -->
+                            <td class="py-3">
+                                <span th:if="${emp.deptId() != null}" class="text-muted small">
+                                    <!-- 부서명은 JOIN이 필요하므로 deptId 기반으로 표시, 실 연동 시 deptName 필드 추가 권장 -->
+                                    <i class="bi bi-building me-1 opacity-50"></i>
+                                    <span th:text="'부서 #' + ${emp.deptId()}">개발팀</span>
+                                </span>
+                                <span th:unless="${emp.deptId() != null}" class="text-muted small">-</span>
+                            </td>
+                            <!-- 직급 -->
+                            <td class="py-3">
+                                <span th:if="${emp.positionName() != null}"
+                                      class="badge bg-primary bg-opacity-10 text-primary fw-normal px-3 py-2"
+                                      th:text="${emp.positionName()}">대리</span>
+                                <span th:unless="${emp.positionName() != null}" class="text-muted small">-</span>
+                            </td>
+                            <!-- 이메일 -->
+                            <td class="py-3 text-muted small" th:text="${emp.email() != null ? emp.email() : '-'}">
+                                hong@example.com
+                            </td>
+                            <!-- 입사일 -->
+                            <td class="py-3 text-muted small"
+                                th:text="${emp.hireDate() != null} ? ${#temporals.format(emp.hireDate(), 'yyyy-MM-dd')} : '-'">
+                                2024-01-01
+                            </td>
+                            <!-- 권한 배지 -->
+                            <td class="py-3 text-center">
+                                <div class="d-flex flex-wrap gap-1 justify-content-center">
+                                    <span th:if="${emp.roleNames() == null || emp.roleNames().isEmpty()}"
+                                          class="text-muted small">-</span>
+                                    <span th:each="role : ${emp.roleNames()}"
+                                          class="badge fw-normal px-2 py-1"
+                                          th:classappend="${role == 'ROLE_ADMIN'} ? 'bg-danger bg-opacity-15 text-danger' :
+                                                          (${role == 'ROLE_MANAGER'} ? 'bg-warning bg-opacity-15 text-warning' :
+                                                          'bg-secondary bg-opacity-15 text-secondary')"
+                                          th:text="${role == 'ROLE_ADMIN'} ? '관리자' :
+                                                   (${role == 'ROLE_MANAGER'} ? '매니저' : '사원')">
+                                        사원
+                                    </span>
+                                </div>
+                            </td>
+                            <!-- 재직 상태 -->
+                            <td class="py-3 text-center">
+                                <span class="badge fw-normal px-3 py-2"
+                                      th:classappend="${emp.isDeleted() == 'y'} ? 'bg-danger bg-opacity-15 text-danger' : 'bg-success bg-opacity-15 text-success'"
+                                      th:text="${emp.isDeleted() == 'y'} ? '퇴사' : '재직'">
+                                    재직
+                                </span>
+                            </td>
+                            <!-- 관리 버튼 -->
+                            <td class="py-3 text-center">
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <!-- 수정 버튼 -->
+                                    <a th:href="@{'/employees/' + ${emp.empId()} + '/edit'}"
+                                       class="btn btn-sm btn-outline-light px-2" title="정보 수정"
+                                       th:id="'btn-edit-' + ${emp.empId()}">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <!-- 비밀번호 초기화 버튼 -->
+                                    <form th:action="@{'/employees/' + ${emp.empId()} + '/reset-password'}"
+                                          method="post" class="d-inline"
+                                          th:id="'form-reset-' + ${emp.empId()}">
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-warning px-2" title="비밀번호 초기화"
+                                                th:id="'btn-reset-pw-' + ${emp.empId()}"
+                                                onclick="return confirm('비밀번호를 초기화 하시겠습니까?\n초기 비밀번호는 사번과 동일하게 설정됩니다.')">
+                                            <i class="bi bi-key-fill"></i>
+                                        </button>
+                                    </form>
+                                    <!-- 퇴사 처리(소프트 삭제) 버튼 -->
+                                    <form th:action="@{'/employees/' + ${emp.empId()} + '/delete'}"
+                                          method="post" class="d-inline"
+                                          th:id="'form-delete-' + ${emp.empId()}">
+                                        <button type="submit"
+                                                class="btn btn-sm px-2"
+                                                th:classappend="${emp.isDeleted() == 'y'} ? 'btn-outline-secondary disabled' : 'btn-outline-danger'"
+                                                th:title="${emp.isDeleted() == 'y'} ? '이미 퇴사 처리됨' : '퇴사 처리'"
+                                                th:id="'btn-delete-' + ${emp.empId()}"
+                                                th:onclick="${emp.isDeleted() != 'y'} ? 'return confirm(\'' + ${emp.name()} + '\' 사원을 퇴사 처리하시겠습니까?)' : 'return false'">
+                                            <i class="bi bi-person-x-fill"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 안내 카드 -->
+        <div class="glass-card p-4 mt-4 bg-primary bg-opacity-10 border-primary border-opacity-25">
+            <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-info-circle me-2"></i>사원 관리 규칙</h6>
+            <ul class="text-muted small mb-0 ps-3">
+                <li>사번(로그인 ID)은 등록 후 변경할 수 없습니다.</li>
+                <li>퇴사 처리된 사원은 시스템 로그인이 즉시 차단됩니다.</li>
+                <li>퇴사 처리는 실제 데이터를 제거하지 않는 소프트 삭제 방식입니다.</li>
+                <li>비밀번호 초기화 시 초기 비밀번호는 사번과 동일하게 설정됩니다.</li>
+                <li>부서장으로 지정된 사원의 부서 변경 시 부서장 권한이 자동으로 해제됩니다.</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <!-- Page Scripts -->
+    <div id="page-scripts">
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // 알림 메시지 5초 후 자동 닫기
+                document.querySelectorAll('.alert-dismissible').forEach(function (alert) {
+                    setTimeout(function () {
+                        const btn = alert.querySelector('.btn-close');
+                        if (btn) btn.click();
+                    }, 5000);
+                });
+
+                // 클라이언트 사이드 실시간 검색 필터링
+                const searchInput = document.getElementById('searchName');
+                const tableRows = document.querySelectorAll('#employee-table tbody tr[id^="emp-"]');
+
+                if (searchInput) {
+                    searchInput.addEventListener('input', function () {
+                        const keyword = this.value.toLowerCase().trim();
+                        tableRows.forEach(function (row) {
+                            const nameCell = row.querySelector('td:nth-child(2)');
+                            const usernameCell = row.querySelector('td:nth-child(1)');
+                            const nameText = nameCell ? nameCell.textContent.toLowerCase() : '';
+                            const usernameText = usernameCell ? usernameCell.textContent.toLowerCase() : '';
+                            row.style.display = (nameText.includes(keyword) || usernameText.includes(keyword)) ? '' : 'none';
+                        });
+                    });
+                }
+            });
+        </script>
+    </div>
+</body>
+</html>
