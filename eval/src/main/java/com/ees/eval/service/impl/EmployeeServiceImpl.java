@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -51,12 +52,17 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional(readOnly = true)
     public EmployeeDTO getEmployeeByUsername(String username) {
         // 1. username 기반 사원 조회 (Spring Security 인증 연계)
-        Employee employee = employeeMapper.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("사원을 찾을 수 없습니다. username: " + username));
-
-        // 2. 권한 목록 조회 후 DTO 변환
-        List<String> roleNames = employeeMapper.findRoleNamesByEmpId(employee.getEmpId());
-        return convertToDto(employee, roleNames);
+        try {
+            Long empId = Long.parseLong(username);
+            Employee employee = employeeMapper.findByIdForAuth(empId)
+                    .orElseThrow(() -> new IllegalArgumentException("사원을 찾을 수 없습니다. empId: " + empId));
+            
+            // 2. 권한 목록 조회 후 DTO 변환
+            List<String> roleNames = employeeMapper.findRoleNamesByEmpId(employee.getEmpId());
+            return convertToDto(employee, roleNames);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("사원 번호 형식이 잘못되었습니다. 숫자만 입력 가능합니다.");
+        }
     }
 
     /**
@@ -89,6 +95,12 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 3. 감사 필드 초기화 (is_deleted='n', version=0, created_at 등)
         employee.prePersist();
+        if (employee.getStatusCode() == null || employee.getStatusCode().isBlank()) {
+            employee.setStatusCode("EMPLOYED");
+        }
+        if (employee.getLoginFailCnt() == null) {
+            employee.setLoginFailCnt(0);
+        }
 
         // 4. employees 테이블에 삽입
         employeeMapper.insert(employee);
@@ -145,20 +157,33 @@ public class EmployeeServiceImpl implements EmployeeService {
      */
     @Override
     @Transactional(readOnly = true)
-    public boolean authenticate(String username, String rawPassword) {
-        // 1. username으로 사원 조회 (없으면 인증 실패)
-        Employee employee = employeeMapper.findByUsername(username).orElse(null);
-        if (employee == null) {
+    public boolean authenticate(String loginId, String rawPassword) {
+        Long empId;
+        try {
+            empId = Long.parseLong(loginId);
+        } catch (NumberFormatException e) {
             return false;
         }
-
-        // 2. 재직 중이 아닌 경우(퇴사, 휴직 등) 인증 거부 (노션 요구사항 반영)
-        if (!"EMPLOYED".equalsIgnoreCase(employee.getStatusCode())) {
-            return false;
+        Optional<Employee> optionalEmp = employeeMapper.findByIdForAuth(empId);
+        if (optionalEmp.isPresent()) {
+            Employee employee = optionalEmp.get();
+            // 계정 잠금 또는 이미 퇴사된 경우엔 로그인 실패 처리 (필요에 따라 예외 던질 수 있음)
+            if ("RETIRED".equalsIgnoreCase(employee.getStatusCode())) {
+                return false;
+            }
+            if (employee.getLoginFailCnt() != null && employee.getLoginFailCnt() >= 5) {
+                return false;
+            }
+            
+            return passwordEncoder.matches(rawPassword, employee.getPassword());
         }
+        return false;
+    }
 
-        // 3. BCryptPasswordEncoder.matches()로 평문 비밀번호와 해시값 비교
-        return passwordEncoder.matches(rawPassword, employee.getPassword());
+    @Override
+    @Transactional(readOnly = true)
+    public Long getNextEmpId() {
+        return employeeMapper.getNextEmpId();
     }
 
     /**
@@ -189,7 +214,6 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .empId(employee.getEmpId())
                 .deptId(employee.getDeptId())
                 .positionId(employee.getPositionId())
-                .username(employee.getUsername())
                 .password(null) // 비밀번호는 외부 노출하지 않음
                 .name(employee.getName())
                 .email(employee.getEmail())
@@ -218,7 +242,6 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .empId(dto.empId())
                 .deptId(dto.deptId())
                 .positionId(dto.positionId())
-                .username(dto.username())
                 .password(dto.password())
                 .name(dto.name())
                 .email(dto.email())

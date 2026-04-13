@@ -16,6 +16,12 @@ import java.util.Optional;
 public interface EmployeeMapper {
 
     /**
+     * 다음에 발급될 사원 번호를 미리 조회합니다.
+     * @return 예상되는 다음 사원 번호
+     */
+    Long getNextEmpId();
+
+    /**
      * 사원 ID를 기반으로 사원 정보를 조회합니다. (positions JOIN 포함)
      *
      * @param empId 조회할 사원 식별자
@@ -24,22 +30,22 @@ public interface EmployeeMapper {
     Optional<Employee> findById(Long empId);
 
     /**
-     * 로그인 아이디(username)로 사원 정보를 조회합니다.
+     * 로그인 아이디(empId)로 사원 정보를 조회합니다.
      * Spring Security 인증 시 사용됩니다.
      *
-     * @param username 조회할 로그인 아이디
+     * @param empId 조회할 사번
      * @return 사원 엔티티를 담은 Optional 객체
      */
-    Optional<Employee> findByUsername(String username);
+    Optional<Employee> findByIdForAuth(Long empId);
 
     /**
-     * 삭제(퇴사) 여부와 관계없이 로그인 아이디로 사원을 조회합니다.
+     * 삭제(퇴사) 여부와 관계없이 사번으로 사원을 조회합니다.
      * 퇴사자 로그인 시도 시 구체적인 안내를 제공하기 위해 사용됩니다.
      *
-     * @param username 조회할 로그인 아이디
+     * @param empId 조회할 사번
      * @return 사원 엔티티를 담은 Optional 객체
      */
-    Optional<Employee> findByUsernameIncludeDeleted(String username);
+    Optional<Employee> findByIdIncludeDeleted(Long empId);
 
     /**
      * 삭제되지 않은 모든 사원 목록을 조회합니다.
@@ -96,10 +102,20 @@ public interface EmployeeMapper {
      * 특정 사원을 논리적으로 삭제(Soft Delete) 처리합니다.
      *
      * @param empId 삭제 처리할 사원 식별자
-     * @param updatedBy 수정한 사용자 ID
+     * @param updatedBy 수정한 사용자 편집자 ID
      * @param updatedAt 수정 시각
      * @return 업데이트된 행의 수
      */
     int softDelete(@Param("empId") Long empId, @Param("updatedBy") Long updatedBy,
                    @Param("updatedAt") LocalDateTime updatedAt);
+
+    /**
+     * 로그인 실패 횟수 증가
+     */
+    int incrementLoginFailCnt(Long empId);
+
+    /**
+     * 로그인 실패 횟수 초기화
+     */
+    int resetLoginFailCnt(Long empId);
 }

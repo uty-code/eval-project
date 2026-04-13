@@ -28,7 +28,8 @@
         <div th:if="${param.error}" class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger small mb-4">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             <span th:if="${#strings.equals(param.error, 'retired')}">퇴사 처리된 계정입니다.</span>
-            <span th:unless="${#strings.equals(param.error, 'retired')}">아이디 또는 비밀번호가 올바르지 않습니다.</span>
+            <span th:if="${#strings.equals(param.error, 'locked')}">5회 이상 틀렸습니다. 관리자에게 문의해주세요</span>
+            <span th:unless="${#strings.equals(param.error, 'retired') or #strings.equals(param.error, 'locked')}">아이디 또는 비밀번호가 올바르지 않습니다.</span>
         </div>
 
         <!-- 로그아웃 메시지 처리 -->

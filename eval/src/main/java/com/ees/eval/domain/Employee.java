@@ -26,9 +26,6 @@ public class Employee extends BaseEntity {
     /** 직급 식별자 (FK -> positions) */
     private Long positionId;
 
-    /** 로그인용 사용자 아이디 (unique) */
-    private String username;
-
     /** BCrypt로 암호화된 비밀번호 */
     private String password;
 
@@ -44,6 +41,9 @@ public class Employee extends BaseEntity {
     /** 재직 상태 (예: EMPLOYED, RETIRED) */
     private String statusCode;
 
+    /** 로그인 실패 횟수 (5회 오류 시 잠금) */
+    private Integer loginFailCnt;
+
     /** 입사일 */
     private LocalDate hireDate;
 
@@ -53,24 +53,25 @@ public class Employee extends BaseEntity {
      * @param empId 사원 ID
      * @param deptId 부서 ID
      * @param positionId 직급 ID
-     * @param username 로그인 아이디
      * @param password 암호화된 비밀번호
      * @param name 사원 이름
      * @param email 이메일
+     * @param statusCode 재직 상태
+     * @param loginFailCnt 로그인 실패 횟수
      * @param hireDate 입사일
      */
     @Builder
-    public Employee(Long empId, Long deptId, Long positionId, String username,
-                    String password, String name, String email, String phone, String statusCode, LocalDate hireDate) {
+    public Employee(Long empId, Long deptId, Long positionId,
+                    String password, String name, String email, String phone, String statusCode, Integer loginFailCnt, LocalDate hireDate) {
         this.empId = empId;
         this.deptId = deptId;
         this.positionId = positionId;
-        this.username = username;
         this.password = password;
         this.name = name;
         this.email = email;
         this.phone = phone;
         this.statusCode = statusCode;
+        this.loginFailCnt = loginFailCnt;
         this.hireDate = hireDate;
     }
 }

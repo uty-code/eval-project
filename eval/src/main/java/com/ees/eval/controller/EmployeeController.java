@@ -94,6 +94,7 @@ public class EmployeeController {
         model.addAttribute("departments", departmentService.getAllDepartments());
         model.addAttribute("positions", positionService.getAllPositions());
         model.addAttribute("roles", roleService.getAllRoles());
+        model.addAttribute("nextEmpId", employeeService.getNextEmpId());
         model.addAttribute("isNew", true);
         return "employees/form";
     }
@@ -115,7 +116,6 @@ public class EmployeeController {
      */
     @PostMapping
     public String createEmployee(
-            @RequestParam("username") String username,
             @RequestParam("name") String name,
             @RequestParam("email") String email,
             @RequestParam("deptId") Long deptId,
@@ -127,7 +127,6 @@ public class EmployeeController {
         try {
             // DTO 빌드 후 서비스 계층 호출 (비밀번호 암호화는 ServiceImpl에서 처리)
             EmployeeDTO dto = EmployeeDTO.builder()
-                    .username(username)
                     .name(name)
                     .email(email)
                     .deptId(deptId)
@@ -136,9 +135,9 @@ public class EmployeeController {
                     .password(password)
                     .build();
 
-            employeeService.registerEmployee(dto, roleIds != null ? roleIds : List.of());
+            EmployeeDTO savedDto = employeeService.registerEmployee(dto, roleIds != null ? roleIds : List.of());
             redirectAttributes.addFlashAttribute("successMessage",
-                    "'" + name + "' 사원이 성공적으로 등록되었습니다.");
+                    "'" + name + "' 사원이 성공적으로 등록되었습니다. 발급된 사번은 [" + savedDto.empId() + "] 입니다.");
         } catch (Exception e) {
             log.error("사원 등록 실패: {}", e.getMessage());
             redirectAttributes.addFlashAttribute("errorMessage",
@@ -254,7 +253,7 @@ public class EmployeeController {
             EmployeeDTO employee = employeeService.getEmployeeById(empId);
             EmployeeDTO resetDto = EmployeeDTO.builder()
                     .empId(empId)
-                    .password(employee.username()) // 초기 비밀번호: 사번과 동일
+                    .password(String.valueOf(empId)) // 초기 비밀번호: 사번과 동일
                     .version(employee.version())
                     .build();
             employeeService.updateEmployee(resetDto);
