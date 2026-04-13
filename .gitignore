@@ -1,19 +1,19 @@
 # EES Project Root .gitignore
- 
- # Project specific files
- project_plan.md
- notion_plan.md
- task.md
- Untitled.pdf
- .agents/
- 
- # Maven/Java (eval project)
- eval/target/
- eval/.mvn/wrapper/maven-wrapper.jar
- eval/*.iml
- 
- # IDE
- .idea/
- .vscode/
- *.swp
- *.log
+
+# Project specific files
+project_plan.md
+notion_plan.md
+task.md
+Untitled.pdf
+.agents/
+
+# Maven/Java (eval project)
+eval/target/
+eval/.mvn/wrapper/maven-wrapper.jar
+eval/*.iml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.log
