@@ -1,19 +1,41 @@
-# EES Project Root .gitignore
+# [EES Project] Root .gitignore
 
-# Project specific files
+# 1. Project Plans & Agent Data
 project_plan.md
 notion_plan.md
 task.md
 Untitled.pdf
 .agents/
 
-# Maven/Java (eval project)
+# 2. Java/SpringBoot (eval project)
 eval/target/
+eval/HELP.md
 eval/.mvn/wrapper/maven-wrapper.jar
-eval/*.iml
+!eval/**/src/main/**/target/
+!eval/**/src/test/**/target/
+eval/build/
+!eval/**/src/main/**/build/
+!eval/**/src/test/**/build/
 
-# IDE
+# 3. IDE & Editors
 .idea/
 .vscode/
-*.swp
+*.iml
+*.ipr
+*.iws
+.settings/
+.classpath
+.project
+.factorypath
+.apt_generated
+.springBeans
+.sts4-cache
+
+# 4. Others
 *.log
+bin/
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
