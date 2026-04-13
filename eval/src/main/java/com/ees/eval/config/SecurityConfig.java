@@ -35,7 +35,7 @@ public class SecurityConfig {
     }
 
     /**
-     * HTTP 보안 필터 체인을 설정합니다. 
+     * HTTP 보안 필터 체인을 설정합니다.
      * 초기 개발 단계에서는 편의를 위해 모든 요청을 허용(permitAll)하도록 구성되어 있습니다.
      *
      * @param http HttpSecurity 설정 객체
@@ -45,28 +45,25 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // 초기 개발 단계에서는 CSRF 비활성화
-            .authorizeHttpRequests(auth -> auth
-                // 정적 리소스 및 로그인 페이지는 누구나 접근 가능
-                .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
-                .requestMatchers("/login", "/error").permitAll()
-                // 그 외 모든 요청은 인증 필요
-                .anyRequest().authenticated()
-            )
-            .formLogin(form -> form
-                .loginPage("/login")             // 커스텀 로그인 페이지 경로
-                .defaultSuccessUrl("/dashboard", true)   // 로그인 성공 시 이동할 기본 경로
-                .failureHandler(authenticationFailureHandler) // 커스텀 실패 처리기 등록
-                .permitAll()
-            )
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login?logout")
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
-                .permitAll()
-            );
-        
+                .csrf(csrf -> csrf.disable()) // 초기 개발 단계에서는 CSRF 비활성화
+                .authorizeHttpRequests(auth -> auth
+                        // 정적 리소스 및 로그인 페이지는 누구나 접근 가능
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+                        .requestMatchers("/login", "/error").permitAll()
+                        // 그 외 모든 요청은 인증 필요
+                        .anyRequest().authenticated())
+                .formLogin(form -> form
+                        .loginPage("/login") // 커스텀 로그인 페이지 경로
+                        .defaultSuccessUrl("/dashboard", true) // 로그인 성공 시 이동할 기본 경로
+                        .failureHandler(authenticationFailureHandler) // 커스텀 실패 처리기 등록
+                        .permitAll())
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
+                        .permitAll());
+
         return http.build();
     }
 }

@@ -29,7 +29,7 @@ public class MainController {
      * @param model Thymeleaf 모델 객체
      * @return dashboard.html 템플릿 경로
      */
-    @GetMapping("/")
+    @GetMapping({"/", "/dashboard"})
     public String dashboard(Model model) {
         // 1. 기초 통계 데이터 - 실제 DB에서 조회
         model.addAttribute("employeeCount", employeeService.getAllEmployees().size());
