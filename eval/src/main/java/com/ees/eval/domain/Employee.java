@@ -38,6 +38,12 @@ public class Employee extends BaseEntity {
     /** 이메일 주소 */
     private String email;
 
+    /** 핸드폰 번호 */
+    private String phone;
+
+    /** 재직 상태 (예: EMPLOYED, RETIRED) */
+    private String statusCode;
+
     /** 입사일 */
     private LocalDate hireDate;
 
@@ -55,7 +61,7 @@ public class Employee extends BaseEntity {
      */
     @Builder
     public Employee(Long empId, Long deptId, Long positionId, String username,
-                    String password, String name, String email, LocalDate hireDate) {
+                    String password, String name, String email, String phone, String statusCode, LocalDate hireDate) {
         this.empId = empId;
         this.deptId = deptId;
         this.positionId = positionId;
@@ -63,6 +69,8 @@ public class Employee extends BaseEntity {
         this.password = password;
         this.name = name;
         this.email = email;
+        this.phone = phone;
+        this.statusCode = statusCode;
         this.hireDate = hireDate;
     }
 }

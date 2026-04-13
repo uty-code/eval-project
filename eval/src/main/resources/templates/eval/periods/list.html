@@ -1,11 +1,13 @@
 <html xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'periods', ~{}, ~{::#page-scripts})}">
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'periods', ~{}, ~{::#page-scripts})}">
+
 <head>
     <title>평가 차수 설정 - EES 사원 평가 시스템</title>
 </head>
+
 <body>
 
-    <div id="page-content" class="container-fluid py-4">
+    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark">
         <!-- Page Header -->
         <div class="row align-items-center mb-4">
             <div class="col-md-8">
@@ -20,12 +22,16 @@
         </div>
 
         <!-- Flash Messages -->
-        <div th:if="${successMessage}" class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show" role="alert">
+        <div th:if="${successMessage}"
+            class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show"
+            role="alert">
             <i class="bi bi-check-circle-fill me-2"></i>
             <span th:text="${successMessage}"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-        <div th:if="${errorMessage}" class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show" role="alert">
+        <div th:if="${errorMessage}"
+            class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show"
+            role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             <span th:text="${errorMessage}"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -62,16 +68,20 @@
                             <td class="py-3">
                                 <!-- 상태 배지 렌더링 -->
                                 <span th:switch="${period.statusCode()}">
-                                    <span th:case="'PLANNED'" class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-3 py-2">
+                                    <span th:case="'PLANNED'"
+                                        class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-3 py-2">
                                         <i class="bi bi-clock me-1"></i>계획
                                     </span>
-                                    <span th:case="'IN_PROGRESS'" class="badge bg-primary bg-opacity-10 text-primary fw-normal px-3 py-2">
+                                    <span th:case="'IN_PROGRESS'"
+                                        class="badge bg-primary bg-opacity-10 text-primary fw-normal px-3 py-2">
                                         <i class="bi bi-play-circle me-1"></i>진행 중
                                     </span>
-                                    <span th:case="'COMPLETED'" class="badge bg-success bg-opacity-10 text-success fw-normal px-3 py-2">
+                                    <span th:case="'COMPLETED'"
+                                        class="badge bg-success bg-opacity-10 text-success fw-normal px-3 py-2">
                                         <i class="bi bi-check-circle me-1"></i>완료
                                     </span>
-                                    <span th:case="'CLOSED'" class="badge bg-dark bg-opacity-25 text-white-50 fw-normal px-3 py-2">
+                                    <span th:case="'CLOSED'"
+                                        class="badge bg-dark bg-opacity-25 text-white-50 fw-normal px-3 py-2">
                                         <i class="bi bi-lock me-1"></i>마감
                                     </span>
                                 </span>
@@ -80,48 +90,48 @@
                                 <div class="d-flex gap-1 justify-content-center">
                                     <!-- 수정 버튼 (PLANNED 상태만) -->
                                     <a th:if="${period.statusCode() == 'PLANNED'}"
-                                       th:href="@{'/eval/periods/' + ${period.periodId()} + '/edit'}"
-                                       class="btn btn-sm btn-outline-light px-2" title="수정">
+                                        th:href="@{'/eval/periods/' + ${period.periodId()} + '/edit'}"
+                                        class="btn btn-sm btn-outline-light px-2" title="수정">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
 
                                     <!-- 상태 전이 버튼 -->
                                     <form th:if="${period.statusCode() == 'PLANNED'}"
-                                          th:action="@{'/eval/periods/' + ${period.periodId()} + '/transition'}"
-                                          method="post" class="d-inline">
+                                        th:action="@{'/eval/periods/' + ${period.periodId()} + '/transition'}"
+                                        method="post" class="d-inline">
                                         <input type="hidden" name="newStatus" value="IN_PROGRESS">
-                                        <button type="submit" class="btn btn-sm btn-outline-primary px-2"
-                                                title="평가 시작" onclick="return confirm('이 차수를 진행 상태로 변경하시겠습니까?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-primary px-2" title="평가 시작"
+                                            onclick="return confirm('이 차수를 진행 상태로 변경하시겠습니까?');">
                                             <i class="bi bi-play-fill"></i>
                                         </button>
                                     </form>
 
                                     <form th:if="${period.statusCode() == 'IN_PROGRESS'}"
-                                          th:action="@{'/eval/periods/' + ${period.periodId()} + '/transition'}"
-                                          method="post" class="d-inline">
+                                        th:action="@{'/eval/periods/' + ${period.periodId()} + '/transition'}"
+                                        method="post" class="d-inline">
                                         <input type="hidden" name="newStatus" value="COMPLETED">
-                                        <button type="submit" class="btn btn-sm btn-outline-success px-2"
-                                                title="평가 완료" onclick="return confirm('이 차수를 완료 상태로 변경하시겠습니까?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-success px-2" title="평가 완료"
+                                            onclick="return confirm('이 차수를 완료 상태로 변경하시겠습니까?');">
                                             <i class="bi bi-check-lg"></i>
                                         </button>
                                     </form>
 
                                     <form th:if="${period.statusCode() == 'COMPLETED'}"
-                                          th:action="@{'/eval/periods/' + ${period.periodId()} + '/transition'}"
-                                          method="post" class="d-inline">
+                                        th:action="@{'/eval/periods/' + ${period.periodId()} + '/transition'}"
+                                        method="post" class="d-inline">
                                         <input type="hidden" name="newStatus" value="CLOSED">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning px-2"
-                                                title="차수 마감" onclick="return confirm('이 차수를 마감하시겠습니까? 마감 후 변경이 불가능합니다.');">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning px-2" title="차수 마감"
+                                            onclick="return confirm('이 차수를 마감하시겠습니까? 마감 후 변경이 불가능합니다.');">
                                             <i class="bi bi-lock"></i>
                                         </button>
                                     </form>
 
                                     <!-- 삭제 버튼 (PLANNED 상태만) -->
                                     <form th:if="${period.statusCode() == 'PLANNED'}"
-                                          th:action="@{'/eval/periods/' + ${period.periodId()} + '/delete'}"
-                                          method="post" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger px-2"
-                                                title="삭제" onclick="return confirm('이 차수를 삭제하시겠습니까?');">
+                                        th:action="@{'/eval/periods/' + ${period.periodId()} + '/delete'}" method="post"
+                                        class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="삭제"
+                                            onclick="return confirm('이 차수를 삭제하시겠습니까?');">
                                             <i class="bi bi-trash3"></i>
                                         </button>
                                     </form>
@@ -153,10 +163,10 @@
     <div id="page-scripts">
         <script>
             // 알림 메시지 자동 꺼짐 (5초)
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', function () {
                 const alerts = document.querySelectorAll('.alert-dismissible');
-                alerts.forEach(function(alert) {
-                    setTimeout(function() {
+                alerts.forEach(function (alert) {
+                    setTimeout(function () {
                         const closeBtn = alert.querySelector('.btn-close');
                         if (closeBtn) closeBtn.click();
                     }, 5000);
@@ -166,4 +176,5 @@
     </div>
 
 </body>
+
 </html>

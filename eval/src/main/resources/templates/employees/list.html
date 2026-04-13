@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'employees', ~{}, ~{::#page-scripts})}">
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'employees', ~{}, ~{::#page-scripts})}">
+
 <head>
     <title>사원 관리 - EES 사원 평가 시스템</title>
 </head>
+
 <body>
-    <div id="page-content" class="container-fluid py-4">
+    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark">
 
         <!-- Page Header -->
         <div class="row align-items-center mb-4">
@@ -22,15 +24,15 @@
 
         <!-- Flash Messages -->
         <div th:if="${successMessage}"
-             class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show"
-             role="alert">
+            class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show"
+            role="alert">
             <i class="bi bi-check-circle-fill me-2"></i>
             <span th:text="${successMessage}"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         <div th:if="${errorMessage}"
-             class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show"
-             role="alert">
+            class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show"
+            role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             <span th:text="${errorMessage}"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -41,7 +43,7 @@
             <div class="col-md-4">
                 <div class="glass-card p-3 d-flex align-items-center gap-3">
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
-                         style="width:46px;height:46px;background:rgba(99,102,241,0.15);">
+                        style="width:46px;height:46px;background:rgba(99,102,241,0.15);">
                         <i class="bi bi-people-fill text-primary fs-5"></i>
                     </div>
                     <div>
@@ -53,7 +55,7 @@
             <div class="col-md-4">
                 <div class="glass-card p-3 d-flex align-items-center gap-3">
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
-                         style="width:46px;height:46px;background:rgba(16,185,129,0.15);">
+                        style="width:46px;height:46px;background:rgba(16,185,129,0.15);">
                         <i class="bi bi-person-check-fill text-success fs-5"></i>
                     </div>
                     <div>
@@ -65,7 +67,7 @@
             <div class="col-md-4">
                 <div class="glass-card p-3 d-flex align-items-center gap-3">
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
-                         style="width:46px;height:46px;background:rgba(245,158,11,0.15);">
+                        style="width:46px;height:46px;background:rgba(245,158,11,0.15);">
                         <i class="bi bi-person-badge-fill text-warning fs-5"></i>
                     </div>
                     <div>
@@ -87,20 +89,18 @@
                                 <i class="bi bi-search text-muted"></i>
                             </span>
                             <input type="text" id="searchName" name="searchName"
-                                   class="form-control bg-transparent border-secondary border-opacity-50"
-                                   placeholder="이름으로 검색..."
-                                   th:value="${searchName}">
+                                class="form-control bg-transparent border-secondary border-opacity-50"
+                                placeholder="이름으로 검색..." th:value="${searchName}">
                         </div>
                     </div>
                     <div class="col-md-3">
                         <label for="searchDeptId" class="form-label text-muted small fw-semibold">부서</label>
                         <select id="searchDeptId" name="searchDeptId"
-                                class="form-select bg-transparent border-secondary border-opacity-50">
+                            class="form-select bg-transparent border-secondary border-opacity-50">
                             <option value="">전체 부서</option>
-                            <option th:each="dept : ${departments}"
-                                    th:value="${dept.deptId()}"
-                                    th:text="${dept.deptName()}"
-                                    th:selected="${searchDeptId != null && searchDeptId == dept.deptId()}">
+                            <option th:each="dept : ${departments}" th:value="${dept.deptId()}"
+                                th:text="${dept.deptName()}"
+                                th:selected="${searchDeptId != null && searchDeptId == dept.deptId()}">
                                 부서명
                             </option>
                         </select>
@@ -108,7 +108,7 @@
                     <div class="col-md-3">
                         <label for="searchStatus" class="form-label text-muted small fw-semibold">재직 상태</label>
                         <select id="searchStatus" name="searchStatus"
-                                class="form-select bg-transparent border-secondary border-opacity-50">
+                            class="form-select bg-transparent border-secondary border-opacity-50">
                             <option value="">전체</option>
                             <option value="ACTIVE" th:selected="${searchStatus == 'ACTIVE'}">재직</option>
                             <option value="LEAVE" th:selected="${searchStatus == 'LEAVE'}">휴직</option>
@@ -143,6 +143,7 @@
                             <th class="py-3">부서</th>
                             <th class="py-3">직급</th>
                             <th class="py-3">이메일</th>
+                            <th class="py-3">핸드폰 번호</th>
                             <th class="py-3">입사일</th>
                             <th class="py-3 text-center">권한</th>
                             <th class="py-3 text-center">재직 상태</th>
@@ -152,7 +153,7 @@
                     <tbody>
                         <!-- 데이터 없을 경우 안내 문구 -->
                         <tr th:if="${#lists.isEmpty(employees)}">
-                            <td colspan="9" class="text-center text-muted py-5">
+                            <td colspan="10" class="text-center text-muted py-5">
                                 <i class="bi bi-people fs-1 d-block mb-3 opacity-50"></i>
                                 등록된 사원이 없습니다. 신규 사원을 등록해 주세요.
                             </td>
@@ -161,15 +162,15 @@
                         <tr th:each="emp : ${employees}" th:id="'emp-' + ${emp.empId()}">
                             <!-- 사번 -->
                             <td class="py-3">
-                                <span class="badge bg-secondary bg-opacity-20 text-secondary fw-normal px-2 py-1"
-                                      th:text="${emp.username()}">EMP001</span>
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2 py-1"
+                                    th:text="${emp.username()}">EMP001</span>
                             </td>
                             <!-- 성명 + 아바타 -->
                             <td class="py-3">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold small"
-                                         style="width:34px;height:34px;background:rgba(99,102,241,0.2);color:#818cf8;flex-shrink:0;"
-                                         th:text="${emp.name() != null && !emp.name().isEmpty()} ? ${emp.name().substring(0,1)} : '?'">
+                                        style="width:34px;height:34px;background:rgba(99,102,241,0.2);color:#818cf8;flex-shrink:0;"
+                                        th:text="${emp.name() != null && !emp.name().isEmpty()} ? ${emp.name().substring(0,1)} : '?'">
                                         홍
                                     </div>
                                     <span class="fw-semibold" th:text="${emp.name()}">홍길동</span>
@@ -187,13 +188,17 @@
                             <!-- 직급 -->
                             <td class="py-3">
                                 <span th:if="${emp.positionName() != null}"
-                                      class="badge bg-primary bg-opacity-10 text-primary fw-normal px-3 py-2"
-                                      th:text="${emp.positionName()}">대리</span>
+                                    class="badge bg-primary bg-opacity-10 text-primary fw-normal px-3 py-2"
+                                    th:text="${emp.positionName()}">대리</span>
                                 <span th:unless="${emp.positionName() != null}" class="text-muted small">-</span>
                             </td>
                             <!-- 이메일 -->
                             <td class="py-3 text-muted small" th:text="${emp.email() != null ? emp.email() : '-'}">
                                 hong@example.com
+                            </td>
+                            <!-- 연락처 -->
+                            <td class="py-3 text-muted small" th:text="${emp.phone() != null ? emp.phone() : '-'}">
+                                010-0000-0000
                             </td>
                             <!-- 입사일 -->
                             <td class="py-3 text-muted small"
@@ -204,13 +209,11 @@
                             <td class="py-3 text-center">
                                 <div class="d-flex flex-wrap gap-1 justify-content-center">
                                     <span th:if="${emp.roleNames() == null || emp.roleNames().isEmpty()}"
-                                          class="text-muted small">-</span>
-                                    <span th:each="role : ${emp.roleNames()}"
-                                          class="badge fw-normal px-2 py-1"
-                                          th:classappend="${role == 'ROLE_ADMIN'} ? 'bg-danger bg-opacity-15 text-danger' :
+                                        class="text-muted small">-</span>
+                                    <span th:each="role : ${emp.roleNames()}" class="badge fw-normal px-2 py-1"
+                                        th:classappend="${role == 'ROLE_ADMIN'} ? 'bg-danger bg-opacity-10 text-danger' :
                                                           (${role == 'ROLE_MANAGER'} ? 'bg-warning bg-opacity-15 text-warning' :
-                                                          'bg-secondary bg-opacity-15 text-secondary')"
-                                          th:text="${role == 'ROLE_ADMIN'} ? '관리자' :
+                                                          'bg-secondary bg-opacity-25 text-light')" th:text="${role == 'ROLE_ADMIN'} ? '관리자' :
                                                    (${role == 'ROLE_MANAGER'} ? '매니저' : '사원')">
                                         사원
                                     </span>
@@ -219,8 +222,8 @@
                             <!-- 재직 상태 -->
                             <td class="py-3 text-center">
                                 <span class="badge fw-normal px-3 py-2"
-                                      th:classappend="${emp.isDeleted() == 'y'} ? 'bg-danger bg-opacity-15 text-danger' : 'bg-success bg-opacity-15 text-success'"
-                                      th:text="${emp.isDeleted() == 'y'} ? '퇴사' : '재직'">
+                                    th:classappend="${emp.statusCode() == 'RETIRED'} ? 'bg-danger bg-opacity-10 text-danger' : (${emp.statusCode() == 'ON_LEAVE'} ? 'bg-warning bg-opacity-10 text-warning' : 'bg-success bg-opacity-10 text-success')"
+                                    th:text="${emp.statusCode() == 'RETIRED'} ? '퇴사' : (${emp.statusCode() == 'ON_LEAVE'} ? '휴직' : '재직')">
                                     재직
                                 </span>
                             </td>
@@ -229,31 +232,27 @@
                                 <div class="d-flex gap-1 justify-content-center">
                                     <!-- 수정 버튼 -->
                                     <a th:href="@{'/employees/' + ${emp.empId()} + '/edit'}"
-                                       class="btn btn-sm btn-outline-light px-2" title="정보 수정"
-                                       th:id="'btn-edit-' + ${emp.empId()}">
+                                        class="btn btn-sm btn-outline-light px-2" title="정보 수정"
+                                        th:id="'btn-edit-' + ${emp.empId()}">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
                                     <!-- 비밀번호 초기화 버튼 -->
                                     <form th:action="@{'/employees/' + ${emp.empId()} + '/reset-password'}"
-                                          method="post" class="d-inline"
-                                          th:id="'form-reset-' + ${emp.empId()}">
-                                        <button type="submit"
-                                                class="btn btn-sm btn-outline-warning px-2" title="비밀번호 초기화"
-                                                th:id="'btn-reset-pw-' + ${emp.empId()}"
-                                                onclick="return confirm('비밀번호를 초기화 하시겠습니까?\n초기 비밀번호는 사번과 동일하게 설정됩니다.')">
+                                        method="post" class="d-inline" th:id="'form-reset-' + ${emp.empId()}">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning px-2"
+                                            title="비밀번호 초기화" th:id="'btn-reset-pw-' + ${emp.empId()}"
+                                            onclick="return confirm('비밀번호를 초기화 하시겠습니까?\n초기 비밀번호는 사번과 동일하게 설정됩니다.')">
                                             <i class="bi bi-key-fill"></i>
                                         </button>
                                     </form>
                                     <!-- 퇴사 처리(소프트 삭제) 버튼 -->
-                                    <form th:action="@{'/employees/' + ${emp.empId()} + '/delete'}"
-                                          method="post" class="d-inline"
-                                          th:id="'form-delete-' + ${emp.empId()}">
-                                        <button type="submit"
-                                                class="btn btn-sm px-2"
-                                                th:classappend="${emp.isDeleted() == 'y'} ? 'btn-outline-secondary disabled' : 'btn-outline-danger'"
-                                                th:title="${emp.isDeleted() == 'y'} ? '이미 퇴사 처리됨' : '퇴사 처리'"
-                                                th:id="'btn-delete-' + ${emp.empId()}"
-                                                th:onclick="${emp.isDeleted() != 'y'} ? 'return confirm(\'' + ${emp.name()} + '\' 사원을 퇴사 처리하시겠습니까?)' : 'return false'">
+                                    <form th:action="@{'/employees/' + ${emp.empId()} + '/delete'}" method="post"
+                                        class="d-inline" th:id="'form-delete-' + ${emp.empId()}">
+                                        <button type="submit" class="btn btn-sm px-2"
+                                            th:classappend="${emp.statusCode() == 'RETIRED'} ? 'btn-outline-secondary disabled' : 'btn-outline-danger'"
+                                            th:title="${emp.statusCode() == 'RETIRED'} ? '이미 퇴사 처리됨' : '퇴사 처리'"
+                                            th:data-confirm-msg="|${emp.name()} 사원을 퇴사 처리하시겠습니까?|"
+                                            th:onclick="${emp.statusCode() != 'RETIRED'} ? 'return confirm(this.getAttribute(\'data-confirm-msg\'))' : 'return false'">
                                             <i class="bi bi-person-x-fill"></i>
                                         </button>
                                     </form>
@@ -311,4 +310,5 @@
         </script>
     </div>
 </body>
+
 </html>

@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+ 
+ ### EES Custom ###
+ .agents/
+ notion_plan.md
+ project_plan.md
+ task.md
+ Untitled.pdf

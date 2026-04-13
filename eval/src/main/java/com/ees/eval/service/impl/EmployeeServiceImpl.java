@@ -152,8 +152,8 @@ public class EmployeeServiceImpl implements EmployeeService {
             return false;
         }
 
-        // 2. 논리적 삭제(퇴사 등) 상태인 경우 인증 거부 (노션 요구사항 반영)
-        if ("y".equalsIgnoreCase(employee.getIsDeleted())) {
+        // 2. 재직 중이 아닌 경우(퇴사, 휴직 등) 인증 거부 (노션 요구사항 반영)
+        if (!"EMPLOYED".equalsIgnoreCase(employee.getStatusCode())) {
             return false;
         }
 
@@ -193,6 +193,8 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .password(null) // 비밀번호는 외부 노출하지 않음
                 .name(employee.getName())
                 .email(employee.getEmail())
+                .phone(employee.getPhone())
+                .statusCode(employee.getStatusCode())
                 .hireDate(employee.getHireDate())
                 .positionName(null) // 추후 별도 조회 시 채움
                 .roleNames(roleNames != null ? roleNames : Collections.emptyList())
@@ -220,6 +222,8 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .password(dto.password())
                 .name(dto.name())
                 .email(dto.email())
+                .phone(dto.phone())
+                .statusCode(dto.statusCode())
                 .hireDate(dto.hireDate())
                 .build();
         employee.setIsDeleted(dto.isDeleted());

@@ -42,9 +42,9 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "해당 아이디의 사원을 찾을 수 없습니다: " + username));
 
-        // 1.1 퇴사자 체크
-        if ("y".equalsIgnoreCase(employee.getIsDeleted())) {
-            throw new EmployeeRetiredException("퇴사 처리된 계정입니다.");
+        // 1.1 재직 상태 체크 (재직 중인 사원만 로그인 허용)
+        if (!"EMPLOYED".equalsIgnoreCase(employee.getStatusCode())) {
+            throw new EmployeeRetiredException("재직 중인 사원만 로그인할 수 있습니다.");
         }
 
         // 2. employee_roles + roles 테이블을 JOIN하여 권한명 목록 조회
