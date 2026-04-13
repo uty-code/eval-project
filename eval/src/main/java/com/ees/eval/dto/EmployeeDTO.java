@@ -13,7 +13,6 @@ import java.util.List;
  * @param empId        사원 고유 식별자
  * @param deptId       소속 부서 ID
  * @param positionId   직급 ID
- * @param username     로그인용 사용자 아이디
  * @param password     BCrypt 암호화된 비밀번호 (조회 시 일반적으로 null 처리)
  * @param name         사원 성명
  * @param email        이메일 주소
@@ -33,7 +32,6 @@ public record EmployeeDTO(
                 Long empId,
                 Long deptId,
                 Long positionId,
-                String username,
                 String password,
                 String name,
                 String email,

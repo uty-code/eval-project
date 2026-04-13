@@ -4,14 +4,14 @@
 
 -- 부서 기초 데이터
 insert into departments
-    (dept_name, is_deleted, version, created_at, created_by)
+    (dept_id, dept_name, is_deleted, version, created_at, created_by)
 values
-    (N'경영지원팀', 'n', 0, getdate(), 1);
+    (1, N'경영지원팀', 'n', 0, getdate(), 1);
 
 insert into departments
-    (dept_name, is_deleted, version, created_at, created_by)
+    (dept_id, dept_name, is_deleted, version, created_at, created_by)
 values
-    (N'개발팀', 'n', 0, getdate(), 1);
+    (2, N'개발팀', 'n', 0, getdate(), 1);
 
 -- 직급 기초 데이터
 insert into positions
@@ -47,9 +47,9 @@ values
 
 -- 기본 관리자 사원 데이터 (비밀번호: admin123)
 insert into employees
-    (dept_id, position_id, username, password, name, email, phone, status_code, hire_date, is_deleted, version, created_at, created_by)
+    (dept_id, position_id, password, name, email, phone, status_code, hire_date, is_deleted, version, created_at, created_by)
 values
-    (1, 3, 'admin', '$2a$10$6rmAcp4KBNF47Qjr3XgWHuUI1glNR0LavyzPSY78BqlOiASJDzsom', N'시스템관리자', 'admin@ees.com', '010-1234-5678', 'EMPLOYED', '2020-01-01', 'n', 0, getdate(), 1);
+    (1, 3, '$2a$10$6rmAcp4KBNF47Qjr3XgWHuUI1glNR0LavyzPSY78BqlOiASJDzsom', N'시스템관리자', 'admin@ees.com', '010-1234-5678', 'EMPLOYED', '2020-01-01', 'n', 0, getdate(), 1);
 
 -- 관리자 권한 부여
 insert into employee_roles
@@ -57,16 +57,7 @@ insert into employee_roles
 values
     (1000, 1, 'n', 0, getdate(), 1);
 
--- 퇴사자 테스트 데이터 (비밀번호: user123)
-insert into employees
-    (dept_id, position_id, username, password, name, email, phone, status_code, hire_date, is_deleted, version, created_at, created_by)
-values
-    (1, 1, 'retired_user', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DM95wS5F90O.', N'퇴사자', 'retired@ees.com', '010-9876-5432', 'RETIRED', '2019-01-01', 'n', 0, getdate(), 1);
 
-insert into employee_roles
-    (emp_id, role_id, is_deleted, version, created_at, created_by)
-values
-    (1001, 3, 'n', 0, getdate(), 1);
 
 -- 평가 차수 시드 데이터
 insert into evaluation_periods

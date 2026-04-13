@@ -1,6 +1,7 @@
--- MSSQL EES 전체 테이블 생성 스크립트 (소문자 및 락 기본 정책 반영)
-
 -- 이전 테이블 존재 시 삭제 로직 (순서: 종속성의 역순)
+-- 부서장 FK 제약조건 먼저 삭제 (employees 삭제를 지원하기 위함)
+IF OBJECT_ID('departments', 'U') IS NOT NULL ALTER TABLE departments DROP CONSTRAINT IF EXISTS fk_dept_manager;
+
 drop table if exists final_grades;
 drop table if exists evidences;
 drop table if exists interviews;
@@ -19,8 +20,7 @@ drop table if exists common_codes;
 -- ==========================================
 -- 1. 기초 시스템 데이터
 -- ==========================================
-create table common_codes
-(
+create table common_codes (
     code_id bigint identity(1,1) primary key,
     group_code varchar(50) not null,
     code_value varchar(50) not null,
@@ -34,8 +34,7 @@ create table common_codes
     updated_by bigint
 );
 
-create table positions
-(
+create table positions (
     position_id bigint identity(1,1) primary key,
     position_name nvarchar(50) not null,
     hierarchy_level int not null,
@@ -48,8 +47,7 @@ create table positions
     updated_by bigint
 );
 
-create table roles
-(
+create table roles (
     role_id bigint identity(1,1) primary key,
     role_name varchar(50) not null,
     description nvarchar(255),
@@ -64,11 +62,11 @@ create table roles
 -- ==========================================
 -- 2. 조직 및 사용자
 -- ==========================================
-create table departments
-(
-    dept_id bigint identity(1,1) primary key,
-    parent_dept_id bigint,
+create table departments (
+    dept_id bigint primary key, -- 1000, 1100, 1110 등 수동 입력 위해 identity 제거
+    parent_dept_id bigint, -- 트리 구조 구현
     dept_name nvarchar(100) not null,
+    manager_id bigint, -- 부서장 1명 지정 요구사항
     is_deleted char(1) default 'n',
     version int default 0,
     created_at datetime default getdate(),
@@ -78,17 +76,16 @@ create table departments
     foreign key (parent_dept_id) references departments(dept_id)
 );
 
-create table employees
-(
+create table employees (
     emp_id bigint identity(1000,1) primary key,
     dept_id bigint not null,
     position_id bigint not null,
-    username varchar(100) not null unique,
     password varchar(255) not null,
     name nvarchar(50) not null,
     email varchar(255),
-    phone varchar(20),
-    status_code varchar(20) not null,
+    phone varchar(50),
+    status_code varchar(20) default 'employed', -- 재직/휴직/퇴사 상태 관리
+    login_fail_cnt int default 0, -- 5회 오류 시 잠금 로직용
     hire_date date,
     is_deleted char(1) default 'n',
     version int default 0,
@@ -100,8 +97,10 @@ create table employees
     foreign key (position_id) references positions(position_id)
 );
 
-create table employee_roles
-(
+-- 부서장 사번 FK 설정
+alter table departments add constraint fk_dept_manager foreign key (manager_id) references employees(emp_id);
+
+create table employee_roles (
     emp_id bigint not null,
     role_id bigint not null,
     is_deleted char(1) default 'n',
@@ -118,8 +117,7 @@ create table employee_roles
 -- ==========================================
 -- 3. 평가 기준 및 매핑
 -- ==========================================
-create table evaluation_periods
-(
+create table evaluation_periods (
     period_id bigint identity(1,1) primary key,
     period_year int not null,
     period_name nvarchar(100) not null,
@@ -134,8 +132,7 @@ create table evaluation_periods
     updated_by bigint
 );
 
-create table evaluation_elements
-(
+create table evaluation_elements (
     element_id bigint identity(1,1) primary key,
     period_id bigint not null,
     element_type_code varchar(50) not null,
@@ -151,8 +148,7 @@ create table evaluation_elements
     foreign key (period_id) references evaluation_periods(period_id)
 );
 
-create table evaluator_mappings
-(
+create table evaluator_mappings (
     mapping_id bigint identity(1,1) primary key,
     period_id bigint not null,
     evaluatee_id bigint not null,
@@ -172,12 +168,12 @@ create table evaluator_mappings
 -- ==========================================
 -- 4. 평가 수행
 -- ==========================================
-create table evaluations
-(
+create table evaluations (
     eval_id bigint identity(1,1) primary key,
     mapping_id bigint not null,
     element_id bigint not null,
     score decimal(5,2),
+    comments nvarchar(max), -- 텍스트 피드백/수행과정 기록용
     is_deleted char(1) default 'n',
     version int default 0,
     created_at datetime default getdate(),
@@ -188,8 +184,7 @@ create table evaluations
     foreign key (element_id) references evaluation_elements(element_id)
 );
 
-create table evaluation_histories
-(
+create table evaluation_histories (
     history_id bigint identity(1,1) primary key,
     eval_id bigint not null,
     old_score decimal(5,2),
@@ -204,8 +199,7 @@ create table evaluation_histories
     foreign key (eval_id) references evaluations(eval_id)
 );
 
-create table interviews
-(
+create table interviews (
     interview_id bigint identity(1,1) primary key,
     mapping_id bigint not null,
     content nvarchar(max),
@@ -219,8 +213,7 @@ create table interviews
     foreign key (mapping_id) references evaluator_mappings(mapping_id)
 );
 
-create table evidences
-(
+create table evidences (
     evidence_id bigint identity(1,1) primary key,
     eval_id bigint not null,
     file_name nvarchar(255) not null,
@@ -238,8 +231,7 @@ create table evidences
 -- ==========================================
 -- 5. 결과 확정
 -- ==========================================
-create table final_grades
-(
+create table final_grades (
     grade_id bigint identity(1,1) primary key,
     period_id bigint not null,
     emp_id bigint not null,

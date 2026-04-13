@@ -46,7 +46,6 @@ class EmployeeServiceTest {
         EmployeeDTO dto = EmployeeDTO.builder()
                 .deptId(1L)        // data.sql에 삽입된 경영지원팀
                 .positionId(1L)    // data.sql에 삽입된 사원 직급
-                .username("testuser")
                 .password("myPassword123!")
                 .name("홍길동")
                 .email("hong@ees.com")
@@ -58,7 +57,7 @@ class EmployeeServiceTest {
 
         // then: 저장 결과 검증
         assertThat(saved.empId()).isNotNull();
-        assertThat(saved.username()).isEqualTo("testuser");
+        assertThat(saved.name()).isEqualTo("테스트유저");
         assertThat(saved.name()).isEqualTo("홍길동");
         assertThat(saved.password()).isNull(); // DTO에는 비밀번호가 노출되지 않아야 함
         assertThat(saved.isDeleted()).isEqualTo("n");
@@ -79,25 +78,28 @@ class EmployeeServiceTest {
         // given: 사원 등록
         EmployeeDTO dto = EmployeeDTO.builder()
                 .deptId(1L).positionId(1L)
-                .username("logintest")
-                .password("securePass!99")
+                .password("plain_login_pass")
                 .name("김인증")
                 .email("kim@ees.com")
                 .hireDate(LocalDate.of(2026, 1, 15))
                 .build();
-        employeeService.registerEmployee(dto, List.of(3L)); // ROLE_USER
+        EmployeeDTO savedEmp = employeeService.registerEmployee(dto, List.of(3L)); // ROLE_USER
+        String empIdStr = String.valueOf(savedEmp.empId());
 
         // when & then: 올바른 비밀번호로 인증 성공
-        boolean success = employeeService.authenticate("logintest", "securePass!99");
+        boolean success = employeeService.authenticate(empIdStr, "plain_login_pass");
         assertThat(success).isTrue();
 
         // when & then: 틀린 비밀번호로 인증 실패
-        boolean failure = employeeService.authenticate("logintest", "wrongPassword");
+        boolean failure = employeeService.authenticate(empIdStr, "wrongPassword");
         assertThat(failure).isFalse();
 
-        // when & then: 존재하지 않는 아이디로 인증 실패
-        boolean notFound = employeeService.authenticate("nosuchuser", "securePass!99");
+        // when & then: 존재하지 않는 아이디로 인증 실패 (NumberFormatException catch 확인 포함)
+        boolean notFound = employeeService.authenticate("999999", "plain_login_pass");
         assertThat(notFound).isFalse();
+        
+        boolean notFoundStr = employeeService.authenticate("nosuchuser", "plain_login_pass");
+        assertThat(notFoundStr).isFalse();
     }
 
     /**
@@ -110,8 +112,7 @@ class EmployeeServiceTest {
         // given: 사원 등록
         EmployeeDTO dto = EmployeeDTO.builder()
                 .deptId(1L).positionId(1L)
-                .username("locktest")
-                .password("lockPass123")
+                .password("raw_password_123")
                 .name("박충돌")
                 .email("park@ees.com")
                 .hireDate(LocalDate.of(2025, 6, 1))
@@ -125,7 +126,7 @@ class EmployeeServiceTest {
         // then: 첫 번째 트랜잭션 수정 성공
         EmployeeDTO updatedTx1 = EmployeeDTO.builder()
                 .empId(tx1.empId()).deptId(tx1.deptId()).positionId(tx1.positionId())
-                .username(tx1.username()).name("수정성공")
+                .name("수정성공")
                 .email(tx1.email()).hireDate(tx1.hireDate())
                 .isDeleted(tx1.isDeleted()).version(tx1.version())
                 .createdAt(tx1.createdAt()).createdBy(tx1.createdBy())
@@ -135,7 +136,7 @@ class EmployeeServiceTest {
         // then: 두 번째 트랜잭션 수정 시도 → 버전 충돌 예외 발생
         EmployeeDTO updatedTx2 = EmployeeDTO.builder()
                 .empId(tx2.empId()).deptId(tx2.deptId()).positionId(tx2.positionId())
-                .username(tx2.username()).name("충돌예정")
+                .name("충돌예정")
                 .email(tx2.email()).hireDate(tx2.hireDate())
                 .isDeleted(tx2.isDeleted()).version(tx2.version())
                 .createdAt(tx2.createdAt()).createdBy(tx2.createdBy())
@@ -153,8 +154,7 @@ class EmployeeServiceTest {
         // given
         EmployeeDTO dto = EmployeeDTO.builder()
                 .deptId(1L).positionId(1L)
-                .username("deletetest")
-                .password("delPass123")
+                .password("deletePass")
                 .name("이삭제")
                 .email("lee@ees.com")
                 .hireDate(LocalDate.of(2025, 9, 1))

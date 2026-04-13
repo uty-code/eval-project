@@ -9,12 +9,12 @@
             e.emp_id       as EMP_ID,
             e.dept_id      as DEPT_ID,
             e.position_id  as POSITION_ID,
-            e.username     as USERNAME,
             e.password     as PASSWORD,
             e.name         as NAME,
             e.email        as EMAIL,
             e.phone        as PHONE,
             e.status_code  as STATUS_CODE,
+            e.login_fail_cnt as LOGIN_FAIL_CNT,
             e.hire_date    as HIRE_DATE,
             e.is_deleted   as IS_DELETED,
             e.version      as VERSION,
@@ -27,18 +27,18 @@
           and e.is_deleted = 'n'
     </select>
 
-    <!-- 로그인 아이디(username)로 사원 조회 (Spring Security 인증용) -->
-    <select id="findByUsername" resultType="com.ees.eval.domain.Employee">
+    <!-- 로그인 아이디(emp_id)로 사원 조회 (Spring Security 인증용) -->
+    <select id="findByIdForAuth" resultType="com.ees.eval.domain.Employee">
         select
             e.emp_id       as EMP_ID,
             e.dept_id      as DEPT_ID,
             e.position_id  as POSITION_ID,
-            e.username     as USERNAME,
             e.password     as PASSWORD,
             e.name         as NAME,
             e.email        as EMAIL,
             e.phone        as PHONE,
             e.status_code  as STATUS_CODE,
+            e.login_fail_cnt as LOGIN_FAIL_CNT,
             e.hire_date    as HIRE_DATE,
             e.is_deleted   as IS_DELETED,
             e.version      as VERSION,
@@ -47,22 +47,22 @@
             e.updated_at   as UPDATED_AT,
             e.updated_by   as UPDATED_BY
         from employees e
-        where e.username = #{username}
+        where e.emp_id = #{empId}
           and e.is_deleted = 'n'
     </select>
 
     <!-- 삭제(퇴사) 여부와 무관하게 아이디로 사원 조회 -->
-    <select id="findByUsernameIncludeDeleted" resultType="com.ees.eval.domain.Employee">
+    <select id="findByIdIncludeDeleted" resultType="com.ees.eval.domain.Employee">
         select
             e.emp_id       as EMP_ID,
             e.dept_id      as DEPT_ID,
             e.position_id  as POSITION_ID,
-            e.username     as USERNAME,
             e.password     as PASSWORD,
             e.name         as NAME,
             e.email        as EMAIL,
             e.phone        as PHONE,
             e.status_code  as STATUS_CODE,
+            e.login_fail_cnt as LOGIN_FAIL_CNT,
             e.hire_date    as HIRE_DATE,
             e.is_deleted   as IS_DELETED,
             e.version      as VERSION,
@@ -71,7 +71,7 @@
             e.updated_at   as UPDATED_AT,
             e.updated_by   as UPDATED_BY
         from employees e
-        where e.username = #{username}
+        where e.emp_id = #{empId}
     </select>
 
     <!-- 삭제되지 않은 전체 사원 목록 조회 -->
@@ -80,12 +80,12 @@
             e.emp_id       as EMP_ID,
             e.dept_id      as DEPT_ID,
             e.position_id  as POSITION_ID,
-            e.username     as USERNAME,
             e.password     as PASSWORD,
             e.name         as NAME,
             e.email        as EMAIL,
             e.phone        as PHONE,
             e.status_code  as STATUS_CODE,
+            e.login_fail_cnt as LOGIN_FAIL_CNT,
             e.hire_date    as HIRE_DATE,
             e.is_deleted   as IS_DELETED,
             e.version      as VERSION,
@@ -104,12 +104,12 @@
             e.emp_id       as EMP_ID,
             e.dept_id      as DEPT_ID,
             e.position_id  as POSITION_ID,
-            e.username     as USERNAME,
             e.password     as PASSWORD,
             e.name         as NAME,
             e.email        as EMAIL,
             e.phone        as PHONE,
             e.status_code  as STATUS_CODE,
+            e.login_fail_cnt as LOGIN_FAIL_CNT,
             e.hire_date    as HIRE_DATE,
             e.is_deleted   as IS_DELETED,
             e.version      as VERSION,
@@ -136,11 +136,10 @@
     </select>
 
     <!-- 사원 정보 삽입 -->
-    <insert id="insert" useGeneratedKeys="true" keyProperty="empId">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="empId" keyColumn="emp_id">
         insert into employees (
             dept_id,
             position_id,
-            username,
             password,
             name,
             email,
@@ -154,7 +153,6 @@
         ) values (
             #{deptId},
             #{positionId},
-            #{username},
             #{password},
             #{name},
             #{email},
@@ -214,5 +212,27 @@
         where emp_id   = #{empId}
           and is_deleted = 'n'
     </update>
+
+    <!-- 로그인 실패 횟수 증가 -->
+    <update id="incrementLoginFailCnt">
+        update employees
+        set login_fail_cnt = login_fail_cnt + 1
+        where emp_id = #{empId}
+          and is_deleted = 'n'
+    </update>
+
+    <!-- 로그인 실패 횟수 초기화 -->
+    <update id="resetLoginFailCnt">
+        update employees
+        set login_fail_cnt = 0
+        where emp_id = #{empId}
+          and is_deleted = 'n'
+    </update>
+
+    <!-- 발급 예정 사번 조회 -->
+    <select id="getNextEmpId" resultType="java.lang.Long">
+        SELECT ISNULL(MAX(emp_id), 999) + 1
+        FROM employees
+    </select>
 
 </mapper>

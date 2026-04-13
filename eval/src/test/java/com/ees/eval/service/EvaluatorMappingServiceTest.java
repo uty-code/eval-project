@@ -59,7 +59,7 @@ class EvaluatorMappingServiceTest {
         empIdA = employeeService.registerEmployee(
                 EmployeeDTO.builder()
                         .deptId(1L).positionId(3L) // 과장
-                        .username("manager_a").password("passA!")
+                        .password("passA!")
                         .name("김팀장").email("managerA@ees.com")
                         .hireDate(LocalDate.of(2020, 3, 1)).build(),
                 List.of(2L)).empId(); // ROLE_MANAGER
@@ -68,7 +68,7 @@ class EvaluatorMappingServiceTest {
         empIdB = employeeService.registerEmployee(
                 EmployeeDTO.builder()
                         .deptId(1L).positionId(1L) // 사원
-                        .username("member_b").password("passB!")
+                        .password("passB!")
                         .name("이사원").email("memberB@ees.com")
                         .hireDate(LocalDate.of(2024, 5, 1)).build(),
                 List.of(3L)).empId(); // ROLE_USER
@@ -77,7 +77,7 @@ class EvaluatorMappingServiceTest {
         empIdC = employeeService.registerEmployee(
                 EmployeeDTO.builder()
                         .deptId(1L).positionId(1L)
-                        .username("member_c").password("passC!")
+                        .password("passC!")
                         .name("박사원").email("memberC@ees.com")
                         .hireDate(LocalDate.of(2025, 1, 1)).build(),
                 List.of(3L)).empId();

@@ -239,7 +239,6 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .empId(emp.getEmpId())
                 .deptId(emp.getDeptId())
                 .positionId(emp.getPositionId())
-                .username(emp.getUsername())
                 .password(null) // 비밀번호 외부 노출 방지
                 .name(emp.getName())
                 .email(emp.getEmail())

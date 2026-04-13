@@ -37,8 +37,15 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // 1. employees 테이블에서 username으로 사원 조회 (삭제된 사원 포함)
-        Employee employee = employeeMapper.findByUsernameIncludeDeleted(username)
+        Long empId;
+        try {
+            empId = Long.parseLong(username);
+        } catch (NumberFormatException e) {
+            throw new UsernameNotFoundException("해당 아이디의 사원을 찾을 수 없습니다: " + username);
+        }
+
+        // 1. employees 테이블에서 empId로 사원 조회 (삭제된 사원 포함)
+        Employee employee = employeeMapper.findByIdIncludeDeleted(empId)
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "해당 아이디의 사원을 찾을 수 없습니다: " + username));
 
@@ -56,9 +63,14 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .toList();
 
         // 4. Spring Security의 User 객체로 감싸서 반환 (비밀번호 해시 포함)
+        boolean accountNonLocked = employee.getLoginFailCnt() == null || employee.getLoginFailCnt() < 5;
         return new User(
-                employee.getUsername(),
+                String.valueOf(employee.getEmpId()),
                 employee.getPassword(),
+                true, // enabled
+                true, // accountNonExpired
+                true, // credentialsNonExpired
+                accountNonLocked,
                 authorities);
     }
 }
