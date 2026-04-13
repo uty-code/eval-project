@@ -66,7 +66,24 @@ h4,
     top: 0;
     left: 0;
     padding-top: 5rem;
+    padding-bottom: 2rem;
+    overflow-y: auto;
     transition: all 0.3s ease;
+}
+
+/* Sidebar scrollbar styling */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
 }
 
 .nav-link {
