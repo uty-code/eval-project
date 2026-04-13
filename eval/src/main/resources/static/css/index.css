@@ -22,7 +22,6 @@ body {
     background-color: var(--bg-dark);
     color: var(--text-main);
     margin: 0;
-    overflow-x: hidden;
 }
 
 h1,
@@ -67,7 +66,24 @@ h4,
     top: 0;
     left: 0;
     padding-top: 5rem;
+    padding-bottom: 2rem;
+    overflow-y: auto;
     transition: all 0.3s ease;
+}
+
+/* Sidebar scrollbar styling */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
 }
 
 .nav-link {
@@ -96,6 +112,8 @@ h4,
     margin-left: 280px;
     padding: 6.5rem 2rem 2rem;
     min-height: 100vh;
+    width: calc(100% - 280px); /* Prevent growing beyond screen */
+    overflow-x: auto; /* Scroll horizontally within the main wrapper */
 }
 
 /* Login Page Specific */

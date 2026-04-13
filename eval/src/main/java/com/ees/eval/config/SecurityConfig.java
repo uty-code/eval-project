@@ -55,7 +55,7 @@ public class SecurityConfig {
             )
             .formLogin(form -> form
                 .loginPage("/login")             // 커스텀 로그인 페이지 경로
-                .defaultSuccessUrl("/", true)   // 로그인 성공 시 이동할 기본 경로
+                .defaultSuccessUrl("/dashboard", true)   // 로그인 성공 시 이동할 기본 경로
                 .failureHandler(authenticationFailureHandler) // 커스텀 실패 처리기 등록
                 .permitAll()
             )

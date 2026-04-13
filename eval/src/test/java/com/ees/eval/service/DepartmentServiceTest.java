@@ -99,13 +99,13 @@ class DepartmentServiceTest {
         // given: 해당 부서에 사원 2명 등록
         EmployeeDTO emp1 = EmployeeDTO.builder()
                 .deptId(dept.deptId()).positionId(1L)
-                .username("qa_user1").password("qaPass1!")
+                .password("qaPass1!")
                 .name("테스터1").email("qa1@ees.com")
                 .hireDate(LocalDate.of(2026, 1, 1))
                 .build();
         EmployeeDTO emp2 = EmployeeDTO.builder()
                 .deptId(dept.deptId()).positionId(1L)
-                .username("qa_user2").password("qaPass2!")
+                .password("qaPass2!")
                 .name("테스터2").email("qa2@ees.com")
                 .hireDate(LocalDate.of(2026, 2, 1))
                 .build();
@@ -137,7 +137,7 @@ class DepartmentServiceTest {
 
         EmployeeDTO empDto = EmployeeDTO.builder()
                 .deptId(dept.deptId()).positionId(1L)
-                .username("tmp_user").password("tmpPass!")
+                .password("tmpPass!")
                 .name("임시사원").email("tmp@ees.com")
                 .hireDate(LocalDate.of(2026, 3, 1))
                 .build();

@@ -33,20 +33,18 @@
                             <div class="col-12">
                                 <h5 class="fw-bold text-primary mb-3"><i class="bi bi-person-badge me-2"></i>계정 정보</h5>
                                 <div class="row g-3">
+                                    <!-- 사번 자동 발급 안내 -->
                                     <div class="col-md-6" th:if="${isNew}">
-                                        <label for="username" class="form-label text-muted small fw-semibold">사번 (아이디)
-                                            <span class="text-danger">*</span></label>
+                                        <label class="form-label text-muted small fw-semibold">사번 (아이디)</label>
                                         <input type="text"
-                                            class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
-                                            id="username" name="username" required pattern="[a-zA-Z0-9]+"
-                                            title="영문, 숫자만 입력 가능">
-                                        <div class="form-text text-muted small">로그인 아이디로 사용되며, 등록 후 수정이 불가능합니다.</div>
+                                            class="form-control bg-dark bg-opacity-10 border-0 text-white-50"
+                                            th:value="${nextEmpId} + ' (발급 예정)'" readonly disabled>
                                     </div>
                                     <div class="col-md-6" th:if="${!isNew}">
                                         <label class="form-label text-muted small fw-semibold">사번 (아이디)</label>
                                         <input type="text"
                                             class="form-control bg-dark bg-opacity-10 border-0 text-white-50"
-                                            th:value="${employee.username()}" readonly disabled>
+                                            th:value="${employee.empId()}" readonly disabled>
                                     </div>
 
                                     <div class="col-md-6" th:if="${isNew}">

@@ -39,11 +39,17 @@ public interface EmployeeService {
     /**
      * 신규 사원을 등록합니다. 비밀번호는 BCrypt로 암호화된 후 저장됩니다.
      *
-     * @param employeeDto 등록할 사원 정보 DTO (평문 비밀번호 포함)
-     * @param roleIds 사원에게 부여할 권한 ID 목록
-     * @return 저장된 사원 정보 DTO (비밀번호 제외)
+     * @param dto 등록할 사원 정보 DTO (평문 비밀번호 포함)
+     * @param roleIds 부여할 권한 목록
+     * @return 등록된 사원의 정보를 담은 EmployeeDTO
      */
-    EmployeeDTO registerEmployee(EmployeeDTO employeeDto, List<Long> roleIds);
+    EmployeeDTO registerEmployee(EmployeeDTO dto, List<Long> roleIds);
+
+    /**
+     * 발급 대기 중인 다음 사원 번호를 조회합니다.
+     * @return 다음 사번
+     */
+    Long getNextEmpId();
 
     /**
      * 사원 정보를 수정합니다. 낙관적 락을 통한 동시성 제어가 수행됩니다.

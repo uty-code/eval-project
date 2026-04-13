@@ -38,7 +38,7 @@ class EvaluationSettingTest {
         // given: 차수 생성 (초기 상태 PLANNED)
         EvaluationPeriodDTO dto = EvaluationPeriodDTO.builder()
                 .periodYear(2026)
-                .periodName("2026년 상반기 평가")
+                .periodName("통합테스트용 상반기 평가")
                 .startDate(LocalDate.of(2026, 1, 1))
                 .endDate(LocalDate.of(2026, 6, 30))
                 .build();
@@ -67,7 +67,7 @@ class EvaluationSettingTest {
     void duplicateInProgressTest() {
         // given: 첫 번째 차수를 IN_PROGRESS로 전환
         EvaluationPeriodDTO dto1 = EvaluationPeriodDTO.builder()
-                .periodYear(2026).periodName("상반기 평가")
+                .periodYear(2026).periodName("테스트용 상반기")
                 .startDate(LocalDate.of(2026, 1, 1)).endDate(LocalDate.of(2026, 6, 30))
                 .build();
         EvaluationPeriodDTO saved1 = periodService.createPeriod(dto1);
@@ -75,7 +75,7 @@ class EvaluationSettingTest {
 
         // given: 두 번째 차수 생성
         EvaluationPeriodDTO dto2 = EvaluationPeriodDTO.builder()
-                .periodYear(2026).periodName("하반기 평가")
+                .periodYear(2026).periodName("테스트용 하반기")
                 .startDate(LocalDate.of(2026, 7, 1)).endDate(LocalDate.of(2026, 12, 31))
                 .build();
         EvaluationPeriodDTO saved2 = periodService.createPeriod(dto2);
