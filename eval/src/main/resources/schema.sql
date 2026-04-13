@@ -87,8 +87,10 @@ create table employees
     name nvarchar(50) not null,
     email varchar(255),
     phone varchar(50),
-    status_code varchar(20) default 'employed', -- 재직/휴직/퇴사 상태 관리
-    login_fail_cnt int default 0, -- 5회 오류 시 잠금 로직용
+    status_code varchar(20) default 'employed',
+    -- 재직/휴직/퇴사 상태 관리
+    login_fail_cnt int default 0,
+    -- 5회 오류 시 잠금 로직용
     hire_date date,
     is_deleted char(1) default 'n',
     version int default 0,
@@ -178,7 +180,8 @@ create table evaluations
     mapping_id bigint not null,
     element_id bigint not null,
     score decimal(5,2),
-    comments nvarchar(max), -- 텍스트 피드백/수행과정 기록용
+    comments nvarchar(max),
+    -- 텍스트 피드백/수행과정 기록용
     is_deleted char(1) default 'n',
     version int default 0,
     created_at datetime default getdate(),
