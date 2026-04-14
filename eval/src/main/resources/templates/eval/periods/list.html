@@ -87,20 +87,26 @@
                                 </span>
                             </td>
                             <td class="py-3 text-center">
-                                <div class="d-flex gap-1 justify-content-center">
+                                <div class="d-flex gap-1 justify-content-center align-items-center">
                                     <!-- 수정 버튼 (PLANNED 상태만) -->
-                                    <a th:if="${period.statusCode() == 'PLANNED'}"
-                                        th:href="@{'/eval/periods/' + ${period.periodId()} + '/edit'}"
-                                        class="btn btn-sm btn-outline-light px-2" title="수정">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </a>
+                                    <form th:if="${period.statusCode() == 'PLANNED'}"
+                                        th:action="@{'/eval/periods/' + ${period.periodId()} + '/edit'}" method="get"
+                                        class="d-inline">
+                                        <button type="submit"
+                                            class="btn btn-sm btn-outline-light d-inline-flex align-items-center justify-content-center"
+                                            style="width: 32px; height: 32px;" title="수정">
+                                            <i class="bi bi-pen"></i>
+                                        </button>
+                                    </form>
 
                                     <!-- 상태 전이 버튼 -->
                                     <form th:if="${period.statusCode() == 'PLANNED'}"
                                         th:action="@{'/eval/periods/' + ${period.periodId()} + '/transition'}"
                                         method="post" class="d-inline">
                                         <input type="hidden" name="newStatus" value="IN_PROGRESS">
-                                        <button type="submit" class="btn btn-sm btn-outline-primary px-2" title="평가 시작"
+                                        <button type="submit"
+                                            class="btn btn-sm btn-outline-primary d-inline-flex align-items-center justify-content-center"
+                                            style="width: 32px; height: 32px;" title="평가 시작"
                                             onclick="return confirm('이 차수를 진행 상태로 변경하시겠습니까?');">
                                             <i class="bi bi-play-fill"></i>
                                         </button>
@@ -110,7 +116,9 @@
                                         th:action="@{'/eval/periods/' + ${period.periodId()} + '/transition'}"
                                         method="post" class="d-inline">
                                         <input type="hidden" name="newStatus" value="COMPLETED">
-                                        <button type="submit" class="btn btn-sm btn-outline-success px-2" title="평가 완료"
+                                        <button type="submit"
+                                            class="btn btn-sm btn-outline-success d-inline-flex align-items-center justify-content-center"
+                                            style="width: 32px; height: 32px;" title="평가 완료"
                                             onclick="return confirm('이 차수를 완료 상태로 변경하시겠습니까?');">
                                             <i class="bi bi-check-lg"></i>
                                         </button>
@@ -120,7 +128,9 @@
                                         th:action="@{'/eval/periods/' + ${period.periodId()} + '/transition'}"
                                         method="post" class="d-inline">
                                         <input type="hidden" name="newStatus" value="CLOSED">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning px-2" title="차수 마감"
+                                        <button type="submit"
+                                            class="btn btn-sm btn-outline-warning d-inline-flex align-items-center justify-content-center"
+                                            style="width: 32px; height: 32px;" title="차수 마감"
                                             onclick="return confirm('이 차수를 마감하시겠습니까? 마감 후 변경이 불가능합니다.');">
                                             <i class="bi bi-lock"></i>
                                         </button>
@@ -130,7 +140,9 @@
                                     <form th:if="${period.statusCode() == 'PLANNED'}"
                                         th:action="@{'/eval/periods/' + ${period.periodId()} + '/delete'}" method="post"
                                         class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="삭제"
+                                        <button type="submit"
+                                            class="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center"
+                                            style="width: 32px; height: 32px;" title="삭제"
                                             onclick="return confirm('이 차수를 삭제하시겠습니까?');">
                                             <i class="bi bi-trash3"></i>
                                         </button>
