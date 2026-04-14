@@ -84,7 +84,7 @@
                                         <input type="text"
                                             class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
                                             id="phone" name="phone" th:value="${employee.phone()}"
-                                            placeholder="010-0000-0000" required>
+                                            placeholder="010-0000-0000" pattern="^010-[0-9]{4}-[0-9]{4}$" title="전화번호 양식은 010-0000-0000 이어야 합니다." maxlength="13" required>
                                     </div>
                                 </div>
                             </div>
@@ -192,6 +192,39 @@
             </div>
         </div>
 
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const phoneInput = document.getElementById('phone');
+                if (phoneInput) {
+                    phoneInput.addEventListener('input', function (e) {
+                        // 사용자가 백스페이스로 지울 때는 자동 완성 로직을 건너뜁니다
+                        if (e.inputType === 'deleteContentBackward') {
+                            return;
+                        }
+                        
+                        let value = e.target.value.replace(/[^0-9]/g, '');
+                        let formattedValue = '';
+
+                        if (value.length === 3) {
+                            formattedValue = value + '-';
+                        } else if (value.length > 3 && value.length <= 7) {
+                            formattedValue = value.substring(0, 3) + '-' + value.substring(3);
+                            if (value.length === 7) {
+                                formattedValue += '-';
+                            }
+                        } else if (value.length > 7) {
+                            formattedValue = value.substring(0, 3) + '-' + value.substring(3, 7) + '-' + value.substring(7, 11);
+                        } else {
+                            formattedValue = value;
+                        }
+
+                        if (e.target.value !== formattedValue) {
+                            e.target.value = formattedValue;
+                        }
+                    });
+                }
+            });
+        </script>
     </div>
 </body>
 

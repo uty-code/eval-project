@@ -136,8 +136,12 @@
     </select>
 
     <!-- 사원 정보 삽입 -->
-    <insert id="insert" useGeneratedKeys="true" keyProperty="empId" keyColumn="emp_id">
+    <insert id="insert">
+        <selectKey keyProperty="empId" resultType="java.lang.Long" order="BEFORE">
+            SELECT ISNULL(MAX(emp_id), 999) + 1 FROM employees_51 WITH (UPDLOCK, HOLDLOCK)
+        </selectKey>
         insert into employees_51 (
+            emp_id,
             dept_id,
             position_id,
             password,
@@ -151,6 +155,7 @@
             created_at,
             created_by
         ) values (
+            #{empId},
             #{deptId},
             #{positionId},
             #{password},

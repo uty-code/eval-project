@@ -69,8 +69,9 @@ if not exists (select 1 from departments_51 where dept_name = N'관리부서')
 -- ==========================================
 if not exists (select 1 from employees_51 where email = 'admin@ees.com')
     insert into employees_51
-        (dept_id, position_id, password, name, email, phone, status_code, hire_date, is_deleted, version, created_at, created_by)
+        (emp_id, dept_id, position_id, password, name, email, phone, status_code, hire_date, is_deleted, version, created_at, created_by)
     select
+        1000,
         d.dept_id,
         p.position_id,
         '$2a$10$TplzaryA5s6EJNkOmU9PYeKD3D/QORwO9.3ee/i7TuZR6/17GIzCO',

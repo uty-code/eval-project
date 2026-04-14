@@ -90,7 +90,7 @@ create table departments_51
 
 create table employees_51
 (
-    emp_id bigint identity(1000,1) primary key,
+    emp_id bigint primary key,
     dept_id bigint not null,
     position_id bigint not null,
     password varchar(255) not null,
