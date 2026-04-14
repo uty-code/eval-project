@@ -38,6 +38,7 @@ public record EmployeeDTO(
                 String phone,
                 String statusCode,
                 LocalDate hireDate,
+                String deptName,
                 String positionName,
                 List<String> roleNames,
                 String isDeleted,

@@ -1,6 +1,15 @@
 -- MSSQL EES 전체 테이블 생성 스크립트 (소문자 및 락 기본 정책 반영)
 
 -- 이전 테이블 존재 시 삭제 로직 (순서: 종속성의 역순)
+-- 모든 외래 키 제약 조건 먼저 삭제 (개발 환경에서의 스키마 초기화 안정성 확보)
+EXEC sp_executesql N'
+DECLARE @drop_constraints_sql NVARCHAR(MAX) = N'''';
+SELECT @drop_constraints_sql += ''ALTER TABLE '' + QUOTENAME(schema_name(schema_id)) + ''.'' + QUOTENAME(object_name(parent_object_id)) + 
+    '' DROP CONSTRAINT '' + QUOTENAME(name) + '';''
+FROM sys.foreign_keys;
+EXEC sp_executesql @drop_constraints_sql;
+';
+
 drop table if exists final_grades;
 drop table if exists evidences;
 drop table if exists interviews;

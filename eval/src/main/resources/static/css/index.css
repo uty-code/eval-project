@@ -59,15 +59,13 @@ h4,
 /* Sidebar */
 .sidebar {
     width: 280px;
-    height: 100vh;
+    /* Use min-height so it at least fills the screen, but lets it stretch in the flex container */
+    min-height: 100vh;
     background: var(--surface);
     border-right: 1px solid var(--border);
-    position: fixed;
-    top: 0;
-    left: 0;
+    /* Remove position: sticky/fixed to allow scrolling with the page */
     padding-top: 5rem;
     padding-bottom: 2rem;
-    overflow-y: auto;
     transition: all 0.3s ease;
 }
 
@@ -75,13 +73,16 @@ h4,
 .sidebar::-webkit-scrollbar {
     width: 6px;
 }
+
 .sidebar::-webkit-scrollbar-track {
     background: transparent;
 }
+
 .sidebar::-webkit-scrollbar-thumb {
     background: var(--border);
     border-radius: 3px;
 }
+
 .sidebar::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
 }
@@ -109,11 +110,13 @@ h4,
 
 /* Main Content Area */
 .main-wrapper {
-    margin-left: 280px;
+    /* Sticky sidebar naturally occupies space in a flex layout, so no margin-left is needed */
     padding: 6.5rem 2rem 2rem;
     min-height: 100vh;
-    width: calc(100% - 280px); /* Prevent growing beyond screen */
-    overflow-x: auto; /* Scroll horizontally within the main wrapper */
+    width: calc(100% - 280px);
+    /* Prevent growing beyond screen */
+    display: flex;
+    flex-direction: column;
 }
 
 /* Login Page Specific */
