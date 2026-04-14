@@ -15,7 +15,7 @@
             created_by as CREATED_BY,
             updated_at as UPDATED_AT,
             updated_by as UPDATED_BY
-        from roles
+        from roles_51
         where role_id = #{roleId}
           and is_deleted = 'n'
     </select>
@@ -32,14 +32,14 @@
             created_by as CREATED_BY,
             updated_at as UPDATED_AT,
             updated_by as UPDATED_BY
-        from roles
+        from roles_51
         where is_deleted = 'n'
         order by role_id asc
     </select>
 
     <!-- 권한 정보 삽입 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="roleId">
-        insert into roles (
+        insert into roles_51 (
             role_name, 
             description, 
             is_deleted, 
@@ -58,7 +58,7 @@
 
     <!-- 권한 정보 수정 (낙관적 락 체크 포함) -->
     <update id="update">
-        update roles
+        update roles_51
         set role_name = #{roleName},
             description = #{description},
             version = #{version} + 1,
@@ -71,7 +71,7 @@
 
     <!-- 권한 상태 논리 삭제 처리 -->
     <update id="softDelete">
-        update roles
+        update roles_51
         set is_deleted = 'y',
             updated_at = #{updatedAt},
             updated_by = #{updatedBy}

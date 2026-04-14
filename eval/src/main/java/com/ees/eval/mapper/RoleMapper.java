@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * roles 테이블에 대한 데이터 접근 기능을 정의한 인터페이스입니다.
+ * roles_51 테이블에 대한 데이터 접근 기능을 정의한 인터페이스입니다.
  * MyBatis에 의해 구현체가 매핑됩니다.
  */
 @Mapper

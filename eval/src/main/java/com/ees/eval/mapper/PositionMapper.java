@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * positions 테이블 데이터 접근 기능을 수행하는 매퍼 인터페이스입니다.
+ * positions_51 테이블 데이터 접근 기능을 수행하는 매퍼 인터페이스입니다.
  */
 @Mapper
 public interface PositionMapper {

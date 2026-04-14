@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * employees 테이블 및 관련 JOIN 데이터에 대한 데이터 접근 기능을 정의한 매퍼 인터페이스입니다.
+ * employees_51 테이블 및 관련 JOIN 데이터에 대한 데이터 접근 기능을 정의한 매퍼 인터페이스입니다.
  * 사원 CRUD와 더불어 직급/권한 조회를 위한 JOIN 쿼리를 포함합니다.
  */
 @Mapper
@@ -71,7 +71,7 @@ public interface EmployeeMapper {
     List<String> findRoleNamesByEmpId(Long empId);
 
     /**
-     * 새로운 사원 정보를 employees 테이블에 저장합니다.
+     * 새로운 사원 정보를 employees_51 테이블에 저장합니다.
      *
      * @param employee 저장할 사원 엔티티 (비밀번호는 이미 암호화된 상태여야 함)
      * @return 삽입된 행의 수
@@ -79,7 +79,7 @@ public interface EmployeeMapper {
     int insert(Employee employee);
 
     /**
-     * 사원-권한 매핑 정보를 employee_roles 테이블에 저장합니다.
+     * 사원-권한 매핑 정보를 employee_roles_51 테이블에 저장합니다.
      *
      * @param empId 사원 식별자
      * @param roleId 권한 식별자

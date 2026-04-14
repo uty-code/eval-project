@@ -1,34 +1,34 @@
 -- MSSQL EES 전체 테이블 생성 스크립트 (소문자 및 락 기본 정책 반영)
 
--- 이전 테이블 존재 시 삭제 로직 (순서: 종속성의 역순)
--- 모든 외래 키 제약 조건 먼저 삭제 (개발 환경에서의 스키마 초기화 안정성 확보)
+-- 이전 _51 테이블의 외래 키 제약 조건만 삭제 (다른 팀 테이블 보호)
 EXEC sp_executesql N'
 DECLARE @drop_constraints_sql NVARCHAR(MAX) = N'''';
-SELECT @drop_constraints_sql += ''ALTER TABLE '' + QUOTENAME(schema_name(schema_id)) + ''.'' + QUOTENAME(object_name(parent_object_id)) + 
+SELECT @drop_constraints_sql += ''ALTER TABLE '' + QUOTENAME(schema_name(schema_id)) + ''.'' + QUOTENAME(object_name(parent_object_id)) +
     '' DROP CONSTRAINT '' + QUOTENAME(name) + '';''
-FROM sys.foreign_keys;
+FROM sys.foreign_keys
+WHERE object_name(parent_object_id) LIKE ''%_51'';
 EXEC sp_executesql @drop_constraints_sql;
 ';
 
-drop table if exists final_grades;
-drop table if exists evidences;
-drop table if exists interviews;
-drop table if exists evaluation_histories;
-drop table if exists evaluations;
-drop table if exists evaluator_mappings;
-drop table if exists evaluation_elements;
-drop table if exists evaluation_periods;
-drop table if exists employee_roles;
-drop table if exists employees;
-drop table if exists departments;
-drop table if exists roles;
-drop table if exists positions;
-drop table if exists common_codes;
+drop table if exists final_grades_51;
+drop table if exists evidences_51;
+drop table if exists interviews_51;
+drop table if exists evaluation_histories_51;
+drop table if exists evaluations_51;
+drop table if exists evaluator_mappings_51;
+drop table if exists evaluation_elements_51;
+drop table if exists evaluation_periods_51;
+drop table if exists employee_roles_51;
+drop table if exists employees_51;
+drop table if exists departments_51;
+drop table if exists roles_51;
+drop table if exists positions_51;
+drop table if exists common_codes_51;
 
 -- ==========================================
 -- 1. 기초 시스템 데이터
 -- ==========================================
-create table common_codes
+create table common_codes_51
 (
     code_id bigint identity(1,1) primary key,
     group_code varchar(50) not null,
@@ -43,7 +43,7 @@ create table common_codes
     updated_by bigint
 );
 
-create table positions
+create table positions_51
 (
     position_id bigint identity(1,1) primary key,
     position_name nvarchar(50) not null,
@@ -57,7 +57,7 @@ create table positions
     updated_by bigint
 );
 
-create table roles
+create table roles_51
 (
     role_id bigint identity(1,1) primary key,
     role_name varchar(50) not null,
@@ -73,7 +73,7 @@ create table roles
 -- ==========================================
 -- 2. 조직 및 사용자
 -- ==========================================
-create table departments
+create table departments_51
 (
     dept_id bigint identity(1,1) primary key,
     parent_dept_id bigint,
@@ -84,10 +84,10 @@ create table departments
     created_by bigint,
     updated_at datetime,
     updated_by bigint,
-    foreign key (parent_dept_id) references departments(dept_id)
+    foreign key (parent_dept_id) references departments_51(dept_id)
 );
 
-create table employees
+create table employees_51
 (
     emp_id bigint identity(1000,1) primary key,
     dept_id bigint not null,
@@ -107,11 +107,11 @@ create table employees
     created_by bigint,
     updated_at datetime,
     updated_by bigint,
-    foreign key (dept_id) references departments(dept_id),
-    foreign key (position_id) references positions(position_id)
+    foreign key (dept_id) references departments_51(dept_id),
+    foreign key (position_id) references positions_51(position_id)
 );
 
-create table employee_roles
+create table employee_roles_51
 (
     emp_id bigint not null,
     role_id bigint not null,
@@ -122,14 +122,14 @@ create table employee_roles
     updated_at datetime,
     updated_by bigint,
     primary key (emp_id, role_id),
-    foreign key (emp_id) references employees(emp_id),
-    foreign key (role_id) references roles(role_id)
+    foreign key (emp_id) references employees_51(emp_id),
+    foreign key (role_id) references roles_51(role_id)
 );
 
 -- ==========================================
 -- 3. 평가 기준 및 매핑
 -- ==========================================
-create table evaluation_periods
+create table evaluation_periods_51
 (
     period_id bigint identity(1,1) primary key,
     period_year int not null,
@@ -145,7 +145,7 @@ create table evaluation_periods
     updated_by bigint
 );
 
-create table evaluation_elements
+create table evaluation_elements_51
 (
     element_id bigint identity(1,1) primary key,
     period_id bigint not null,
@@ -159,10 +159,10 @@ create table evaluation_elements
     created_by bigint,
     updated_at datetime,
     updated_by bigint,
-    foreign key (period_id) references evaluation_periods(period_id)
+    foreign key (period_id) references evaluation_periods_51(period_id)
 );
 
-create table evaluator_mappings
+create table evaluator_mappings_51
 (
     mapping_id bigint identity(1,1) primary key,
     period_id bigint not null,
@@ -175,15 +175,15 @@ create table evaluator_mappings
     created_by bigint,
     updated_at datetime,
     updated_by bigint,
-    foreign key (period_id) references evaluation_periods(period_id),
-    foreign key (evaluatee_id) references employees(emp_id),
-    foreign key (evaluator_id) references employees(emp_id)
+    foreign key (period_id) references evaluation_periods_51(period_id),
+    foreign key (evaluatee_id) references employees_51(emp_id),
+    foreign key (evaluator_id) references employees_51(emp_id)
 );
 
 -- ==========================================
 -- 4. 평가 수행
 -- ==========================================
-create table evaluations
+create table evaluations_51
 (
     eval_id bigint identity(1,1) primary key,
     mapping_id bigint not null,
@@ -197,11 +197,11 @@ create table evaluations
     created_by bigint,
     updated_at datetime,
     updated_by bigint,
-    foreign key (mapping_id) references evaluator_mappings(mapping_id),
-    foreign key (element_id) references evaluation_elements(element_id)
+    foreign key (mapping_id) references evaluator_mappings_51(mapping_id),
+    foreign key (element_id) references evaluation_elements_51(element_id)
 );
 
-create table evaluation_histories
+create table evaluation_histories_51
 (
     history_id bigint identity(1,1) primary key,
     eval_id bigint not null,
@@ -214,10 +214,10 @@ create table evaluation_histories
     created_by bigint,
     updated_at datetime,
     updated_by bigint,
-    foreign key (eval_id) references evaluations(eval_id)
+    foreign key (eval_id) references evaluations_51(eval_id)
 );
 
-create table interviews
+create table interviews_51
 (
     interview_id bigint identity(1,1) primary key,
     mapping_id bigint not null,
@@ -229,10 +229,10 @@ create table interviews
     created_by bigint,
     updated_at datetime,
     updated_by bigint,
-    foreign key (mapping_id) references evaluator_mappings(mapping_id)
+    foreign key (mapping_id) references evaluator_mappings_51(mapping_id)
 );
 
-create table evidences
+create table evidences_51
 (
     evidence_id bigint identity(1,1) primary key,
     eval_id bigint not null,
@@ -245,13 +245,13 @@ create table evidences
     created_by bigint,
     updated_at datetime,
     updated_by bigint,
-    foreign key (eval_id) references evaluations(eval_id)
+    foreign key (eval_id) references evaluations_51(eval_id)
 );
 
 -- ==========================================
 -- 5. 결과 확정
 -- ==========================================
-create table final_grades
+create table final_grades_51
 (
     grade_id bigint identity(1,1) primary key,
     period_id bigint not null,
@@ -265,6 +265,6 @@ create table final_grades
     created_by bigint,
     updated_at datetime,
     updated_by bigint,
-    foreign key (period_id) references evaluation_periods(period_id),
-    foreign key (emp_id) references employees(emp_id)
+    foreign key (period_id) references evaluation_periods_51(period_id),
+    foreign key (emp_id) references employees_51(emp_id)
 );

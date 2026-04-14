@@ -17,7 +17,7 @@
             created_by as CREATED_BY,
             updated_at as UPDATED_AT,
             updated_by as UPDATED_BY
-        from common_codes
+        from common_codes_51
         where code_id = #{codeId}
           and is_deleted = 'n'
     </select>
@@ -36,7 +36,7 @@
             created_by as CREATED_BY,
             updated_at as UPDATED_AT,
             updated_by as UPDATED_BY
-        from common_codes
+        from common_codes_51
         where is_deleted = 'n'
         order by group_code asc, code_id asc
     </select>
@@ -55,7 +55,7 @@
             created_by as CREATED_BY,
             updated_at as UPDATED_AT,
             updated_by as UPDATED_BY
-        from common_codes
+        from common_codes_51
         where group_code = #{groupCode}
           and is_deleted = 'n'
         order by code_id asc
@@ -63,7 +63,7 @@
 
     <!-- 공통 코드 삽입 수행 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="codeId">
-        insert into common_codes (
+        insert into common_codes_51 (
             group_code,
             code_value,
             code_name,
@@ -86,7 +86,7 @@
 
     <!-- 공통 코드 수정 수행 (낙관적 락 체크) -->
     <update id="update">
-        update common_codes
+        update common_codes_51
         set group_code = #{groupCode},
             code_value = #{codeValue},
             code_name = #{codeName},
@@ -101,7 +101,7 @@
 
     <!-- 공통 코드 논리적 삭제 처리 -->
     <update id="softDelete">
-        update common_codes
+        update common_codes_51
         set is_deleted = 'y',
             updated_at = #{updatedAt},
             updated_by = #{updatedBy}

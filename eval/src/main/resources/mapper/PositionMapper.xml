@@ -16,7 +16,7 @@
             created_by as CREATED_BY,
             updated_at as UPDATED_AT,
             updated_by as UPDATED_BY
-        from positions
+        from positions_51
         where position_id = #{positionId}
           and is_deleted = 'n'
     </select>
@@ -34,14 +34,14 @@
             created_by as CREATED_BY,
             updated_at as UPDATED_AT,
             updated_by as UPDATED_BY
-        from positions
+        from positions_51
         where is_deleted = 'n'
         order by hierarchy_level asc, position_id asc
     </select>
 
     <!-- 새로운 직급 데이터 삽입 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="positionId">
-        insert into positions (
+        insert into positions_51 (
             position_name,
             hierarchy_level,
             weight_base,
@@ -62,7 +62,7 @@
 
     <!-- 직급 정보 수정 (낙관적 락을 위한 버전 및 삭제 상태 체크 포함) -->
     <update id="update">
-        update positions
+        update positions_51
         set position_name = #{positionName},
             hierarchy_level = #{hierarchyLevel},
             weight_base = #{weightBase},
@@ -76,7 +76,7 @@
 
     <!-- 특정 직급 정보를 삭제 상태로 업데이트하여 실제 데이터를 물리적으로 보존 -->
     <update id="softDelete">
-        update positions
+        update positions_51
         set is_deleted = 'y',
             updated_at = #{updatedAt},
             updated_by = #{updatedBy}

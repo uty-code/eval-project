@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * departments 테이블 및 계층형 구조 데이터에 대한 접근 기능을 정의한 매퍼 인터페이스입니다.
+ * departments_51 테이블 및 계층형 구조 데이터에 대한 접근 기능을 정의한 매퍼 인터페이스입니다.
  * 셀프 JOIN을 통한 상위 부서 조회, 하위 부서 조회, 부서별 인원 통계 등을 포함합니다.
  */
 @Mapper

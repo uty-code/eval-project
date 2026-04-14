@@ -18,7 +18,7 @@
             created_by  as CREATED_BY,
             updated_at  as UPDATED_AT,
             updated_by  as UPDATED_BY
-        from evaluation_periods
+        from evaluation_periods_51
         where period_id = #{periodId}
           and is_deleted = 'n'
     </select>
@@ -38,7 +38,7 @@
             created_by  as CREATED_BY,
             updated_at  as UPDATED_AT,
             updated_by  as UPDATED_BY
-        from evaluation_periods
+        from evaluation_periods_51
         where is_deleted = 'n'
         order by period_year desc, period_id desc
     </select>
@@ -58,14 +58,14 @@
             created_by  as CREATED_BY,
             updated_at  as UPDATED_AT,
             updated_by  as UPDATED_BY
-        from evaluation_periods
+        from evaluation_periods_51
         where status_code = #{statusCode}
           and is_deleted = 'n'
     </select>
 
     <!-- 차수 정보 삽입 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="periodId">
-        insert into evaluation_periods (
+        insert into evaluation_periods_51 (
             period_year, period_name, status_code,
             start_date, end_date,
             is_deleted, version, created_at, created_by
@@ -78,7 +78,7 @@
 
     <!-- 차수 정보 수정 (낙관적 락 포함) -->
     <update id="update">
-        update evaluation_periods
+        update evaluation_periods_51
         set period_year = #{periodYear},
             period_name = #{periodName},
             status_code = #{statusCode},
@@ -94,7 +94,7 @@
 
     <!-- 차수 논리적 삭제 -->
     <update id="softDelete">
-        update evaluation_periods
+        update evaluation_periods_51
         set is_deleted = 'y',
             updated_at = #{updatedAt},
             updated_by = #{updatedBy}

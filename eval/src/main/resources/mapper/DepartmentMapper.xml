@@ -15,7 +15,7 @@
             d.created_by     as CREATED_BY,
             d.updated_at     as UPDATED_AT,
             d.updated_by     as UPDATED_BY
-        from departments d
+        from departments_51 d
         where d.dept_id = #{deptId}
           and d.is_deleted = 'n'
     </select>
@@ -32,7 +32,7 @@
             d.created_by     as CREATED_BY,
             d.updated_at     as UPDATED_AT,
             d.updated_by     as UPDATED_BY
-        from departments d
+        from departments_51 d
         where d.is_deleted = 'n'
         order by d.dept_id asc
     </select>
@@ -49,7 +49,7 @@
             d.created_by     as CREATED_BY,
             d.updated_at     as UPDATED_AT,
             d.updated_by     as UPDATED_BY
-        from departments d
+        from departments_51 d
         where d.parent_dept_id is null
           and d.is_deleted = 'n'
         order by d.dept_id asc
@@ -67,7 +67,7 @@
             d.created_by     as CREATED_BY,
             d.updated_at     as UPDATED_AT,
             d.updated_by     as UPDATED_BY
-        from departments d
+        from departments_51 d
         where d.parent_dept_id = #{parentDeptId}
           and d.is_deleted = 'n'
         order by d.dept_id asc
@@ -77,8 +77,8 @@
     <select id="findParentDeptName" resultType="java.lang.String">
         select
             p.dept_name as PARENT_DEPT_NAME
-        from departments d
-        inner join departments p on d.parent_dept_id = p.dept_id
+        from departments_51 d
+        inner join departments_51 p on d.parent_dept_id = p.dept_id
         where d.dept_id = #{deptId}
           and d.is_deleted = 'n'
           and p.is_deleted = 'n'
@@ -88,14 +88,14 @@
     <select id="countEmployeesByDeptId" resultType="int">
         select
             count(*) as CNT
-        from employees e
+        from employees_51 e
         where e.dept_id = #{deptId}
           and e.is_deleted = 'n'
     </select>
 
     <!-- 부서 정보 삽입 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="deptId">
-        insert into departments (
+        insert into departments_51 (
             parent_dept_id,
             dept_name,
             is_deleted,
@@ -114,7 +114,7 @@
 
     <!-- 부서 정보 수정 (낙관적 락 버전 체크 포함) -->
     <update id="update">
-        update departments
+        update departments_51
         set parent_dept_id = #{parentDeptId},
             dept_name      = #{deptName},
             version        = #{version} + 1,
@@ -127,7 +127,7 @@
 
     <!-- 부서 논리적 삭제(Soft Delete) 처리 -->
     <update id="softDelete">
-        update departments
+        update departments_51
         set is_deleted = 'y',
             updated_at = #{updatedAt},
             updated_by = #{updatedBy}

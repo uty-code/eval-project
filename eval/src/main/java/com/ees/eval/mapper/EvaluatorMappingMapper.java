@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * evaluator_mappings 테이블에 대한 데이터 접근 기능을 정의한 매퍼 인터페이스입니다.
+ * evaluator_mappings_51 테이블에 대한 데이터 접근 기능을 정의한 매퍼 인터페이스입니다.
  * 중복 체크, 평가자/피평가자 관점의 조회 쿼리를 포함합니다.
  */
 @Mapper

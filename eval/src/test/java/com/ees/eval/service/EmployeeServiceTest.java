@@ -52,8 +52,8 @@ class EmployeeServiceTest {
                 .hireDate(LocalDate.of(2026, 3, 1))
                 .build();
 
-        // when: 사원 등록 수행 (ROLE_ADMIN 권한 부여)
-        EmployeeDTO saved = employeeService.registerEmployee(dto, List.of(1L));
+        // when: 사원 등록 수행 (ROLE_ADMIN 권한 부여, role_id=4)
+        EmployeeDTO saved = employeeService.registerEmployee(dto, List.of(4L));
 
         // then: 저장 결과 검증
         assertThat(saved.empId()).isNotNull();
@@ -82,7 +82,7 @@ class EmployeeServiceTest {
                 .email("kim@ees.com")
                 .hireDate(LocalDate.of(2026, 1, 15))
                 .build();
-        EmployeeDTO savedEmp = employeeService.registerEmployee(dto, List.of(3L)); // ROLE_USER
+        EmployeeDTO savedEmp = employeeService.registerEmployee(dto, List.of(1L)); // ROLE_USER (role_id=1)
         String empIdStr = String.valueOf(savedEmp.empId());
 
         // when & then: 올바른 비밀번호로 인증 성공
@@ -116,7 +116,7 @@ class EmployeeServiceTest {
                 .email("park@ees.com")
                 .hireDate(LocalDate.of(2025, 6, 1))
                 .build();
-        EmployeeDTO saved = employeeService.registerEmployee(dto, List.of(3L));
+        EmployeeDTO saved = employeeService.registerEmployee(dto, List.of(1L)); // ROLE_USER (role_id=1)
 
         // when: 두 개의 트랜잭션이 동일 데이터를 조회
         EmployeeDTO tx1 = employeeService.getEmployeeById(saved.empId());
@@ -158,7 +158,7 @@ class EmployeeServiceTest {
                 .email("lee@ees.com")
                 .hireDate(LocalDate.of(2025, 9, 1))
                 .build();
-        EmployeeDTO saved = employeeService.registerEmployee(dto, List.of(3L));
+        EmployeeDTO saved = employeeService.registerEmployee(dto, List.of(1L)); // ROLE_USER (role_id=1)
 
         // when: 삭제 수행
         employeeService.deleteEmployee(saved.empId());
