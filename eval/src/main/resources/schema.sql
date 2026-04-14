@@ -1,5 +1,6 @@
 -- MSSQL EES 전체 테이블 생성 스크립트 (소문자 및 락 기본 정책 반영)
 
+alter database scoped configuration set IDENTITY_CACHE = OFF;
 -- 이전 _51 테이블의 외래 키 제약 조건만 삭제 (다른 팀 테이블 보호)
 EXEC sp_executesql N'
 DECLARE @drop_constraints_sql NVARCHAR(MAX) = N'''';
@@ -110,6 +111,7 @@ create table employees_51
     foreign key (dept_id) references departments_51(dept_id),
     foreign key (position_id) references positions_51(position_id)
 );
+
 
 create table employee_roles_51
 (
