@@ -178,12 +178,11 @@
                             </td>
                             <!-- 부서 -->
                             <td class="py-3">
-                                <span th:if="${emp.deptId() != null}" class="text-muted small">
-                                    <!-- 부서명은 JOIN이 필요하므로 deptId 기반으로 표시, 실 연동 시 deptName 필드 추가 권장 -->
+                                <span th:if="${emp.deptName() != null}" class="text-muted small">
                                     <i class="bi bi-building me-1 opacity-50"></i>
-                                    <span th:text="'부서 #' + ${emp.deptId()}">개발팀</span>
+                                    <span th:text="${emp.deptName()}">개발팀</span>
                                 </span>
-                                <span th:unless="${emp.deptId() != null}" class="text-muted small">-</span>
+                                <span th:unless="${emp.deptName() != null}" class="text-muted small">-</span>
                             </td>
                             <!-- 직급 -->
                             <td class="py-3">

@@ -1,9 +1,13 @@
 package com.ees.eval.service.impl;
 
+import com.ees.eval.domain.Department;
 import com.ees.eval.domain.Employee;
+import com.ees.eval.domain.Position;
 import com.ees.eval.dto.EmployeeDTO;
 import com.ees.eval.exception.EesOptimisticLockException;
+import com.ees.eval.mapper.DepartmentMapper;
 import com.ees.eval.mapper.EmployeeMapper;
+import com.ees.eval.mapper.PositionMapper;
 import com.ees.eval.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -26,6 +31,8 @@ import java.util.stream.Collectors;
 public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeMapper employeeMapper;
+    private final DepartmentMapper departmentMapper;
+    private final PositionMapper positionMapper;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -41,8 +48,14 @@ public class EmployeeServiceImpl implements EmployeeService {
         // 2. 사원이 보유한 권한명 목록을 별도 쿼리로 조회
         List<String> roleNames = employeeMapper.findRoleNamesByEmpId(empId);
 
-        // 3. 엔티티와 권한 목록을 결합하여 DTO로 변환
-        return convertToDto(employee, roleNames);
+        // 3. 부서명, 직급명 조회
+        String deptName = departmentMapper.findById(employee.getDeptId())
+                .map(d -> d.getDeptName()).orElse(null);
+        String positionName = positionMapper.findById(employee.getPositionId())
+                .map(p -> p.getPositionName()).orElse(null);
+
+        // 4. 엔티티와 권한/부서/직급 정보를 결합하여 DTO로 변환
+        return convertToDto(employee, roleNames, deptName, positionName);
     }
 
     /**
@@ -57,9 +70,9 @@ public class EmployeeServiceImpl implements EmployeeService {
             Employee employee = employeeMapper.findByIdForAuth(empId)
                     .orElseThrow(() -> new IllegalArgumentException("사원을 찾을 수 없습니다. empId: " + empId));
             
-            // 2. 권한 목록 조회 후 DTO 변환
+            // 2. 권한 목록 조회 후 DTO 변환 (인증 용도이므로 부서명/직급명 불필요)
             List<String> roleNames = employeeMapper.findRoleNamesByEmpId(employee.getEmpId());
-            return convertToDto(employee, roleNames);
+            return convertToDto(employee, roleNames, null, null);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("사원 번호 형식이 잘못되었습니다. 숫자만 입력 가능합니다.");
         }
@@ -71,11 +84,18 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional(readOnly = true)
     public List<EmployeeDTO> getAllEmployees() {
-        // 전체 사원 목록을 조회하고 각각에 대해 권한명 목록을 추가로 조합
+        // 부서/직급 전체 목록을 미리 Map으로 캐싱 (N+1 방지)
+        Map<Long, String> deptMap = departmentMapper.findAll().stream()
+                .collect(Collectors.toMap(Department::getDeptId, Department::getDeptName));
+        Map<Long, String> positionMap = positionMapper.findAll().stream()
+                .collect(Collectors.toMap(Position::getPositionId, Position::getPositionName));
+
         return employeeMapper.findAll().stream()
                 .map(emp -> {
                     List<String> roleNames = employeeMapper.findRoleNamesByEmpId(emp.getEmpId());
-                    return convertToDto(emp, roleNames);
+                    String deptName = deptMap.get(emp.getDeptId());
+                    String positionName = positionMap.get(emp.getPositionId());
+                    return convertToDto(emp, roleNames, deptName, positionName);
                 })
                 .collect(Collectors.toList());
     }
@@ -209,7 +229,7 @@ public class EmployeeServiceImpl implements EmployeeService {
      * @param roleNames 사원이 보유한 권한명 목록
      * @return 변환된 EmployeeDTO 레코드
      */
-    private EmployeeDTO convertToDto(Employee employee, List<String> roleNames) {
+    private EmployeeDTO convertToDto(Employee employee, List<String> roleNames, String deptName, String positionName) {
         return EmployeeDTO.builder()
                 .empId(employee.getEmpId())
                 .deptId(employee.getDeptId())
@@ -220,7 +240,8 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .phone(employee.getPhone())
                 .statusCode(employee.getStatusCode())
                 .hireDate(employee.getHireDate())
-                .positionName(null) // 추후 별도 조회 시 채움
+                .deptName(deptName)
+                .positionName(positionName)
                 .roleNames(roleNames != null ? roleNames : Collections.emptyList())
                 .isDeleted(employee.getIsDeleted())
                 .version(employee.getVersion())
