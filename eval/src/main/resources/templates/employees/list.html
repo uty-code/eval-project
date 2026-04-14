@@ -211,9 +211,9 @@
                                         class="text-muted small">-</span>
                                     <span th:each="role : ${emp.roleNames()}" class="badge fw-normal px-2 py-1"
                                         th:classappend="${role == 'ROLE_ADMIN'} ? 'bg-danger bg-opacity-10 text-danger' :
-                                                          (${role == 'ROLE_MANAGER'} ? 'bg-warning bg-opacity-15 text-warning' :
-                                                          (${role == 'ROLE_EXECUTIVE'} ? 'bg-info bg-opacity-15 text-info' :
-                                                          'bg-secondary bg-opacity-25 text-light'))" th:text="${role == 'ROLE_ADMIN'} ? '관리자' :
+                                                          (${role == 'ROLE_MANAGER'} ? 'bg-warning bg-opacity-5 text-light' :
+                                                          (${role == 'ROLE_EXECUTIVE'} ? 'bg-info bg-opacity-5 text-light' :
+                                                          'bg-secondary bg-opacity-5 text-light'))" th:text="${role == 'ROLE_ADMIN'} ? '관리자' :
                                                    (${role == 'ROLE_MANAGER'} ? '부서장' :
                                                    (${role == 'ROLE_EXECUTIVE'} ? '임원' : '일반사원'))">
                                         사원
