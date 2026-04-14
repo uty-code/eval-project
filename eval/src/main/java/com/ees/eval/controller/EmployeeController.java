@@ -118,6 +118,7 @@ public class EmployeeController {
     public String createEmployee(
             @RequestParam("name") String name,
             @RequestParam("email") String email,
+            @RequestParam(value = "phone", required = false) String phone,
             @RequestParam("deptId") Long deptId,
             @RequestParam("positionId") Long positionId,
             @RequestParam("hireDate") LocalDate hireDate,
@@ -129,6 +130,7 @@ public class EmployeeController {
             EmployeeDTO dto = EmployeeDTO.builder()
                     .name(name)
                     .email(email)
+                    .phone(formatPhoneNumber(phone))
                     .deptId(deptId)
                     .positionId(positionId)
                     .hireDate(hireDate)
@@ -184,8 +186,10 @@ public class EmployeeController {
             @PathVariable Long empId,
             @RequestParam("name") String name,
             @RequestParam("email") String email,
+            @RequestParam(value = "phone", required = false) String phone,
             @RequestParam("deptId") Long deptId,
             @RequestParam("positionId") Long positionId,
+            @RequestParam("statusCode") String statusCode,
             @RequestParam("hireDate") LocalDate hireDate,
             @RequestParam("version") Integer version,
             RedirectAttributes redirectAttributes) {
@@ -195,8 +199,10 @@ public class EmployeeController {
                     .empId(empId)
                     .name(name)
                     .email(email)
+                    .phone(formatPhoneNumber(phone))
                     .deptId(deptId)
                     .positionId(positionId)
+                    .statusCode(statusCode)
                     .hireDate(hireDate)
                     .version(version)
                     .build();
@@ -253,6 +259,13 @@ public class EmployeeController {
             EmployeeDTO employee = employeeService.getEmployeeById(empId);
             EmployeeDTO resetDto = EmployeeDTO.builder()
                     .empId(empId)
+                    .name(employee.name())
+                    .email(employee.email())
+                    .phone(employee.phone())
+                    .deptId(employee.deptId())
+                    .positionId(employee.positionId())
+                    .statusCode(employee.statusCode())
+                    .hireDate(employee.hireDate())
                     .password(String.valueOf(empId)) // 초기 비밀번호: 사번과 동일
                     .version(employee.version())
                     .build();
@@ -265,5 +278,24 @@ public class EmployeeController {
                     "비밀번호 초기화 중 오류가 발생했습니다: " + e.getMessage());
         }
         return "redirect:/employees";
+    }
+
+    /**
+     * 전화번호 문자열에서 숫자가 아닌 문자를 모두 제거한 뒤 하이픈(-) 형식을 적용합니다.
+     *
+     * @param phone 원본 전화번호 문자열
+     * @return 포맷팅된 전화번호 (예: 010-1234-5678)
+     */
+    private String formatPhoneNumber(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return phone;
+        }
+        String digits = phone.replaceAll("[^0-9]", "");
+        if (digits.length() == 11) {
+            return digits.replaceFirst("(\\d{3})(\\d{4})(\\d+)", "$1-$2-$3");
+        } else if (digits.length() == 10) {
+            return digits.replaceFirst("(\\d{3})(\\d{3})(\\d+)", "$1-$2-$3");
+        }
+        return phone;
     }
 }
