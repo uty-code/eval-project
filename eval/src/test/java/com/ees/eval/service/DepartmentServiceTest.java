@@ -109,8 +109,8 @@ class DepartmentServiceTest {
                 .name("테스터2").email("qa2@ees.com")
                 .hireDate(LocalDate.of(2026, 2, 1))
                 .build();
-        employeeService.registerEmployee(emp1, List.of(3L));
-        employeeService.registerEmployee(emp2, List.of(3L));
+        employeeService.registerEmployee(emp1, List.of(1L)); // ROLE_USER (role_id=1)
+        employeeService.registerEmployee(emp2, List.of(1L)); // ROLE_USER (role_id=1)
 
         // when: 부서별 사원 목록 조회
         List<EmployeeDTO> employees = departmentService.getEmployeesByDeptId(dept.deptId());
@@ -141,7 +141,7 @@ class DepartmentServiceTest {
                 .name("임시사원").email("tmp@ees.com")
                 .hireDate(LocalDate.of(2026, 3, 1))
                 .build();
-        employeeService.registerEmployee(empDto, List.of(3L));
+        employeeService.registerEmployee(empDto, List.of(1L)); // ROLE_USER (role_id=1)
 
         // when & then: 사원이 존재하므로 삭제 거부 (IllegalStateException)
         assertThatThrownBy(() -> departmentService.deleteDepartment(dept.deptId()))

@@ -4,18 +4,16 @@ spring:
       enabled: true
   docker:
     compose:
-      enabled: true
-      lifecycle-management: start_and_stop
+      enabled: false  # 외부 SKU DB 사용 중 - Docker 로컬 DB 불필요
   datasource:
-    # URL, username, password는 Docker Compose가 실행될 때 자동으로 주입됩니다.
-    # 수동 실행 시를 위해 기본값을 유지하거나 생략 가능합니다.
-    url: jdbc:sqlserver://localhost:1433;databaseName=master;encrypt=true;trustServerCertificate=true;
-    username: sa
-    password: EesAdmin!2026
+    # SKU 공용 DB 서버 연결
+    url: jdbc:sqlserver://211.232.94.161:1533;databaseName=SKUEDU;encrypt=true;trustServerCertificate=true;
+    username: SKUEDU01
+    password: init000!
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   sql:
     init:
-      mode: never
+      mode: never  # 최초 1회 실행 후 never로 되돌릴 것
       schema-locations: classpath:schema.sql
       data-locations: classpath:data.sql
       encoding: UTF-8

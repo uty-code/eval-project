@@ -18,7 +18,7 @@
             created_by        as CREATED_BY,
             updated_at        as UPDATED_AT,
             updated_by        as UPDATED_BY
-        from evaluation_elements
+        from evaluation_elements_51
         where element_id = #{elementId}
           and is_deleted = 'n'
     </select>
@@ -38,7 +38,7 @@
             created_by        as CREATED_BY,
             updated_at        as UPDATED_AT,
             updated_by        as UPDATED_BY
-        from evaluation_elements
+        from evaluation_elements_51
         where period_id = #{periodId}
           and is_deleted = 'n'
         order by element_type_code asc, element_id asc
@@ -48,7 +48,7 @@
     <select id="sumWeightByPeriodId" resultType="java.math.BigDecimal">
         select
             coalesce(sum(weight), 0) as TOTAL_WEIGHT
-        from evaluation_elements
+        from evaluation_elements_51
         where period_id = #{periodId}
           and is_deleted = 'n'
           <if test="excludeElementId != null">
@@ -58,7 +58,7 @@
 
     <!-- 평가 항목 삽입 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="elementId">
-        insert into evaluation_elements (
+        insert into evaluation_elements_51 (
             period_id, element_type_code, element_name,
             max_score, weight,
             is_deleted, version, created_at, created_by
@@ -71,7 +71,7 @@
 
     <!-- 평가 항목 수정 (낙관적 락 포함) -->
     <update id="update">
-        update evaluation_elements
+        update evaluation_elements_51
         set element_type_code = #{elementTypeCode},
             element_name      = #{elementName},
             max_score         = #{maxScore},
@@ -86,7 +86,7 @@
 
     <!-- 평가 항목 논리적 삭제 -->
     <update id="softDelete">
-        update evaluation_elements
+        update evaluation_elements_51
         set is_deleted = 'y',
             updated_at = #{updatedAt},
             updated_by = #{updatedBy}

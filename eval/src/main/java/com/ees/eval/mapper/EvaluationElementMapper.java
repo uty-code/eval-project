@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * evaluation_elements 테이블에 대한 데이터 접근 기능을 정의한 매퍼 인터페이스입니다.
+ * evaluation_elements_51 테이블에 대한 데이터 접근 기능을 정의한 매퍼 인터페이스입니다.
  * 항목 CRUD와 차수별 가중치 합계 조회 쿼리를 포함합니다.
  */
 @Mapper

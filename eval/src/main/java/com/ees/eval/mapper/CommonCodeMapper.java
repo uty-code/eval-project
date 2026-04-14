@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * common_codes 테이블 관리 기능을 정의한 매퍼 인터페이스입니다.
+ * common_codes_51 테이블 관리 기능을 정의한 매퍼 인터페이스입니다.
  */
 @Mapper
 public interface CommonCodeMapper {

@@ -17,7 +17,7 @@
             m.created_by        as CREATED_BY,
             m.updated_at        as UPDATED_AT,
             m.updated_by        as UPDATED_BY
-        from evaluator_mappings m
+        from evaluator_mappings_51 m
         where m.mapping_id = #{mappingId}
           and m.is_deleted = 'n'
     </select>
@@ -36,7 +36,7 @@
             m.created_by        as CREATED_BY,
             m.updated_at        as UPDATED_AT,
             m.updated_by        as UPDATED_BY
-        from evaluator_mappings m
+        from evaluator_mappings_51 m
         where m.period_id = #{periodId}
           and m.is_deleted = 'n'
         order by m.evaluatee_id asc, m.relation_type_code asc
@@ -56,7 +56,7 @@
             m.created_by        as CREATED_BY,
             m.updated_at        as UPDATED_AT,
             m.updated_by        as UPDATED_BY
-        from evaluator_mappings m
+        from evaluator_mappings_51 m
         where m.period_id = #{periodId}
           and m.evaluator_id = #{evaluatorId}
           and m.is_deleted = 'n'
@@ -77,7 +77,7 @@
             m.created_by        as CREATED_BY,
             m.updated_at        as UPDATED_AT,
             m.updated_by        as UPDATED_BY
-        from evaluator_mappings m
+        from evaluator_mappings_51 m
         where m.period_id = #{periodId}
           and m.evaluatee_id = #{evaluateeId}
           and m.is_deleted = 'n'
@@ -88,7 +88,7 @@
     <select id="countDuplicate" resultType="int">
         select
             count(*) as CNT
-        from evaluator_mappings
+        from evaluator_mappings_51
         where period_id = #{periodId}
           and evaluatee_id = #{evaluateeId}
           and evaluator_id = #{evaluatorId}
@@ -98,7 +98,7 @@
 
     <!-- 평가자 매핑 삽입 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="mappingId">
-        insert into evaluator_mappings (
+        insert into evaluator_mappings_51 (
             period_id, evaluatee_id, evaluator_id, relation_type_code,
             is_deleted, version, created_at, created_by
         ) values (
@@ -109,7 +109,7 @@
 
     <!-- 매핑 정보 수정 (낙관적 락 포함) -->
     <update id="update">
-        update evaluator_mappings
+        update evaluator_mappings_51
         set relation_type_code = #{relationTypeCode},
             version            = #{version} + 1,
             updated_at         = #{updatedAt},
@@ -121,7 +121,7 @@
 
     <!-- 매핑 논리적 삭제 -->
     <update id="softDelete">
-        update evaluator_mappings
+        update evaluator_mappings_51
         set is_deleted = 'y',
             updated_at = #{updatedAt},
             updated_by = #{updatedBy}

@@ -22,7 +22,7 @@
             e.created_by   as CREATED_BY,
             e.updated_at   as UPDATED_AT,
             e.updated_by   as UPDATED_BY
-        from employees e
+        from employees_51 e
         where e.emp_id = #{empId}
           and e.is_deleted = 'n'
     </select>
@@ -46,7 +46,7 @@
             e.created_by   as CREATED_BY,
             e.updated_at   as UPDATED_AT,
             e.updated_by   as UPDATED_BY
-        from employees e
+        from employees_51 e
         where e.emp_id = #{empId}
           and e.is_deleted = 'n'
     </select>
@@ -70,7 +70,7 @@
             e.created_by   as CREATED_BY,
             e.updated_at   as UPDATED_AT,
             e.updated_by   as UPDATED_BY
-        from employees e
+        from employees_51 e
         where e.emp_id = #{empId}
     </select>
 
@@ -93,7 +93,7 @@
             e.created_by   as CREATED_BY,
             e.updated_at   as UPDATED_AT,
             e.updated_by   as UPDATED_BY
-        from employees e
+        from employees_51 e
         where e.is_deleted = 'n'
         order by e.emp_id asc
     </select>
@@ -117,7 +117,7 @@
             e.created_by   as CREATED_BY,
             e.updated_at   as UPDATED_AT,
             e.updated_by   as UPDATED_BY
-        from employees e
+        from employees_51 e
         where e.dept_id = #{deptId}
           and e.is_deleted = 'n'
         order by e.emp_id asc
@@ -127,8 +127,8 @@
     <select id="findRoleNamesByEmpId" resultType="java.lang.String">
         select
             r.role_name as ROLE_NAME
-        from employee_roles er
-        inner join roles r on er.role_id = r.role_id
+        from employee_roles_51 er
+        inner join roles_51 r on er.role_id = r.role_id
         where er.emp_id = #{empId}
           and er.is_deleted = 'n'
           and r.is_deleted = 'n'
@@ -137,7 +137,7 @@
 
     <!-- 사원 정보 삽입 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="empId" keyColumn="emp_id">
-        insert into employees (
+        insert into employees_51 (
             dept_id,
             position_id,
             password,
@@ -168,7 +168,7 @@
 
     <!-- 사원-권한 매핑 삽입 (employee_roles) -->
     <insert id="insertEmployeeRole">
-        insert into employee_roles (
+        insert into employee_roles_51 (
             emp_id,
             role_id,
             is_deleted,
@@ -187,7 +187,7 @@
 
     <!-- 사원 정보 수정 (낙관적 락 버전 체크 포함) -->
     <update id="update">
-        update employees
+        update employees_51
         set dept_id      = #{deptId},
             position_id  = #{positionId},
             name         = #{name},
@@ -205,7 +205,7 @@
 
     <!-- 사원 논리적 삭제(Soft Delete) 처리 -->
     <update id="softDelete">
-        update employees
+        update employees_51
         set is_deleted = 'y',
             updated_at = #{updatedAt},
             updated_by = #{updatedBy}
@@ -215,7 +215,7 @@
 
     <!-- 로그인 실패 횟수 증가 -->
     <update id="incrementLoginFailCnt">
-        update employees
+        update employees_51
         set login_fail_cnt = login_fail_cnt + 1
         where emp_id = #{empId}
           and is_deleted = 'n'
@@ -223,7 +223,7 @@
 
     <!-- 로그인 실패 횟수 초기화 -->
     <update id="resetLoginFailCnt">
-        update employees
+        update employees_51
         set login_fail_cnt = 0
         where emp_id = #{empId}
           and is_deleted = 'n'
@@ -232,7 +232,7 @@
     <!-- 발급 예정 사번 조회 -->
     <select id="getNextEmpId" resultType="java.lang.Long">
         SELECT ISNULL(MAX(emp_id), 999) + 1
-        FROM employees
+        FROM employees_51
     </select>
 
 </mapper>

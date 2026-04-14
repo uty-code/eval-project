@@ -167,7 +167,9 @@
                                                 <label class="form-check-label text-white-50"
                                                     th:for="'role-' + ${role.roleId()}">
                                                     <span
-                                                        th:text="${role.roleName() == 'ROLE_ADMIN' ? '관리자 (ADMIN)' : (role.roleName() == 'ROLE_MANAGER' ? '매니저 (MANAGER)' : '일반 사원 (USER)')}"></span>
+                                                        th:text="${role.roleName() == 'ROLE_ADMIN' ? '관리자 (ADMIN)' :
+                                                                  (role.roleName() == 'ROLE_MANAGER' ? '부서장 (MANAGER)' :
+                                                                  (role.roleName() == 'ROLE_EXECUTIVE' ? '임원 (EXECUTIVE)' : '일반 사원 (USER)'))}"></span>
                                                 </label>
                                             </div>
                                         </div>
