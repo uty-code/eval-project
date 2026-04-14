@@ -281,20 +281,14 @@ public class EmployeeController {
     }
 
     /**
-     * 전화번호 문자열에서 숫자가 아닌 문자를 모두 제거한 뒤 하이픈(-) 형식을 적용합니다.
+     * 전화번호 양식을 검증합니다. 예: 010-1111-2222 형식이 아니면 예외를 발생시킵니다.
      *
      * @param phone 원본 전화번호 문자열
-     * @return 포맷팅된 전화번호 (예: 010-1234-5678)
+     * @return 검증된 전화번호
      */
     private String formatPhoneNumber(String phone) {
-        if (phone == null || phone.isBlank()) {
-            return phone;
-        }
-        String digits = phone.replaceAll("[^0-9]", "");
-        if (digits.length() == 11) {
-            return digits.replaceFirst("(\\d{3})(\\d{4})(\\d+)", "$1-$2-$3");
-        } else if (digits.length() == 10) {
-            return digits.replaceFirst("(\\d{3})(\\d{3})(\\d+)", "$1-$2-$3");
+        if (phone == null || !phone.matches("^010-\\d{4}-\\d{4}$")) {
+            throw new IllegalArgumentException("전화번호 양식이 올바르지 않습니다. (예: 010-1111-2222)");
         }
         return phone;
     }
