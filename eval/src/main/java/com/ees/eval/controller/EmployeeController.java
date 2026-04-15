@@ -52,19 +52,22 @@ public class EmployeeController {
             @RequestParam(value = "searchDeptId", required = false) Long searchDeptId,
             @RequestParam(value = "searchStatus", required = false) String searchStatus,
             Model model) {
+        // 항상 동적 검색 쿼리를 사용 (조건이 없으면 전체 조회와 동일)
+        List<EmployeeDTO> employees = employeeService.searchEmployees(
+                searchName != null && !searchName.isBlank() ? searchName.trim() : null,
+                searchDeptId,
+                searchStatus != null && !searchStatus.isBlank() ? searchStatus : null);
 
-        // 전체 사원 목록 조회 (소프트 델리트 제외)
-        List<EmployeeDTO> employees = employeeService.getAllEmployees();
-
-        // 클라이언트 사이드 필터링을 위해 전체 부서 및 직급 목록 조회
+        // 전체 부서 및 직급 목록 조회 (셀렉트 박스용)
         List<DepartmentDTO> departments = departmentService.getAllDepartments();
         List<PositionDTO> positions = positionService.getAllPositions();
 
-        // 통계 수치 계산 (Thymeleaf에서 Stream 직접 사용 불가하므로 미리 계산)
-        long activeCount = employees.stream()
+        // 통계 수치 계산 - 항상 전체 사원 기준
+        List<EmployeeDTO> allEmployees = employeeService.getAllEmployees();
+        long activeCount = allEmployees.stream()
                 .filter(e -> !"y".equalsIgnoreCase(e.isDeleted()))
                 .count();
-        long thisYearHired = employees.stream()
+        long thisYearHired = allEmployees.stream()
                 .filter(e -> e.hireDate() != null && e.hireDate().getYear() == LocalDate.now().getYear())
                 .count();
 
