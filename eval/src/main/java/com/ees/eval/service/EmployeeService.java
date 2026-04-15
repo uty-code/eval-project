@@ -37,6 +37,16 @@ public interface EmployeeService {
     List<EmployeeDTO> getAllEmployees();
 
     /**
+     * 검색 조건(이름, 부서, 재직 상태)에 따라 사원 목록을 조회합니다.
+     *
+     * @param searchName   검색할 사원 성명 (부분 일치, null 허용)
+     * @param searchDeptId 검색할 부서 ID (null 허용)
+     * @param searchStatus 검색할 재직 상태 코드 (null 허용)
+     * @return 조건에 해당하는 사원 DTO 리스트
+     */
+    List<EmployeeDTO> searchEmployees(String searchName, Long searchDeptId, String searchStatus);
+
+    /**
      * 신규 사원을 등록합니다. 비밀번호는 BCrypt로 암호화된 후 저장됩니다.
      *
      * @param dto 등록할 사원 정보 DTO (평문 비밀번호 포함)

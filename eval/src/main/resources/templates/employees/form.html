@@ -79,8 +79,7 @@
                                             id="email" name="email" th:value="${employee.email()}"
                                             pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
                                             title="올바른 이메일 형식을 입력하세요. (예: example@domain.com)"
-                                            placeholder="example@domain.com"
-                                            required>
+                                            placeholder="example@domain.com" required>
                                     </div>
                                     <div class="col-md-4">
                                         <label for="phone" class="form-label text-muted small fw-semibold">연락처 <span
@@ -88,7 +87,8 @@
                                         <input type="text"
                                             class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
                                             id="phone" name="phone" th:value="${employee.phone()}"
-                                            placeholder="010-0000-0000" pattern="^010-[0-9]{4}-[0-9]{4}$" title="전화번호 양식은 010-0000-0000 이어야 합니다." maxlength="13" required>
+                                            placeholder="010-0000-0000" pattern="^010-[0-9]{4}-[0-9]{4}$"
+                                            title="전화번호 양식은 010-0000-0000 이어야 합니다." maxlength="13" required>
                                     </div>
                                 </div>
                             </div>
@@ -133,10 +133,7 @@
                                             required>
                                             <option value="EMPLOYED"
                                                 th:selected="${employee.statusCode() == 'EMPLOYED'}">재직</option>
-                                            <option value="ON_LEAVE"
-                                                th:selected="${employee.statusCode() == 'ON_LEAVE'}">휴직</option>
-                                            <option value="RETIRED" th:selected="${employee.statusCode() == 'RETIRED'}">
-                                                퇴사</option>
+
                                         </select>
                                     </div>
                                     <div class="col-md-3">
@@ -167,8 +164,7 @@
                                             <div class="form-check" th:each="role : ${roles}">
                                                 <input class="form-check-input bg-dark border-secondary" type="radio"
                                                     name="roleIds" th:value="${role.roleId()}"
-                                                    th:id="'role-' + ${role.roleId()}"
-                                                    th:checked="${roleStat.first}">
+                                                    th:id="'role-' + ${role.roleId()}" th:checked="${roleStat.first}">
                                                 <label class="form-check-label text-white-50"
                                                     th:for="'role-' + ${role.roleId()}">
                                                     <span
@@ -206,7 +202,7 @@
                         if (e.inputType === 'deleteContentBackward') {
                             return;
                         }
-                        
+
                         let value = e.target.value.replace(/[^0-9]/g, '');
                         let formattedValue = '';
 

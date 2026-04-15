@@ -102,6 +102,31 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     /**
      * {@inheritDoc}
+     * 검색 조건에 따라 동적으로 사원 목록을 조회합니다.
+     * 모든 조건이 null이면 전체 목록을 반환합니다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<EmployeeDTO> searchEmployees(String searchName, Long searchDeptId, String searchStatus) {
+        // 부서/직급 전체 목록을 미리 Map으로 캐싱 (N+1 방지)
+        Map<Long, String> deptMap = departmentMapper.findAll().stream()
+                .collect(Collectors.toMap(Department::getDeptId, Department::getDeptName));
+        Map<Long, String> positionMap = positionMapper.findAll().stream()
+                .collect(Collectors.toMap(Position::getPositionId, Position::getPositionName));
+
+        // 동적 SQL 검색 쿼리 호출
+        return employeeMapper.searchEmployees(searchName, searchDeptId, searchStatus).stream()
+                .map(emp -> {
+                    List<String> roleNames = employeeMapper.findRoleNamesByEmpId(emp.getEmpId());
+                    String deptName = deptMap.get(emp.getDeptId());
+                    String positionName = positionMap.get(emp.getPositionId());
+                    return convertToDto(emp, roleNames, deptName, positionName);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
      */
     @Override
     @Transactional

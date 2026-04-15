@@ -89,7 +89,7 @@
                                 <i class="bi bi-search text-muted"></i>
                             </span>
                             <input type="text" id="searchName" name="searchName"
-                                class="form-control bg-transparent border-secondary border-opacity-50"
+                                class="form-control bg-transparent border-secondary border-opacity-50 form-control py-1"
                                 placeholder="이름으로 검색..." th:value="${searchName}">
                         </div>
                     </div>
@@ -110,8 +110,8 @@
                         <select id="searchStatus" name="searchStatus"
                             class="form-select bg-transparent border-secondary border-opacity-50">
                             <option value="">전체</option>
-                            <option value="ACTIVE" th:selected="${searchStatus == 'ACTIVE'}">재직</option>
-                            <option value="LEAVE" th:selected="${searchStatus == 'LEAVE'}">휴직</option>
+                            <option value="EMPLOYED" th:selected="${searchStatus == 'EMPLOYED'}">재직</option>
+                            <option value="ON_LEAVE" th:selected="${searchStatus == 'ON_LEAVE'}">휴직</option>
                             <option value="RETIRED" th:selected="${searchStatus == 'RETIRED'}">퇴사</option>
                         </select>
                     </div>

@@ -98,6 +98,39 @@
         order by e.emp_id asc
     </select>
 
+    <!-- 검색 조건(이름, 부서, 재직 상태)에 따라 동적으로 사원 목록을 조회 -->
+    <select id="searchEmployees" resultType="com.ees.eval.domain.Employee">
+        select
+            e.emp_id       as EMP_ID,
+            e.dept_id      as DEPT_ID,
+            e.position_id  as POSITION_ID,
+            e.password     as PASSWORD,
+            e.name         as NAME,
+            e.email        as EMAIL,
+            e.phone        as PHONE,
+            e.status_code  as STATUS_CODE,
+            e.login_fail_cnt as LOGIN_FAIL_CNT,
+            e.hire_date    as HIRE_DATE,
+            e.is_deleted   as IS_DELETED,
+            e.version      as VERSION,
+            e.created_at   as CREATED_AT,
+            e.created_by   as CREATED_BY,
+            e.updated_at   as UPDATED_AT,
+            e.updated_by   as UPDATED_BY
+        from employees_51 e
+        where e.is_deleted = 'n'
+        <if test="searchName != null and searchName != ''">
+            and e.name like '%' + #{searchName} + '%'
+        </if>
+        <if test="searchDeptId != null">
+            and e.dept_id = #{searchDeptId}
+        </if>
+        <if test="searchStatus != null and searchStatus != ''">
+            and e.status_code = #{searchStatus}
+        </if>
+        order by e.emp_id asc
+    </select>
+
     <!-- 특정 부서 소속 활성 사원 목록 조회 -->
     <select id="findByDeptId" resultType="com.ees.eval.domain.Employee">
         select
