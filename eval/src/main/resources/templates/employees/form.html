@@ -76,7 +76,11 @@
                                                 class="text-danger">*</span></label>
                                         <input type="email"
                                             class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
-                                            id="email" name="email" th:value="${employee.email()}" required>
+                                            id="email" name="email" th:value="${employee.email()}"
+                                            pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
+                                            title="올바른 이메일 형식을 입력하세요. (예: example@domain.com)"
+                                            placeholder="example@domain.com"
+                                            required>
                                     </div>
                                     <div class="col-md-4">
                                         <label for="phone" class="form-label text-muted small fw-semibold">연락처 <span
@@ -161,9 +165,10 @@
                                         </div>
                                         <div class="d-flex flex-wrap gap-4">
                                             <div class="form-check" th:each="role : ${roles}">
-                                                <input class="form-check-input bg-dark border-secondary" type="checkbox"
+                                                <input class="form-check-input bg-dark border-secondary" type="radio"
                                                     name="roleIds" th:value="${role.roleId()}"
-                                                    th:id="'role-' + ${role.roleId()}">
+                                                    th:id="'role-' + ${role.roleId()}"
+                                                    th:checked="${roleStat.first}">
                                                 <label class="form-check-label text-white-50"
                                                     th:for="'role-' + ${role.roleId()}">
                                                     <span
