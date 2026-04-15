@@ -14,8 +14,7 @@
             <div class="collapse navbar-collapse" id="navbarContent" data-bs-theme="dark">
                 <ul class="navbar-nav ms-auto align-items-center gap-3">
                     <li class="nav-item d-none d-md-block">
-                        <span class="text-muted small"
-                            th:text="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd HH:mm')}">2026-04-09</span>
+                        <span id="realtime-clock" class="text-muted small"></span>
                     </li>
                     <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
                         <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" id="userDropdown"
@@ -48,4 +47,22 @@
             </div>
         </div>
     </nav>
+    <script>
+        (function () {
+            function pad(n) { return String(n).padStart(2, '0'); }
+            function tick() {
+                const now = new Date();
+                const str = now.getFullYear() + '-' +
+                    pad(now.getMonth() + 1) + '-' +
+                    pad(now.getDate()) + ' ' +
+                    pad(now.getHours()) + ':' +
+                    pad(now.getMinutes()) + ':' +
+                    pad(now.getSeconds());
+                const el = document.getElementById('realtime-clock');
+                if (el) el.textContent = str;
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
+    </script>
 </div>
