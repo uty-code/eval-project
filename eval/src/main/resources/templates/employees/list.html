@@ -16,7 +16,11 @@
                 <p class="text-muted">사원의 기본 정보, 부서, 직급 및 재직 상태를 등록하고 관리합니다.</p>
             </div>
             <div class="col-md-4 text-md-end">
-                <a th:href="@{/employees/new}" class="btn btn-primary px-4" id="btn-new-employee">
+                <a th:href="@{/employees/pending}" class="btn px-4 py-3 fw-bold" id="btn-new-employee"
+                    th:classappend="${pendingCount > 0 ? 'btn-warning' : 'btn-primary'}">
+                    <i class="bi bi-person-plus-fill me-2"></i>승인 대기
+                </a>
+                <a th:href="@{/employees/new}" class="btn btn-primary px-4 py-3" id="btn-new-employee">
                     <i class="bi bi-person-plus-fill me-2"></i>신규 사원 등록
                 </a>
             </div>

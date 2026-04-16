@@ -332,6 +332,14 @@
         order by e.created_at desc
     </select>
 
+    <!-- 승인 대기(PENDING) 상태인 사원 수 조회 -->
+    <select id="countPendingEmployees" resultType="long">
+        select count(*)
+        from employees_51
+        where status_code = 'PENDING'
+          and is_deleted = 'n'
+    </select>
+
     <!-- 재직 상태(EMPLOYED)인 사원 수 조회 -->
     <select id="countActiveEmployees" resultType="long">
         select count(*)

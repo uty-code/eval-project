@@ -284,6 +284,16 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     /**
      * {@inheritDoc}
+     * Mapper의 COUNT 쿼리를 호출하여 DB에서 직접 승인 대기 사원 수를 집계합니다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public long countPendingEmployees() {
+        return employeeMapper.countPendingEmployees();
+    }
+
+    /**
+     * {@inheritDoc}
      * Mapper의 COUNT 쿼리를 호출하여 DB에서 직접 재직 사원 수를 집계합니다.
      */
     @Override

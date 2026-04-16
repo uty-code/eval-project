@@ -21,6 +21,9 @@
             <a class="nav-link" th:href="@{/employees}" th:classappend="${activeMenu == 'employees' ? 'active' : ''}">
                 <i class="bi bi-people-fill"></i>
                 <span>사원 관리</span>
+                <span class="badge bg-warning text-dark ms-1" th:if="${pendingCount > 0}"
+                    th:text="${pendingCount}"></span>
+
             </a>
         </nav>
     </div>
@@ -85,10 +88,6 @@
             <a class="nav-link" th:href="@{/admin/codes}" th:classappend="${activeMenu == 'codes' ? 'active' : ''}">
                 <i class="bi bi-code-square"></i>
                 <span>공통 코드 관리</span>
-            </a>
-            <a class="nav-link" th:href="@{/employees/pending}" th:classappend="${activeMenu == 'pending' ? 'active' : ''}">
-                <i class="bi bi-hourglass-split"></i>
-                <span>사원 등록 신청 승인</span>
             </a>
         </nav>
     </div>

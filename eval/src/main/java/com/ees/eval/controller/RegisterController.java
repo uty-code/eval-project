@@ -92,7 +92,6 @@ public class RegisterController {
     public String pendingList(Model model) {
         List<EmployeeDTO> pendingEmployees = employeeService.getPendingEmployees();
         model.addAttribute("pendingEmployees", pendingEmployees);
-        model.addAttribute("pendingCount", pendingEmployees.size());
         return "employees/pending";
     }
 

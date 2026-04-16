@@ -159,6 +159,13 @@ public interface EmployeeMapper {
     List<Employee> findTop5RecentWithDetail();
 
     /**
+     * 승인 대기(PENDING) 상태이면서 논리 삭제되지 않은 사원의 수를 조회합니다.
+     *
+     * @return 승인 대기 중인 사원 수
+     */
+    long countPendingEmployees();
+
+    /**
      * 재직 상태(EMPLOYED)이면서 논리 삭제되지 않은 사원의 수를 조회합니다.
      *
      * @return 재직 중인 사원 수

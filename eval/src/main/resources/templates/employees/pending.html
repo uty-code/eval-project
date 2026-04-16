@@ -22,21 +22,6 @@
             </div>
         </div>
 
-        <!-- 탭 네비게이션 -->
-        <ul class="nav nav-tabs mb-4">
-            <li class="nav-item">
-                <a class="nav-link" th:href="@{/employees}">
-                    <i class="bi bi-list-ul me-1"></i>전체 사원
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" th:href="@{/employees/pending}">
-                    <i class="bi bi-hourglass-split me-1"></i>승인 대기
-                    <span class="badge bg-warning text-dark ms-1" th:if="${pendingCount > 0}" th:text="${pendingCount}"></span>
-                </a>
-            </li>
-        </ul>
-
         <!-- Flash Messages -->
         <div th:if="${successMessage}"
             class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show"
@@ -134,20 +119,18 @@
                             <td class="py-3 text-center">
                                 <div class="d-flex gap-1 justify-content-center">
                                     <!-- 승인 버튼 -->
-                                    <form th:action="@{'/employees/' + ${emp.empId()} + '/approve'}"
-                                        method="post" class="d-inline">
-                                        <button type="submit"
-                                            class="btn btn-sm btn-outline-success px-3"
+                                    <form th:action="@{'/employees/' + ${emp.empId()} + '/approve'}" method="post"
+                                        class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-success px-3"
                                             th:id="'btn-approve-' + ${emp.empId()}"
                                             onclick="return confirm('이 사원의 등록 신청을 승인하시겠습니까?\n승인 즉시 로그인이 가능해집니다.')">
                                             <i class="bi bi-check-lg me-1"></i>승인
                                         </button>
                                     </form>
                                     <!-- 거절 버튼 -->
-                                    <form th:action="@{'/employees/' + ${emp.empId()} + '/reject'}"
-                                        method="post" class="d-inline">
-                                        <button type="submit"
-                                            class="btn btn-sm btn-outline-danger px-3"
+                                    <form th:action="@{'/employees/' + ${emp.empId()} + '/reject'}" method="post"
+                                        class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger px-3"
                                             th:id="'btn-reject-' + ${emp.empId()}"
                                             onclick="return confirm('이 사원의 등록 신청을 거절하시겠습니까?\n거절된 신청은 복구할 수 없습니다.')">
                                             <i class="bi bi-x-lg me-1"></i>거절
@@ -165,7 +148,8 @@
         <div class="glass-card p-4 mt-4 bg-warning bg-opacity-10 border-warning border-opacity-25">
             <h6 class="fw-bold mb-3 text-warning"><i class="bi bi-info-circle me-2"></i>승인 처리 안내</h6>
             <ul class="text-muted small mb-0 ps-3">
-                <li>승인 시 사원 상태가 <strong class="text-white">EMPLOYED(재직)</strong>로 변경되며 <strong class="text-white">ROLE_USER</strong> 권한이 자동 부여됩니다.</li>
+                <li>승인 시 사원 상태가 <strong class="text-white">EMPLOYED(재직)</strong>로 변경되며 <strong
+                        class="text-white">ROLE_USER</strong> 권한이 자동 부여됩니다.</li>
                 <li>승인된 사원은 발급된 사번으로 즉시 로그인이 가능합니다.</li>
                 <li>거절된 신청은 <strong class="text-danger">복구할 수 없습니다.</strong></li>
                 <li>승인 후 부서장 또는 임원 권한이 필요한 경우 사원 관리 페이지에서 별도로 수정하세요.</li>

@@ -105,6 +105,12 @@ public interface EmployeeService {
     List<EmployeeDTO> getPendingEmployees();
 
     /**
+     * 승인 대기 중인 사원 수를 조회합니다.
+     * @return 승인 대기 사원 수
+     */
+    long countPendingEmployees();
+
+    /**
      * 사원 등록 신청을 승인하여 EMPLOYED 상태로 변경하고 ROLE_USER 권한을 부여합니다.
      *
      * @param empId     승인할 사원의 식별자
