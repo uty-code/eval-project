@@ -284,6 +284,16 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     /**
      * {@inheritDoc}
+     * Mapper의 COUNT 쿼리를 호출하여 DB에서 직접 재직 사원 수를 집계합니다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public long countActiveEmployees() {
+        return employeeMapper.countActiveEmployees();
+    }
+
+    /**
+     * {@inheritDoc}
      * PENDING 상태의 사원을 EMPLOYED로 변경하고 ROLE_USER 권한을 자동 부여합니다.
      */
     @Override
