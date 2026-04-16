@@ -6,7 +6,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * 프로젝트 내 모든 도메인(Entity) 테이블에 공통으로 들어가는 
+ * 프로젝트 내 모든 도메인(Entity) 테이블에 공통으로 들어가는
  * 감사(Audit), 삭제 상태 지시자(Soft delete), 버전(낙관적 락) 필드를 정의한 기본 추상 클래스입니다.
  */
 @Getter

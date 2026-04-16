@@ -64,10 +64,10 @@ public class RoleServiceImpl implements RoleService {
         // DTO를 엔티티로 변환 후 감사 필드 및 초기값 설정
         Role role = convertToEntity(roleDto);
         role.prePersist();
-        
+
         // 데이터베이스 삽입 수행
         roleMapper.insert(role);
-        
+
         return convertToDto(role);
     }
 
@@ -83,13 +83,13 @@ public class RoleServiceImpl implements RoleService {
         // 엔티티 변환 시 현재 버전 정보 포함
         Role role = convertToEntity(roleDto);
         role.preUpdate();
-        
+
         // 업데이트 수행 시 영향받은 행의 수 체크로 낙관적 락 검증
         int updatedRows = roleMapper.update(role);
         if (updatedRows == 0) {
             throw new EesOptimisticLockException("정보가 다른 사용자에 의해 변경되었거나 이미 삭제되었습니다. (락 충돌)");
         }
-        
+
         // 반영된 최신 데이터를 다시 조회하여 반환
         return getRoleById(role.getRoleId());
     }
@@ -103,7 +103,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     public void deleteRole(Long roleId) {
         Long currentUserId = 1L; // 추후 세션 유저로 대체 예정
-        
+
         // 매퍼를 통해 is_deleted 값을 'y'로 업데이트
         int updatedRows = roleMapper.softDelete(roleId, currentUserId, LocalDateTime.now());
         if (updatedRows == 0) {

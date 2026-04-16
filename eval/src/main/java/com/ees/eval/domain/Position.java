@@ -23,10 +23,10 @@ public class Position extends BaseEntity {
     /**
      * 직급 엔티티 생성을 위한 빌더 메서드입니다.
      *
-     * @param positionId 직급 식별용 고유 ID
-     * @param positionName 직급 명 (예: 사원, 대리 등)
+     * @param positionId     직급 식별용 고유 ID
+     * @param positionName   직급 명 (예: 사원, 대리 등)
      * @param hierarchyLevel 계층 순위 (낮은 숫자가 높은 직급을 나타냄)
-     * @param weightBase 다면 평가 시 직급별 반영 가중치 보정값
+     * @param weightBase     다면 평가 시 직급별 반영 가중치 보정값
      */
     @Builder
     public Position(Long positionId, String positionName, Integer hierarchyLevel, BigDecimal weightBase) {

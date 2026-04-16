@@ -56,19 +56,20 @@ public class Employee extends BaseEntity {
     /**
      * 사원 엔티티를 생성하는 빌더 메서드입니다.
      *
-     * @param empId 사원 ID
-     * @param deptId 부서 ID
-     * @param positionId 직급 ID
-     * @param password 암호화된 비밀번호
-     * @param name 사원 이름
-     * @param email 이메일
-     * @param statusCode 재직 상태
+     * @param empId        사원 ID
+     * @param deptId       부서 ID
+     * @param positionId   직급 ID
+     * @param password     암호화된 비밀번호
+     * @param name         사원 이름
+     * @param email        이메일
+     * @param statusCode   재직 상태
      * @param loginFailCnt 로그인 실패 횟수
-     * @param hireDate 입사일
+     * @param hireDate     입사일
      */
     @Builder
     public Employee(Long empId, Long deptId, Long positionId,
-                    String password, String name, String email, String phone, String statusCode, Integer loginFailCnt, LocalDate hireDate) {
+            String password, String name, String email, String phone, String statusCode, Integer loginFailCnt,
+            LocalDate hireDate) {
         this.empId = empId;
         this.deptId = deptId;
         this.positionId = positionId;

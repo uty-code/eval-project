@@ -61,8 +61,8 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
         if (newTotal.compareTo(WEIGHT_LIMIT) > 0) {
             throw new IllegalStateException(
                     "가중치 합이 100을 초과합니다. 현재 합계: " + currentSum +
-                    ", 추가 항목 가중치: " + elementDto.weight() +
-                    ", 합산: " + newTotal);
+                            ", 추가 항목 가중치: " + elementDto.weight() +
+                            ", 합산: " + newTotal);
         }
 
         // 2. 엔티티 변환 및 감사 필드 초기화
@@ -87,8 +87,8 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
         if (newTotal.compareTo(WEIGHT_LIMIT) > 0) {
             throw new IllegalStateException(
                     "가중치 합이 100을 초과합니다. 다른 항목 합계: " + otherSum +
-                    ", 수정 항목 가중치: " + elementDto.weight() +
-                    ", 합산: " + newTotal);
+                            ", 수정 항목 가중치: " + elementDto.weight() +
+                            ", 합산: " + newTotal);
         }
 
         // 2. 엔티티 변환 및 업데이트

@@ -27,9 +27,9 @@ public class Department extends BaseEntity {
     /**
      * 부서 엔티티를 생성하는 빌더 메서드입니다.
      *
-     * @param deptId 부서 ID
+     * @param deptId       부서 ID
      * @param parentDeptId 상위 부서 ID (최상위 부서일 경우 null)
-     * @param deptName 부서 명칭
+     * @param deptName     부서 명칭
      */
     @Builder
     public Department(Long deptId, Long parentDeptId, String deptName) {

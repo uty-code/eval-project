@@ -69,7 +69,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             Long empId = Long.parseLong(username);
             Employee employee = employeeMapper.findByIdForAuth(empId)
                     .orElseThrow(() -> new IllegalArgumentException("사원을 찾을 수 없습니다. empId: " + empId));
-            
+
             // 2. 권한 목록 조회 후 DTO 변환 (인증 용도이므로 부서명/직급명 불필요)
             List<String> roleNames = employeeMapper.findRoleNamesByEmpId(employee.getEmpId());
             return convertToDto(employee, roleNames, null, null);
@@ -219,7 +219,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             if (employee.getLoginFailCnt() != null && employee.getLoginFailCnt() >= 5) {
                 return false;
             }
-            
+
             return passwordEncoder.matches(rawPassword, employee.getPassword());
         }
         return false;
@@ -239,9 +239,9 @@ public class EmployeeServiceImpl implements EmployeeService {
     public String checkAccessPrivilege(String roleName) {
         // Java 21: Pattern Matching for switch 적용
         return switch (roleName) {
-            case String r when r.equals("ROLE_ADMIN")   -> "전체 시스템 접근 허용 (관리자)";
+            case String r when r.equals("ROLE_ADMIN") -> "전체 시스템 접근 허용 (관리자)";
             case String r when r.equals("ROLE_MANAGER") -> "부서 관리 및 평가 조회 허용 (매니저)";
-            case String r when r.equals("ROLE_USER")    -> "본인 평가 조회만 허용 (일반 사용자)";
+            case String r when r.equals("ROLE_USER") -> "본인 평가 조회만 허용 (일반 사용자)";
             default -> "알 수 없는 권한입니다: " + roleName;
         };
     }
@@ -259,6 +259,16 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employeeMapper.findTop5RecentWithDetail().stream()
                 .map(emp -> convertToDto(emp, Collections.emptyList(), emp.getDeptName(), emp.getPositionName()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
+     * Mapper의 COUNT 쿼리를 호출하여 DB에서 직접 재직 사원 수를 집계합니다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public long countActiveEmployees() {
+        return employeeMapper.countActiveEmployees();
     }
 
     /**

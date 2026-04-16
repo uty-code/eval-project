@@ -28,9 +28,9 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     private final EmployeeMapper employeeMapper;
 
     /** 자기 자신을 매핑할 수 없는 관계 유형 목록 */
-    private static final String RELATION_SUPERIOR   = "SUPERIOR";
-    private static final String RELATION_PEER       = "PEER";
-    private static final String RELATION_SELF       = "SELF";
+    private static final String RELATION_SUPERIOR = "SUPERIOR";
+    private static final String RELATION_PEER = "PEER";
+    private static final String RELATION_SELF = "SELF";
     private static final String RELATION_SUBORDINATE = "SUBORDINATE";
 
     /**
@@ -90,7 +90,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
 
         // 2. 동일 관계 중복 체크
         validateDuplicate(mappingDto.periodId(), mappingDto.evaluateeId(),
-                          mappingDto.evaluatorId(), mappingDto.relationTypeCode());
+                mappingDto.evaluatorId(), mappingDto.relationTypeCode());
 
         // 3. 엔티티 변환 및 저장
         EvaluatorMapping mapping = convertToEntity(mappingDto);
@@ -108,7 +108,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     @Override
     @Transactional
     public List<EvaluatorMappingDTO> createBulkMappings(Long periodId, Long evaluateeId,
-                                                         List<Long> evaluatorIds, String relationTypeCode) {
+            List<Long> evaluatorIds, String relationTypeCode) {
         List<EvaluatorMappingDTO> results = new ArrayList<>();
 
         for (Long evaluatorId : evaluatorIds) {
@@ -147,8 +147,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
      * 자기 자신을 SUPERIOR 또는 PEER로 매핑하는 것을 차단하는 검증 로직입니다.
      * Java 21 Pattern Matching for switch를 활용합니다.
      *
-     * @param evaluateeId 피평가자 ID
-     * @param evaluatorId 평가자 ID
+     * @param evaluateeId      피평가자 ID
+     * @param evaluatorId      평가자 ID
      * @param relationTypeCode 관계 유형
      * @throws IllegalArgumentException 자기 자신을 SUPERIOR/PEER로 매핑할 경우
      */
@@ -174,9 +174,9 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     /**
      * 동일 차수에서 동일한 평가 관계의 중복 생성을 방지합니다.
      *
-     * @param periodId 차수 ID
-     * @param evaluateeId 피평가자 ID
-     * @param evaluatorId 평가자 ID
+     * @param periodId         차수 ID
+     * @param evaluateeId      피평가자 ID
+     * @param evaluatorId      평가자 ID
      * @param relationTypeCode 관계 유형
      * @throws IllegalStateException 중복 매핑이 존재할 경우
      */
@@ -185,8 +185,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         if (count > 0) {
             throw new IllegalStateException(
                     "동일한 평가 관계가 이미 존재합니다. [차수:" + periodId +
-                    ", 피평가자:" + evaluateeId + ", 평가자:" + evaluatorId +
-                    ", 관계:" + relationTypeCode + "]");
+                            ", 피평가자:" + evaluateeId + ", 평가자:" + evaluatorId +
+                            ", 관계:" + relationTypeCode + "]");
         }
     }
 

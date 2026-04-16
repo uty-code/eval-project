@@ -62,11 +62,11 @@ public class EmployeeController {
         List<DepartmentDTO> departments = departmentService.getAllDepartments();
         List<PositionDTO> positions = positionService.getAllPositions();
 
-        // 통계 수치 계산 - 항상 전체 사원 기준
+        // 전체 직원 중 재직 사원 수 조회 (DB COUNT 쿼리)
+        long activeCount = employeeService.countActiveEmployees();
+
+        // 올해 입사자 수 계산
         List<EmployeeDTO> allEmployees = employeeService.getAllEmployees();
-        long activeCount = allEmployees.stream()
-                .filter(e -> !"y".equalsIgnoreCase(e.isDeleted()))
-                .count();
         long thisYearHired = allEmployees.stream()
                 .filter(e -> e.hireDate() != null && e.hireDate().getYear() == LocalDate.now().getYear())
                 .count();

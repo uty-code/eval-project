@@ -104,4 +104,11 @@ public interface EmployeeService {
      * @return 최신 등록순 사원 DTO 목록 (최대 5건)
      */
     List<EmployeeDTO> getTop5RecentEmployees();
+
+    /**
+     * 재직 상태(EMPLOYED)인 사원의 수를 DB에서 직접 조회합니다.
+     *
+     * @return 재직 중인 사원 수
+     */
+    long countActiveEmployees();
 }

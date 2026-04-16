@@ -38,16 +38,16 @@ public class EvaluationPeriod extends BaseEntity {
     /**
      * 평가 차수 엔티티를 생성하는 빌더 메서드입니다.
      *
-     * @param periodId 차수 ID
+     * @param periodId   차수 ID
      * @param periodYear 평가 연도
      * @param periodName 차수 명칭
      * @param statusCode 상태 코드
-     * @param startDate 시작일
-     * @param endDate 종료일
+     * @param startDate  시작일
+     * @param endDate    종료일
      */
     @Builder
     public EvaluationPeriod(Long periodId, Integer periodYear, String periodName,
-                            String statusCode, LocalDate startDate, LocalDate endDate) {
+            String statusCode, LocalDate startDate, LocalDate endDate) {
         this.periodId = periodId;
         this.periodYear = periodYear;
         this.periodName = periodName;

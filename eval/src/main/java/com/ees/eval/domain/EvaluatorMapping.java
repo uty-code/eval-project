@@ -33,15 +33,15 @@ public class EvaluatorMapping extends BaseEntity {
     /**
      * 평가자 매핑 엔티티를 생성하는 빌더 메서드입니다.
      *
-     * @param mappingId 매핑 ID
-     * @param periodId 차수 ID
-     * @param evaluateeId 피평가자 ID
-     * @param evaluatorId 평가자 ID
+     * @param mappingId        매핑 ID
+     * @param periodId         차수 ID
+     * @param evaluateeId      피평가자 ID
+     * @param evaluatorId      평가자 ID
      * @param relationTypeCode 관계 유형 코드
      */
     @Builder
     public EvaluatorMapping(Long mappingId, Long periodId, Long evaluateeId,
-                            Long evaluatorId, String relationTypeCode) {
+            Long evaluatorId, String relationTypeCode) {
         this.mappingId = mappingId;
         this.periodId = periodId;
         this.evaluateeId = evaluateeId;

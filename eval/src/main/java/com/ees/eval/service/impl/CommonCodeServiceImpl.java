@@ -51,7 +51,8 @@ public class CommonCodeServiceImpl implements CommonCodeService {
     @Transactional(readOnly = true)
     public List<CommonCodeDTO> getCodesByGroupCode(String groupCode) {
         // 그룹 검색 조건에 맞는 데이터를 매스 패치하여 스트림 처리
-        return commonCodeMapper.findByGroupCode(groupCode).stream().map(this::convertToDto).collect(Collectors.toList());
+        return commonCodeMapper.findByGroupCode(groupCode).stream().map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -63,10 +64,10 @@ public class CommonCodeServiceImpl implements CommonCodeService {
         // 엔티티로 변환 후 시스템 레벨의 공통 데이터 초기화 대행
         CommonCode code = convertToEntity(codeDto);
         code.prePersist();
-        
+
         // 매퍼를 통한 DB 삽입 (Identity값 확보 포함)
         commonCodeMapper.insert(code);
-        
+
         return convertToDto(code);
     }
 
@@ -79,13 +80,13 @@ public class CommonCodeServiceImpl implements CommonCodeService {
         // 엔티티 변환 시점 이전 최신화 일시 패치
         CommonCode code = convertToEntity(codeDto);
         code.preUpdate();
-        
+
         // 동시 수정을 방지하기 위해 버전 필드를 대조한 수정을 수행
         int updatedRows = commonCodeMapper.update(code);
         if (updatedRows == 0) {
             throw new EesOptimisticLockException("정보가 다른 사용자에 의해 변경되었거나 수정 충돌이 발생했습니다.");
         }
-        
+
         // 영속화된 최종 결과를 다시 읽어와 상위 계층에 응답
         return getCodeById(code.getCodeId());
     }
@@ -97,7 +98,7 @@ public class CommonCodeServiceImpl implements CommonCodeService {
     @Transactional
     public void deleteCode(Long codeId) {
         Long currentUserId = 1L; // 시스템 보안 관리자 ID로 추후 대체
-        
+
         // 삭제 일시 및 수정자 정보를 담아 소프트 델리트 명령 하달
         int updatedRows = commonCodeMapper.softDelete(codeId, currentUserId, LocalDateTime.now());
         if (updatedRows == 0) {
