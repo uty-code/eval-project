@@ -270,6 +270,20 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     /**
      * {@inheritDoc}
+     * 대시보드 인사 현황용으로 최신 등록순 상위 5명의 사원을 조회합니다.
+     * JOIN 쿼리를 통해 부서명, 직급명이 엔티티에 이미 포함되어 있으므로
+     * 추가 N+1 쿼리 없이 바로 DTO로 변환합니다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<EmployeeDTO> getTop5RecentEmployees() {
+        return employeeMapper.findTop5RecentWithDetail().stream()
+                .map(emp -> convertToDto(emp, Collections.emptyList(), emp.getDeptName(), emp.getPositionName()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
      * PENDING 상태의 사원을 EMPLOYED로 변경하고 ROLE_USER 권한을 자동 부여합니다.
      */
     @Override

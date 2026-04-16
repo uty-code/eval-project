@@ -39,3 +39,5 @@ bin/
 /dist/
 /nbdist/
 /.nb-gradle/
+
+# 5. Config & Secrets
