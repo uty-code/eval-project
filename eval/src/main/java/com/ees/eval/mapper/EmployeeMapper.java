@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -67,6 +68,35 @@ public interface EmployeeMapper {
                                    @Param("searchStatus") String searchStatus);
 
     /**
+     * 사원+부서+직급을 JOIN으로 한 번에 조회합니다 (성능 최적화 버전).
+     * OFFSET/FETCH를 통해 특정 페이지의 데이터만 가져옵니다.
+     *
+     * @param searchName   검색할 사원 성명 (부분 일치, null 허용)
+     * @param searchDeptId 검색할 부서 ID (null 허용)
+     * @param searchStatus 검색할 재직 상태 코드 (null 허용)
+     * @param offset       조회 시작 행 번호 (0부터 시작)
+     * @param pageSize     한 페이지에 가져올 행 수
+     * @return 조건에 해당하는 사원 리스트 (deptName, positionName 포함)
+     */
+    List<Employee> searchEmployeesWithDetail(@Param("searchName") String searchName,
+                                             @Param("searchDeptId") Long searchDeptId,
+                                             @Param("searchStatus") String searchStatus,
+                                             @Param("offset") int offset,
+                                             @Param("pageSize") int pageSize);
+
+    /**
+     * 검색 조건에 해당하는 전체 사원 수를 조회합니다 (페이지네이션 UI 전용).
+     *
+     * @param searchName   검색할 사원 성명 (null 허용)
+     * @param searchDeptId 검색할 부서 ID (null 허용)
+     * @param searchStatus 검색할 재직 상태 코드 (null 허용)
+     * @return 조건에 해당하는 총 사원 수
+     */
+    long countSearchEmployees(@Param("searchName") String searchName,
+                              @Param("searchDeptId") Long searchDeptId,
+                              @Param("searchStatus") String searchStatus);
+
+    /**
      * 특정 부서에 소속된 활성 사원 목록을 조회합니다.
      *
      * @param deptId 대상 부서 식별자
@@ -81,6 +111,14 @@ public interface EmployeeMapper {
      * @return 해당 사원의 권한명 문자열 리스트
      */
     List<String> findRoleNamesByEmpId(Long empId);
+
+    /**
+     * 다수의 사원에 대한 권한명을 한 번에 조회합니다 (N+1 문제 해결).
+     *
+     * @param empIds 대상 사원의 식별자 목록
+     * @return 사원 식별자(EMP_ID)와 권한명(ROLE_NAME)이 포함된 맵 리스트
+     */
+    List<Map<String, Object>> findRoleNamesByEmpIds(@Param("empIds") List<Long> empIds);
 
     /**
      * 새로운 사원 정보를 employees_51 테이블에 저장합니다.
@@ -171,4 +209,12 @@ public interface EmployeeMapper {
      * @return 재직 중인 사원 수
      */
     long countActiveEmployees();
+
+    /**
+     * 특정 연도에 입사한 사원 수를 조회합니다.
+     *
+     * @param year 대상 연도 (예: 2026)
+     * @return 해당 연도 입사자 수
+     */
+    long countThisYearHired(@Param("year") int year);
 }

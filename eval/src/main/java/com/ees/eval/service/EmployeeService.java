@@ -140,4 +140,26 @@ public interface EmployeeService {
      * @return 재직 중인 사원 수
      */
     long countActiveEmployees();
+
+    /**
+     * 올해 입사한 사원의 수를 DB에서 직접 조회합니다.
+     *
+     * @return 올해 입사자 수
+     */
+    long countThisYearHired();
+
+    /**
+     * 검색 조건과 페이지 정보를 기반으로 사원 목록을 조회합니다.
+     * 내부적으로 JOIN 쿼리와 페이지네이션(OFFSET/FETCH)을 활용하여 성능을 최적화합니다.
+     *
+     * @param searchName   검색할 사원 성명 (null 허용)
+     * @param searchDeptId 검색할 부서 ID (null 허용)
+     * @param searchStatus 검색할 재직 상태 코드 (null 허용)
+     * @param pageNum      현재 페이지 번호 (1부터 시작)
+     * @param pageSize     페이지당 사원 수
+     * @return 페이지 메타데이터와 사원 목록이 담긴 EmployeePageDTO
+     */
+    com.ees.eval.dto.EmployeePageDTO searchEmployeesPage(
+            String searchName, Long searchDeptId, String searchStatus,
+            int pageNum, int pageSize);
 }

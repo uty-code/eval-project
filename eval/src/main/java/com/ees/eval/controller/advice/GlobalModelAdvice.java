@@ -5,9 +5,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
+import java.time.LocalDate;
+
 /**
  * 모든 컨트롤러에서 공통으로 사용할 모델 데이터를 관리하는 어드바이스 클래스입니다.
- * 사이드바의 승인 대기 배지 숫자 등을 전역적으로 주입합니다.
+ * 사이드바의 승인 대기 배지 숫자 및 공통 통계 데이터를 전역적으로 주입합니다.
  */
 @ControllerAdvice
 @RequiredArgsConstructor

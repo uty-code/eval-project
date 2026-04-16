@@ -10,6 +10,7 @@ import com.ees.eval.service.PositionService;
 import com.ees.eval.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,6 +19,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 /**
  * 사원(Employee) 관리 화면 요청을 처리하는 컨트롤러입니다.
@@ -33,6 +36,8 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
     private final DepartmentService departmentService;
+    @Qualifier("virtualThreadExecutor")
+    private final Executor virtualThreadExecutor;
     private final PositionService positionService;
     private final RoleService roleService;
 
@@ -51,35 +56,65 @@ public class EmployeeController {
             @RequestParam(value = "searchName", required = false) String searchName,
             @RequestParam(value = "searchDeptId", required = false) Long searchDeptId,
             @RequestParam(value = "searchStatus", required = false) String searchStatus,
+            @RequestParam(value = "page", defaultValue = "1") int pageNum,
+            @RequestHeader(value = "HX-Request", required = false) boolean isHtmxRequest,
             Model model) {
-        // 항상 동적 검색 쿼리를 사용 (조건이 없으면 전체 조회와 동일)
-        List<EmployeeDTO> employees = employeeService.searchEmployees(
-                searchName != null && !searchName.isBlank() ? searchName.trim() : null,
-                searchDeptId,
-                searchStatus != null && !searchStatus.isBlank() ? searchStatus : null);
 
-        // 전체 부서 및 직급 목록 조회 (셀렉트 박스용)
-        List<DepartmentDTO> departments = departmentService.getAllDepartments();
-        List<PositionDTO> positions = positionService.getAllPositions();
+        // 검색 파라미터 전처리
+        final String finalName = (searchName != null && !searchName.isBlank()) ? searchName.trim() : null;
+        final String finalStatus = (searchStatus != null && !searchStatus.isBlank()) ? searchStatus : null;
+        final int pageSize = 10; // 페이지당 사원 수
 
-        // 전체 직원 중 재직 사원 수 조회 (DB COUNT 쿼리)
-        long activeCount = employeeService.countActiveEmployees();
+        // ── 병렬 조회: 서로 의존성이 없는 쿼리들을 가상 스레드로 동시 실행 ──
+        // searchEmployeesPage 내부에서도 페이지 데이터 + COUNT를 병렬로 실행함
+        CompletableFuture<com.ees.eval.dto.EmployeePageDTO> pageFuture = CompletableFuture.supplyAsync(
+                () -> employeeService.searchEmployeesPage(finalName, searchDeptId, finalStatus, pageNum, pageSize),
+                virtualThreadExecutor);
 
-        // 올해 입사자 수 계산
-        List<EmployeeDTO> allEmployees = employeeService.getAllEmployees();
-        long thisYearHired = allEmployees.stream()
-                .filter(e -> e.hireDate() != null && e.hireDate().getYear() == LocalDate.now().getYear())
-                .count();
+        CompletableFuture<List<DepartmentDTO>> departmentsFuture = CompletableFuture.supplyAsync(
+                departmentService::getAllDepartments,
+                virtualThreadExecutor);
 
-        model.addAttribute("employees", employees);
-        model.addAttribute("departments", departments);
-        model.addAttribute("positions", positions);
-        model.addAttribute("activeCount", activeCount);
-        model.addAttribute("thisYearHired", thisYearHired);
+        CompletableFuture<List<PositionDTO>> positionsFuture = CompletableFuture.supplyAsync(
+                positionService::getAllPositions,
+                virtualThreadExecutor);
+
+        CompletableFuture<Long> activeCountFuture = CompletableFuture.supplyAsync(
+                employeeService::countActiveEmployees,
+                virtualThreadExecutor);
+
+        CompletableFuture<Long> thisYearHiredFuture = CompletableFuture.supplyAsync(
+                employeeService::countThisYearHired,
+                virtualThreadExecutor);
+
+        CompletableFuture<Long> totalEmployeeCountFuture = CompletableFuture.supplyAsync(
+                () -> employeeService.searchEmployeesPage(null, null, null, 1, 1).totalCount(),
+                virtualThreadExecutor);
+
+        // 모든 병렬 작업이 완료될 때까지 대기
+        CompletableFuture.allOf(
+                pageFuture, departmentsFuture, positionsFuture,
+                activeCountFuture, thisYearHiredFuture, totalEmployeeCountFuture).join();
+
+        com.ees.eval.dto.EmployeePageDTO page = pageFuture.join();
+
+        // 완료된 결과를 Model에 담아 뷰로 전달
+        model.addAttribute("page", page);
+        model.addAttribute("employees", page.employees()); // 기존 th:each 호환성 유지
+        model.addAttribute("departments", departmentsFuture.join());
+        model.addAttribute("positions", positionsFuture.join());
+        model.addAttribute("activeCount", activeCountFuture.join());
+        model.addAttribute("thisYearHired", thisYearHiredFuture.join());
+        model.addAttribute("totalEmployeeCount", totalEmployeeCountFuture.join());
         // 검색 조건을 뷰로 다시 전달하여 폼 상태 유지
         model.addAttribute("searchName", searchName);
         model.addAttribute("searchDeptId", searchDeptId);
         model.addAttribute("searchStatus", searchStatus);
+
+        // HTMX 요청일 경우 본문 컨테이너만 반환하여 성능 최적화
+        if (isHtmxRequest) {
+            return "employees/list :: #employee-list-container";
+        }
 
         return "employees/list";
     }

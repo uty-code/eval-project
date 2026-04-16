@@ -11,23 +11,9 @@
 
         <!-- Page Header -->
         <div class="row align-items-center mb-4">
-            <div class="col-md-8">
+            <div class="col-md-12">
                 <h1 class="fw-bold fs-3 mb-1">사원 관리</h1>
-                <p class="text-muted">사원의 기본 정보, 부서, 직급 및 재직 상태를 등록하고 관리합니다.</p>
-            </div>
-            <div class="col-md-4 text-md-end">
-                <a th:href="@{/employees/pending}" 
-                   class="btn px-4 py-3 fw-bold" id="btn-pending-employees"
-                   th:classappend="${pendingCount > 0 ? 'btn-warning' : 'btn-primary'}"
-                   hx-get="/employees/pending"
-                   hx-target="#page-content"
-                   hx-select="#page-content"
-                   hx-push-url="true">
-                    <i class="bi bi-person-plus-fill me-2"></i>승인 대기
-                </a>
-                <a th:href="@{/employees/new}" class="btn btn-primary px-4 py-3" id="btn-new-employee">
-                    <i class="bi bi-person-plus-fill me-2"></i>신규 사원 등록
-                </a>
+                <p class="text-muted mb-0">사원의 기본 정보, 부서, 직급 및 재직 상태를 등록하고 관리합니다.</p>
             </div>
         </div>
 
@@ -47,9 +33,13 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
-        <!-- Stats Row -->
+
+
+        <!-- Employee Dynamic Content Area (HTMX Swap Target) -->
+        <div id="employee-list-container">
+        <!-- Stats Row (HTMX 교체 범위 안) -->
         <div class="row g-3 mb-4">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="glass-card p-3 d-flex align-items-center gap-3">
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
                         style="width:46px;height:46px;background:rgba(99,102,241,0.15);">
@@ -57,11 +47,11 @@
                     </div>
                     <div>
                         <div class="text-muted small">전체 사원 수</div>
-                        <div class="fw-bold fs-4" th:text="${employees.size()}">0</div>
+                        <div class="fw-bold fs-4" th:text="${totalEmployeeCount}">0</div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="glass-card p-3 d-flex align-items-center gap-3">
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
                         style="width:46px;height:46px;background:rgba(16,185,129,0.15);">
@@ -73,11 +63,11 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="glass-card p-3 d-flex align-items-center gap-3">
                     <div class="rounded-circle d-flex align-items-center justify-content-center"
-                        style="width:46px;height:46px;background:rgba(245,158,11,0.15);">
-                        <i class="bi bi-person-badge-fill text-warning fs-5"></i>
+                        style="width:46px;height:46px;background:rgba(186,104,200,0.15);">
+                        <i class="bi bi-person-badge-fill text-purple fs-5" style="color: #a855f7;"></i>
                     </div>
                     <div>
                         <div class="text-muted small">올해 입사자</div>
@@ -85,9 +75,37 @@
                     </div>
                 </div>
             </div>
+            <div class="col-md-3">
+                <div class="glass-card p-3 d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                        style="width:46px;height:46px;background:rgba(245,158,11,0.15);">
+                        <i class="bi bi-hourglass-split text-warning fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">승인 대기</div>
+                        <div class="fw-bold fs-4" th:text="${pendingCount}">0</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Search Filter Card -->
+        <!-- Custom Tab System (HTMX 기반 동적 교체) -->
+        <div class="nav-tabs-custom mb-3">
+            <a href="javascript:void(0)" class="nav-link-custom active" 
+               hx-get="/employees" hx-target="#employee-list-container" hx-select="#employee-list-container" hx-push-url="true">
+                <i class="bi bi-people-fill"></i> 사원 목록
+            </a>
+            <a href="javascript:void(0)" class="nav-link-custom" 
+               hx-get="/employees/pending" hx-target="#employee-list-container" hx-select="#employee-list-container" hx-push-url="true">
+                <i class="bi bi-person-plus-fill"></i> 승인 대기
+                <span class="tab-badge" th:if="${pendingCount > 0}" th:text="${pendingCount}">0</span>
+            </a>
+            <a th:href="@{/employees/new}" class="nav-link-custom">
+                <i class="bi bi-person-plus-fill"></i> 신규 사원 등록
+            </a>
+        </div>
+
+            <!-- Search Filter Card -->
         <div class="glass-card p-4 mb-4">
             <form th:action="@{/employees}" method="get" id="search-form">
                 <div class="row g-3 align-items-end">
@@ -274,7 +292,37 @@
             </div>
         </div>
 
-        <!-- 안내 카드 -->
+        <!-- 페이지네이션 UI -->
+        <div th:if="${page.totalPages() > 1}" class="d-flex justify-content-center mt-3 mb-2">
+            <nav aria-label="사원 목록 페이지 탐색">
+                <ul class="pagination pagination-sm mb-0 gap-1">
+                    <!-- 이전 그룹 이동 -->
+                    <li class="page-item" th:classappend="${page.startPage() == 1} ? 'disabled'">
+                        <a class="page-link rounded-2"
+                           th:href="@{/employees(page=${page.startPage()-1},searchName=${searchName},searchDeptId=${searchDeptId},searchStatus=${searchStatus})}"
+                           aria-label="이전">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    <!-- 페이지 번호 버튼 -->
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(page.startPage(), page.endPage())}"
+                        th:classappend="${i == page.pageNum()} ? 'active'">
+                        <a class="page-link rounded-2"
+                           th:href="@{/employees(page=${i},searchName=${searchName},searchDeptId=${searchDeptId},searchStatus=${searchStatus})}"
+                           th:text="${i}">1</a>
+                    </li>
+                    <!-- 다음 그룹 이동 -->
+                    <li class="page-item" th:classappend="${page.endPage() == page.totalPages()} ? 'disabled'">
+                        <a class="page-link rounded-2"
+                           th:href="@{/employees(page=${page.endPage()+1},searchName=${searchName},searchDeptId=${searchDeptId},searchStatus=${searchStatus})}"
+                           aria-label="다음">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
         <div class="glass-card p-4 mt-4 bg-primary bg-opacity-10 border-primary border-opacity-25">
             <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-info-circle me-2"></i>사원 관리 규칙</h6>
             <ul class="text-muted small mb-0 ps-3">
@@ -284,8 +332,7 @@
                 <li>비밀번호 초기화 시 초기 비밀번호는 사번과 동일하게 설정됩니다.</li>
                 <li>부서장으로 지정된 사원의 부서 변경 시 부서장 권한이 자동으로 해제됩니다.</li>
             </ul>
-        </div>
-
+        </div> <!-- End of #employee-list-container -->
     </div>
 
     <!-- Page Scripts -->
