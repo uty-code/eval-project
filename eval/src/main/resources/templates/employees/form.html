@@ -8,13 +8,21 @@
 
 <body>
     <div id="page-content" class="container-fluid py-4" data-bs-theme="dark">
-        <!-- Page Header -->
+        <!-- Page Header / Breadcrumb -->
         <div class="row align-items-center mb-4">
-            <div class="col-12">
-                <h1 class="fw-bold fs-3 mb-1" th:text="${isNew ? '신규 사원 등록' : '사원 정보 수정'}">사원 관리</h1>
-                <p class="text-muted"
-                    th:text="${isNew ? '새로운 사원의 핵심 정보를 입력하여 시스템에 등록합니다.' : '기존 사원의 정보를 업데이트합니다. 부서 및 직급 변경 시 주의하세요.'}">
-                </p>
+            <div class="col">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/}" class="text-primary text-decoration-none">대시보드</a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/employees}" class="text-primary text-decoration-none">사원 관리</a>
+                        </li>
+                        <li class="breadcrumb-item active text-muted" th:text="${isNew ? '신규 등록' : '정보 수정'}">신규 등록</li>
+                    </ol>
+                </nav>
+                <h1 class="fw-bold fs-3 mb-0" th:text="${isNew ? '신규 사원 등록' : '사원 정보 수정'}">사원 관리</h1>
             </div>
         </div>
 
@@ -133,7 +141,6 @@
                                             required>
                                             <option value="EMPLOYED"
                                                 th:selected="${employee.statusCode() == 'EMPLOYED'}">재직</option>
-
                                         </select>
                                     </div>
                                     <div class="col-md-3">

@@ -1,91 +1,91 @@
-<aside th:fragment="sidebar(activeMenu)" class="sidebar"
-     xmlns:th="http://www.thymeleaf.org"
-     xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-        <div class="px-3 mb-4">
-            <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">메인 메뉴</h6>
-            <nav class="nav flex-column">
-                <a class="nav-link" th:href="@{/}" th:classappend="${activeMenu == 'dashboard' ? 'active' : ''}">
-                    <i class="bi bi-speedometer2"></i>
-                    <span>대시보드</span>
-                </a>
-            </nav>
-        </div>
+<aside th:fragment="sidebar(activeMenu)" class="sidebar" xmlns:th="http://www.thymeleaf.org"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+    <div class="px-3 mb-4">
+        <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">메인 메뉴</h6>
+        <nav class="nav flex-column">
+            <a class="nav-link" th:href="@{/}" th:classappend="${activeMenu == 'dashboard' ? 'active' : ''}">
+                <i class="bi bi-speedometer2"></i>
+                <span>대시보드</span>
+            </a>
+        </nav>
+    </div>
 
-        <div class="px-3 mb-4">
-            <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">조직 및 인사 관리</h6>
-            <nav class="nav flex-column">
-                <a class="nav-link" th:href="@{/departments}" th:classappend="${activeMenu == 'departments' ? 'active' : ''}">
-                    <i class="bi bi-diagram-3-fill"></i>
-                    <span>부서 관리</span>
-                </a>
-                <a class="nav-link" th:href="@{/employees}" th:classappend="${activeMenu == 'employees' ? 'active' : ''}">
-                    <i class="bi bi-people-fill"></i>
-                    <span>사원 관리</span>
-                </a>
-            </nav>
-        </div>
+    <div class="px-3 mb-4">
+        <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">조직 및 인사 관리</h6>
+        <nav class="nav flex-column">
+            <a class="nav-link" th:href="@{/departments}"
+                th:classappend="${activeMenu == 'departments' ? 'active' : ''}">
+                <i class="bi bi-diagram-3-fill"></i>
+                <span>부서 관리</span>
+            </a>
+            <a class="nav-link" th:href="@{/employees}" th:classappend="${activeMenu == 'employees' ? 'active' : ''}">
+                <i class="bi bi-people-fill"></i>
+                <span>사원 관리</span>
+            </a>
+        </nav>
+    </div>
 
-        <div class="px-3 mb-4">
-            <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">평가 기준 설정</h6>
-            <nav class="nav flex-column">
-                <a class="nav-link" th:href="@{/eval/periods}" th:classappend="${activeMenu == 'periods' ? 'active' : ''}">
-                    <i class="bi bi-calendar-check-fill"></i>
-                    <span>평가 차수 설정</span>
-                </a>
-                <a class="nav-link" th:href="@{/eval/elements}" th:classappend="${activeMenu == 'elements' ? 'active' : ''}">
-                    <i class="bi bi-list-check"></i>
-                    <span>평가요소 관리</span>
-                </a>
-                <a class="nav-link" th:href="@{/eval/mappings}" th:classappend="${activeMenu == 'mappings' ? 'active' : ''}">
-                    <i class="bi bi-person-lines-fill"></i>
-                    <span>평가자 관리</span>
-                </a>
-            </nav>
-        </div>
+    <div class="px-3 mb-4">
+        <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">평가 기준 설정</h6>
+        <nav class="nav flex-column">
+            <a class="nav-link" th:href="@{/eval/periods}" th:classappend="${activeMenu == 'periods' ? 'active' : ''}">
+                <i class="bi bi-calendar-check-fill"></i>
+                <span>평가 차수 설정</span>
+            </a>
+            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
+                <i class="bi bi-list-check"></i>
+                <span>평가요소 관리</span>
+            </a>
+            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>평가자 관리</span>
+            </a>
+        </nav>
+    </div>
 
-        <div class="px-3 mb-4">
-            <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">평가 수행 및 관리</h6>
-            <nav class="nav flex-column">
-                <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
-                    <i class="bi bi-pencil-square"></i>
-                    <span>성과/업무 평가</span>
-                </a>
-                <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
-                    <i class="bi bi-award-fill"></i>
-                    <span>역량 평가 관리</span>
-                </a>
-                <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
-                    <i class="bi bi-people"></i>
-                    <span>다면 평가</span>
-                </a>
-                <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
-                    <i class="bi bi-chat-left-text-fill"></i>
-                    <span>면담 관리</span>
-                </a>
-                <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
-                    <i class="bi bi-check-all"></i>
-                    <span>최종 등급 확정</span>
-                </a>
-            </nav>
-        </div>
+    <div class="px-3 mb-4">
+        <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">평가 수행 및 관리</h6>
+        <nav class="nav flex-column">
+            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
+                <i class="bi bi-pencil-square"></i>
+                <span>성과/업무 평가</span>
+            </a>
+            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
+                <i class="bi bi-award-fill"></i>
+                <span>역량 평가 관리</span>
+            </a>
+            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
+                <i class="bi bi-people"></i>
+                <span>다면 평가</span>
+            </a>
+            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
+                <i class="bi bi-chat-left-text-fill"></i>
+                <span>면담 관리</span>
+            </a>
+            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
+                <i class="bi bi-check-all"></i>
+                <span>최종 등급 확정</span>
+            </a>
+        </nav>
+    </div>
 
-        <div class="px-3 mb-4">
-            <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">결과 및 현황</h6>
-            <nav class="nav flex-column">
-                <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
-                    <i class="bi bi-bar-chart-line-fill"></i>
-                    <span>평가 결과 현황</span>
-                </a>
-            </nav>
-        </div>
+    <div class="px-3 mb-4">
+        <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">결과 및 현황</h6>
+        <nav class="nav flex-column">
+            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
+                <i class="bi bi-bar-chart-line-fill"></i>
+                <span>평가 결과 현황</span>
+            </a>
+        </nav>
+    </div>
 
-        <div class="px-3 mb-4" sec:authorize="hasRole('ADMIN')">
-            <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">시스템 설정</h6>
-            <nav class="nav flex-column">
-                <a class="nav-link" th:href="@{/admin/codes}" th:classappend="${activeMenu == 'codes' ? 'active' : ''}">
-                    <i class="bi bi-code-square"></i>
-                    <span>공통 코드 관리</span>
-                </a>
-            </nav>
-        </div>
+    <div class="px-3 mb-4" sec:authorize="hasRole('ADMIN')">
+        <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">시스템 설정</h6>
+        <nav class="nav flex-column">
+            <a class="nav-link" th:href="@{/admin/codes}" th:classappend="${activeMenu == 'codes' ? 'active' : ''}">
+                <i class="bi bi-code-square"></i>
+                <span>공통 코드 관리</span>
+            </a>
+        </nav>
+    </div>
 </aside>
