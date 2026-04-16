@@ -24,6 +24,14 @@ public interface RoleMapper {
     Optional<Role> findById(Long roleId);
 
     /**
+     * 권한명(role_name)으로 단건 정보를 조회합니다.
+     *
+     * @param roleName 조회할 권한 이름 (예: ROLE_USER)
+     * @return 권한 엔티티를 담은 Optional 객체
+     */
+    Optional<Role> findByRoleName(String roleName);
+
+    /**
      * 삭제되지 않은 모든 권한 정보를 조회합니다.
      *
      * @return 전체 권한 목록

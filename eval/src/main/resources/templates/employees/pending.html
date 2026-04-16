@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'employees', ~{}, ~{::#page-scripts})}">
+
+<head>
+    <title>승인 대기 사원 - EES 사원 평가 시스템</title>
+</head>
+
+<body>
+    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark">
+
+        <!-- Page Header -->
+        <div class="row align-items-center mb-4">
+            <div class="col-md-8">
+                <h1 class="fw-bold fs-3 mb-1">사원 등록 신청 관리</h1>
+                <p class="text-muted">로그인 페이지에서 자가 등록 신청한 사원 목록입니다. 승인 시 즉시 로그인이 활성화됩니다.</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a th:href="@{/employees}" class="btn btn-outline-secondary px-4">
+                    <i class="bi bi-people-fill me-2"></i>사원 목록으로
+                </a>
+            </div>
+        </div>
+
+        <!-- 탭 네비게이션 -->
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/employees}">
+                    <i class="bi bi-list-ul me-1"></i>전체 사원
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" th:href="@{/employees/pending}">
+                    <i class="bi bi-hourglass-split me-1"></i>승인 대기
+                    <span class="badge bg-warning text-dark ms-1" th:if="${pendingCount > 0}" th:text="${pendingCount}"></span>
+                </a>
+            </li>
+        </ul>
+
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}"
+            class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show"
+            role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}"
+            class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show"
+            role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="glass-card p-3 d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                        style="width:46px;height:46px;background:rgba(245,158,11,0.15);">
+                        <i class="bi bi-hourglass-split text-warning fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">승인 대기 중</div>
+                        <div class="fw-bold fs-4" th:text="${pendingCount}">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 대기 목록 테이블 -->
+        <div class="glass-card p-4">
+            <div class="table-responsive">
+                <table class="table table-hover table-dark-custom align-middle mb-0" id="pending-table">
+                    <thead>
+                        <tr class="text-muted small border-bottom border-secondary opacity-50">
+                            <th class="py-3">사번 (발급 예정)</th>
+                            <th class="py-3">이름</th>
+                            <th class="py-3">이메일</th>
+                            <th class="py-3">전화번호</th>
+                            <th class="py-3">부서</th>
+                            <th class="py-3">직급</th>
+                            <th class="py-3">신청일</th>
+                            <th class="py-3 text-center">처리</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 데이터 없을 경우 -->
+                        <tr th:if="${#lists.isEmpty(pendingEmployees)}">
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="bi bi-hourglass fs-1 d-block mb-3 opacity-50"></i>
+                                승인 대기 중인 사원 등록 신청이 없습니다.
+                            </td>
+                        </tr>
+                        <!-- 대기 사원 목록 -->
+                        <tr th:each="emp : ${pendingEmployees}" th:id="'pending-' + ${emp.empId()}">
+                            <!-- 사번 -->
+                            <td class="py-3">
+                                <span class="badge bg-warning bg-opacity-10 text-warning fw-normal px-2 py-1"
+                                    th:text="${emp.empId()}">1001</span>
+                            </td>
+                            <!-- 이름 -->
+                            <td class="py-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold small"
+                                        style="width:34px;height:34px;background:rgba(245,158,11,0.2);color:#fbbf24;flex-shrink:0;"
+                                        th:text="${emp.name() != null && !emp.name().isEmpty()} ? ${emp.name().substring(0,1)} : '?'">
+                                    </div>
+                                    <span class="fw-semibold" th:text="${emp.name()}">홍길동</span>
+                                </div>
+                            </td>
+                            <!-- 이메일 -->
+                            <td class="py-3 text-muted small" th:text="${emp.email() != null ? emp.email() : '-'}"></td>
+                            <!-- 전화 -->
+                            <td class="py-3 text-muted small" th:text="${emp.phone() != null ? emp.phone() : '-'}"></td>
+                            <!-- 부서 -->
+                            <td class="py-3 text-muted small">
+                                <i class="bi bi-building me-1 opacity-50"></i>
+                                <span th:text="${emp.deptName() != null ? emp.deptName() : '-'}"></span>
+                            </td>
+                            <!-- 직급 -->
+                            <td class="py-3">
+                                <span th:if="${emp.positionName() != null}"
+                                    class="badge bg-primary bg-opacity-10 text-primary fw-normal px-3 py-2"
+                                    th:text="${emp.positionName()}"></span>
+                                <span th:unless="${emp.positionName() != null}" class="text-muted small">-</span>
+                            </td>
+                            <!-- 신청일 -->
+                            <td class="py-3 text-muted small"
+                                th:text="${emp.createdAt() != null ? #temporals.format(emp.createdAt(), 'yyyy-MM-dd HH:mm') : '-'}">
+                            </td>
+                            <!-- 승인 / 거절 버튼 -->
+                            <td class="py-3 text-center">
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <!-- 승인 버튼 -->
+                                    <form th:action="@{'/employees/' + ${emp.empId()} + '/approve'}"
+                                        method="post" class="d-inline">
+                                        <button type="submit"
+                                            class="btn btn-sm btn-outline-success px-3"
+                                            th:id="'btn-approve-' + ${emp.empId()}"
+                                            onclick="return confirm('이 사원의 등록 신청을 승인하시겠습니까?\n승인 즉시 로그인이 가능해집니다.')">
+                                            <i class="bi bi-check-lg me-1"></i>승인
+                                        </button>
+                                    </form>
+                                    <!-- 거절 버튼 -->
+                                    <form th:action="@{'/employees/' + ${emp.empId()} + '/reject'}"
+                                        method="post" class="d-inline">
+                                        <button type="submit"
+                                            class="btn btn-sm btn-outline-danger px-3"
+                                            th:id="'btn-reject-' + ${emp.empId()}"
+                                            onclick="return confirm('이 사원의 등록 신청을 거절하시겠습니까?\n거절된 신청은 복구할 수 없습니다.')">
+                                            <i class="bi bi-x-lg me-1"></i>거절
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 안내 카드 -->
+        <div class="glass-card p-4 mt-4 bg-warning bg-opacity-10 border-warning border-opacity-25">
+            <h6 class="fw-bold mb-3 text-warning"><i class="bi bi-info-circle me-2"></i>승인 처리 안내</h6>
+            <ul class="text-muted small mb-0 ps-3">
+                <li>승인 시 사원 상태가 <strong class="text-white">EMPLOYED(재직)</strong>로 변경되며 <strong class="text-white">ROLE_USER</strong> 권한이 자동 부여됩니다.</li>
+                <li>승인된 사원은 발급된 사번으로 즉시 로그인이 가능합니다.</li>
+                <li>거절된 신청은 <strong class="text-danger">복구할 수 없습니다.</strong></li>
+                <li>승인 후 부서장 또는 임원 권한이 필요한 경우 사원 관리 페이지에서 별도로 수정하세요.</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <!-- Page Scripts -->
+    <div id="page-scripts">
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                document.querySelectorAll('.alert-dismissible').forEach(function (alert) {
+                    setTimeout(function () {
+                        const btn = alert.querySelector('.btn-close');
+                        if (btn) btn.click();
+                    }, 5000);
+                });
+            });
+        </script>
+    </div>
+</body>
+
+</html>

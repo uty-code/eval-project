@@ -8,6 +8,7 @@ import com.ees.eval.exception.EesOptimisticLockException;
 import com.ees.eval.mapper.DepartmentMapper;
 import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.PositionMapper;
+import com.ees.eval.mapper.RoleMapper;
 import com.ees.eval.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,6 +35,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final DepartmentMapper departmentMapper;
     private final PositionMapper positionMapper;
     private final PasswordEncoder passwordEncoder;
+    private final RoleMapper roleMapper;
 
     /**
      * {@inheritDoc}
@@ -244,6 +246,62 @@ public class EmployeeServiceImpl implements EmployeeService {
             case String r when r.equals("ROLE_USER")    -> "본인 평가 조회만 허용 (일반 사용자)";
             default -> "알 수 없는 권한입니다: " + roleName;
         };
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<EmployeeDTO> getPendingEmployees() {
+        Map<Long, String> deptMap = departmentMapper.findAll().stream()
+                .collect(Collectors.toMap(Department::getDeptId, Department::getDeptName));
+        Map<Long, String> positionMap = positionMapper.findAll().stream()
+                .collect(Collectors.toMap(Position::getPositionId, Position::getPositionName));
+
+        return employeeMapper.findPendingEmployees().stream()
+                .map(emp -> {
+                    String deptName = deptMap.get(emp.getDeptId());
+                    String positionName = positionMap.get(emp.getPositionId());
+                    return convertToDto(emp, Collections.emptyList(), deptName, positionName);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
+     * PENDING 상태의 사원을 EMPLOYED로 변경하고 ROLE_USER 권한을 자동 부여합니다.
+     */
+    @Override
+    @Transactional
+    public void approveEmployee(Long empId, Long adminId) {
+        LocalDateTime now = LocalDateTime.now();
+        // 1. 상태를 EMPLOYED로 변경
+        int updated = employeeMapper.updateStatusCode(empId, "EMPLOYED", adminId, now);
+        if (updated == 0) {
+            throw new IllegalArgumentException("승인 대상 사원을 찾을 수 없습니다. empId: " + empId);
+        }
+        // 2. ROLE_USER 권한 자동 부여 (이미 있으면 중복 방지)
+        List<String> existingRoles = employeeMapper.findRoleNamesByEmpId(empId);
+        if (!existingRoles.contains("ROLE_USER")) {
+            Long userRoleId = roleMapper.findByRoleName("ROLE_USER")
+                    .orElseThrow(() -> new IllegalStateException("ROLE_USER 권한 정보를 찾을 수 없습니다."))
+                    .getRoleId();
+            employeeMapper.insertEmployeeRole(empId, userRoleId, adminId, now);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * PENDING 상태 사원을 소프트 삭제 처리하여 거절합니다.
+     */
+    @Override
+    @Transactional
+    public void rejectEmployee(Long empId, Long adminId) {
+        int updated = employeeMapper.softDelete(empId, adminId, LocalDateTime.now());
+        if (updated == 0) {
+            throw new IllegalArgumentException("거절 대상 사원을 찾을 수 없습니다. empId: " + empId);
+        }
     }
 
     /**

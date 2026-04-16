@@ -130,4 +130,23 @@ public interface EmployeeMapper {
      * 로그인 실패 횟수 초기화
      */
     int resetLoginFailCnt(Long empId);
+
+    /**
+     * 승인 대기(PENDING) 상태의 사원 목록을 조회합니다.
+     *
+     * @return PENDING 상태 사원 리스트
+     */
+    List<Employee> findPendingEmployees();
+
+    /**
+     * 사원의 상태 코드를 변경합니다. (PENDING → EMPLOYED 승인용)
+     *
+     * @param empId      대상 사원 식별자
+     * @param statusCode 변경할 상태 코드
+     * @param updatedBy  처리자 ID
+     * @param updatedAt  처리 시각
+     * @return 업데이트된 행 수
+     */
+    int updateStatusCode(@Param("empId") Long empId, @Param("statusCode") String statusCode,
+                         @Param("updatedBy") Long updatedBy, @Param("updatedAt") LocalDateTime updatedAt);
 }
