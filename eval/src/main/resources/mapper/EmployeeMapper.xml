@@ -273,4 +273,30 @@
         FROM employees_51
     </select>
 
+    <!-- 대시보드 인사 현황: 최신 등록순 상위 5명 조회 (부서명, 직급명 LEFT JOIN 포함) -->
+    <select id="findTop5RecentWithDetail" resultType="com.ees.eval.domain.Employee">
+        select top 5
+            e.emp_id       as EMP_ID,
+            e.dept_id      as DEPT_ID,
+            e.position_id  as POSITION_ID,
+            e.name         as NAME,
+            e.email        as EMAIL,
+            e.phone        as PHONE,
+            e.status_code  as STATUS_CODE,
+            e.hire_date    as HIRE_DATE,
+            e.is_deleted   as IS_DELETED,
+            e.version      as VERSION,
+            e.created_at   as CREATED_AT,
+            e.created_by   as CREATED_BY,
+            e.updated_at   as UPDATED_AT,
+            e.updated_by   as UPDATED_BY,
+            d.dept_name    as DEPT_NAME,
+            p.position_name as POSITION_NAME
+        from employees_51 e
+        left join departments_51 d on e.dept_id = d.dept_id and d.is_deleted = 'n'
+        left join positions_51 p on e.position_id = p.position_id and p.is_deleted = 'n'
+        where e.is_deleted = 'n'
+        order by e.created_at desc
+    </select>
+
 </mapper>
