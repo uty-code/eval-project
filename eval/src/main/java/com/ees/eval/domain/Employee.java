@@ -47,6 +47,12 @@ public class Employee extends BaseEntity {
     /** 입사일 */
     private LocalDate hireDate;
 
+    /** JOIN 조회 전용 - 부서 명칭 (departments 테이블에서 LEFT JOIN) */
+    private String deptName;
+
+    /** JOIN 조회 전용 - 직급 명칭 (positions 테이블에서 LEFT JOIN) */
+    private String positionName;
+
     /**
      * 사원 엔티티를 생성하는 빌더 메서드입니다.
      *

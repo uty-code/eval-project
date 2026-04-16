@@ -96,4 +96,12 @@ public interface EmployeeService {
      * @return 해당 권한의 접근 레벨 설명 문자열
      */
     String checkAccessPrivilege(String roleName);
+
+    /**
+     * 대시보드 인사 현황용으로 최신 등록순 상위 5명의 사원 정보를 조회합니다.
+     * 부서명, 직급명이 포함된 DTO 리스트를 반환합니다.
+     *
+     * @return 최신 등록순 사원 DTO 목록 (최대 5건)
+     */
+    List<EmployeeDTO> getTop5RecentEmployees();
 }

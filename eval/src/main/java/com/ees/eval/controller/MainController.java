@@ -57,6 +57,9 @@ public class MainController {
 
         model.addAttribute("welcomeMessage", "사원 평가 시스템(EES) 관리자 페이지에 오신 것을 환영합니다.");
 
+        // 3. 인사 현황: 최신 등록순 상위 5명 조회
+        model.addAttribute("recentEmployees", employeeService.getTop5RecentEmployees());
+
         return "dashboard";
     }
 }

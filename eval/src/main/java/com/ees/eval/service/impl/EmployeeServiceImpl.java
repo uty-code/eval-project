@@ -247,6 +247,21 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     /**
+     * {@inheritDoc}
+     * 대시보드 인사 현황용으로 최신 등록순 상위 5명의 사원을 조회합니다.
+     * JOIN 쿼리를 통해 부서명, 직급명이 엔티티에 이미 포함되어 있으므로
+     * 추가 N+1 쿼리 없이 바로 DTO로 변환합니다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<EmployeeDTO> getTop5RecentEmployees() {
+        // JOIN 결과에 부서명, 직급명이 포함된 상위 5건 조회
+        return employeeMapper.findTop5RecentWithDetail().stream()
+                .map(emp -> convertToDto(emp, Collections.emptyList(), emp.getDeptName(), emp.getPositionName()))
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 도메인 엔티티(Employee)를 DTO(EmployeeDTO) 레코드로 변환합니다.
      * 비밀번호는 보안을 위해 DTO에 포함하지 않습니다.
      *

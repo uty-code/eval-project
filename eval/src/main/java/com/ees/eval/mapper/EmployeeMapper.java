@@ -130,4 +130,12 @@ public interface EmployeeMapper {
      * 로그인 실패 횟수 초기화
      */
     int resetLoginFailCnt(Long empId);
+
+    /**
+     * 대시보드 인사 현황용으로 가장 최근에 등록된 사원 5명을 조회합니다.
+     * 부서명(deptName)과 직급명(positionName)을 LEFT JOIN으로 함께 조회합니다.
+     *
+     * @return 최신 등록순 상위 5명의 사원 목록
+     */
+    List<Employee> findTop5RecentWithDetail();
 }

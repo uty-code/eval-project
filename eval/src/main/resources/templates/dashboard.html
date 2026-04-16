@@ -92,36 +92,36 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
+                                <!-- 최근 등록된 사원 목록을 최대 5건 렌더링 -->
+                                <tr th:each="emp : ${recentEmployees}">
                                     <td class="py-3">
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="bg-secondary bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center"
                                                 style="width: 32px; height: 32px;">
                                                 <i class="bi bi-person text-white"></i>
                                             </div>
-                                            <span>김관리 (샘플)</span>
+                                            <span th:text="${emp.name}">-</span>
                                         </div>
                                     </td>
-                                    <td>경영지원팀</td>
-                                    <td>과장</td>
-                                    <td><span
-                                            class="badge bg-success bg-opacity-10 text-success fw-normal px-2">재직중</span>
+                                    <td th:text="${emp.deptName != null ? emp.deptName : '-'}">-</td>
+                                    <td th:text="${emp.positionName != null ? emp.positionName : '-'}">-</td>
+                                    <td>
+                                        <!-- 재직 상태 코드에 따라 배지 색상 분기 -->
+                                        <span th:if="${emp.statusCode == 'EMPLOYED'}"
+                                              class="badge bg-success bg-opacity-10 text-success fw-normal px-2">재직중</span>
+                                        <span th:if="${emp.statusCode == 'LEAVE'}"
+                                              class="badge bg-warning bg-opacity-10 text-warning fw-normal px-2">휴직중</span>
+                                        <span th:if="${emp.statusCode == 'RETIRED'}"
+                                              class="badge bg-danger bg-opacity-10 text-danger fw-normal px-2">퇴직</span>
+                                        <span th:if="${emp.statusCode != 'EMPLOYED' and emp.statusCode != 'LEAVE' and emp.statusCode != 'RETIRED'}"
+                                              class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2"
+                                              th:text="${emp.statusCode}">-</span>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td class="py-3">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="bg-secondary bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center"
-                                                style="width: 32px; height: 32px;">
-                                                <i class="bi bi-person text-white"></i>
-                                            </div>
-                                            <span>이개발 (샘플)</span>
-                                        </div>
-                                    </td>
-                                    <td>개발팀</td>
-                                    <td>사원</td>
-                                    <td><span
-                                            class="badge bg-success bg-opacity-10 text-success fw-normal px-2">재직중</span>
+                                <!-- 데이터가 없을 경우 안내 행 표시 -->
+                                <tr th:if="${#lists.isEmpty(recentEmployees)}">
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox me-2"></i>등록된 사원이 없습니다.
                                     </td>
                                 </tr>
                             </tbody>
