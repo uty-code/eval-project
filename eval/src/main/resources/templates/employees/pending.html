@@ -16,7 +16,12 @@
                 <p class="text-muted">로그인 페이지에서 자가 등록 신청한 사원 목록입니다. 승인 시 즉시 로그인이 활성화됩니다.</p>
             </div>
             <div class="col-md-4 text-md-end">
-                <a th:href="@{/employees}" class="btn btn-outline-secondary px-4">
+                <a th:href="@{/employees}" 
+                   class="btn btn-outline-secondary px-4"
+                   hx-get="/employees"
+                   hx-target="#page-content"
+                   hx-select="#page-content"
+                   hx-push-url="true">
                     <i class="bi bi-people-fill me-2"></i>사원 목록으로
                 </a>
             </div>
