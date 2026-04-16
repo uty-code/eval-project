@@ -20,6 +20,23 @@
           and is_deleted = 'n'
     </select>
 
+    <!-- 권한명으로 권한 정보 단건 조회 -->
+    <select id="findByRoleName" resultType="com.ees.eval.domain.Role">
+        select
+            role_id as ROLE_ID,
+            role_name as ROLE_NAME,
+            description as DESCRIPTION,
+            is_deleted as IS_DELETED,
+            version as VERSION,
+            created_at as CREATED_AT,
+            created_by as CREATED_BY,
+            updated_at as UPDATED_AT,
+            updated_by as UPDATED_BY
+        from roles_51
+        where role_name = #{roleName}
+          and is_deleted = 'n'
+    </select>
+
     <!-- 모든 삭제되지 않은 권한 목록 조회 -->
     <select id="findAll" resultType="com.ees.eval.domain.Role">
         select 

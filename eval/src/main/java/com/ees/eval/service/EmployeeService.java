@@ -98,6 +98,29 @@ public interface EmployeeService {
     String checkAccessPrivilege(String roleName);
 
     /**
+     * 승인 대기(PENDING) 상태의 사원 등록 신청 목록을 조회합니다.
+     *
+     * @return PENDING 사원 DTO 리스트
+     */
+    List<EmployeeDTO> getPendingEmployees();
+
+    /**
+     * 사원 등록 신청을 승인하여 EMPLOYED 상태로 변경하고 ROLE_USER 권한을 부여합니다.
+     *
+     * @param empId     승인할 사원의 식별자
+     * @param adminId   승인을 처리하는 관리자의 empId
+     */
+    void approveEmployee(Long empId, Long adminId);
+
+    /**
+     * 사원 등록 신청을 거절하여 해당 레코드를 소프트 삭제 처리합니다.
+     *
+     * @param empId   거절할 사원의 식별자
+     * @param adminId 거절을 처리하는 관리자의 empId
+     */
+    void rejectEmployee(Long empId, Long adminId);
+
+    /**
      * 대시보드 인사 현황용으로 최신 등록순 상위 5명의 사원 정보를 조회합니다.
      * 부서명, 직급명이 포함된 DTO 리스트를 반환합니다.
      *

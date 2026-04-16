@@ -10,7 +10,7 @@
         </nav>
     </div>
 
-    <div class="px-3 mb-4">
+    <div class="px-3 mb-4" sec:authorize="!hasRole('USER')">
         <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">조직 및 인사 관리</h6>
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/departments}"
@@ -25,7 +25,7 @@
         </nav>
     </div>
 
-    <div class="px-3 mb-4">
+    <div class="px-3 mb-4" sec:authorize="!hasRole('USER')">
         <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">평가 기준 설정</h6>
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/eval/periods}" th:classappend="${activeMenu == 'periods' ? 'active' : ''}">
@@ -85,6 +85,10 @@
             <a class="nav-link" th:href="@{/admin/codes}" th:classappend="${activeMenu == 'codes' ? 'active' : ''}">
                 <i class="bi bi-code-square"></i>
                 <span>공통 코드 관리</span>
+            </a>
+            <a class="nav-link" th:href="@{/employees/pending}" th:classappend="${activeMenu == 'pending' ? 'active' : ''}">
+                <i class="bi bi-hourglass-split"></i>
+                <span>사원 등록 신청 승인</span>
             </a>
         </nav>
     </div>
