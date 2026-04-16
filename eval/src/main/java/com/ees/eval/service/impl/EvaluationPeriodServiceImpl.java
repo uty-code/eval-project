@@ -25,10 +25,10 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
     private final EvaluationPeriodMapper periodMapper;
 
     /** 상태 코드 상수 정의 */
-    private static final String STATUS_PLANNED     = "PLANNED";
+    private static final String STATUS_PLANNED = "PLANNED";
     private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
-    private static final String STATUS_COMPLETED   = "COMPLETED";
-    private static final String STATUS_CLOSED      = "CLOSED";
+    private static final String STATUS_COMPLETED = "COMPLETED";
+    private static final String STATUS_CLOSED = "CLOSED";
 
     /**
      * {@inheritDoc}
@@ -105,8 +105,8 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
                 if (!inProgressList.isEmpty()) {
                     throw new IllegalStateException(
                             "현재 '진행 중' 상태인 차수가 이미 존재합니다. [" +
-                            inProgressList.getFirst().getPeriodName() + "] " +
-                            "기존 차수를 완료 처리한 후 다시 시도해 주세요.");
+                                    inProgressList.getFirst().getPeriodName() + "] " +
+                                    "기존 차수를 완료 처리한 후 다시 시도해 주세요.");
                 }
                 yield STATUS_IN_PROGRESS;
             }
@@ -117,7 +117,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
             default ->
                 throw new IllegalStateException(
                         "유효하지 않은 상태 전이입니다: [" + currentStatus + "] → [" + newStatusCode + "]. " +
-                        "허용 경로: PLANNED → IN_PROGRESS → COMPLETED → CLOSED");
+                                "허용 경로: PLANNED → IN_PROGRESS → COMPLETED → CLOSED");
         };
 
         // 3. 상태 업데이트 수행

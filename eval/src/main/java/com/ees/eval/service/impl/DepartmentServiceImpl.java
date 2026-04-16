@@ -166,7 +166,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         if (empCount > 0) {
             throw new IllegalStateException(
                     "소속 사원이 " + empCount + "명 존재하는 부서는 삭제할 수 없습니다. " +
-                    "사원을 다른 부서로 이동한 후 다시 시도해 주세요.");
+                            "사원을 다른 부서로 이동한 후 다시 시도해 주세요.");
         }
 
         // 3. 하위 부서 존재 여부 확인 (하위 부서가 있으면 삭제 불가)
@@ -174,7 +174,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         if (!children.isEmpty()) {
             throw new IllegalStateException(
                     "하위 부서가 " + children.size() + "개 존재하는 부서는 삭제할 수 없습니다. " +
-                    "하위 부서를 먼저 정리한 후 다시 시도해 주세요.");
+                            "하위 부서를 먼저 정리한 후 다시 시도해 주세요.");
         }
 
         // 4. 안전 검증 통과 → 논리적 삭제 수행
@@ -185,9 +185,9 @@ public class DepartmentServiceImpl implements DepartmentService {
     /**
      * 부서 도메인 엔티티를 DTO 레코드로 변환합니다.
      *
-     * @param dept 부서 엔티티
+     * @param dept           부서 엔티티
      * @param parentDeptName 상위 부서명 (null 가능)
-     * @param employeeCount 소속 사원 인원수
+     * @param employeeCount  소속 사원 인원수
      * @return 변환된 DepartmentDTO
      */
     private DepartmentDTO convertToDto(Department dept, String parentDeptName, int employeeCount) {
@@ -230,7 +230,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     /**
      * Employee 엔티티를 EmployeeDTO 레코드로 변환합니다. (부서 내 사원 조회용)
      *
-     * @param emp 사원 엔티티
+     * @param emp       사원 엔티티
      * @param roleNames 사원 보유 권한명 목록
      * @return 변환된 EmployeeDTO
      */

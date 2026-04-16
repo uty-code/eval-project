@@ -21,10 +21,10 @@ public class CommonCode extends BaseEntity {
     /**
      * 공통 코드 엔티티를 생성하기 위한 빌더입니다.
      *
-     * @param codeId 코드 분류의 고유 식별자 ID
-     * @param groupCode 그룹핑을 위해 쓰이는 상위 코드명 (예: EVAL_STEP)
-     * @param codeValue 상세 코드 값 (예: STEP1)
-     * @param codeName 표시되는 화면 코드 명칭 
+     * @param codeId      코드 분류의 고유 식별자 ID
+     * @param groupCode   그룹핑을 위해 쓰이는 상위 코드명 (예: EVAL_STEP)
+     * @param codeValue   상세 코드 값 (예: STEP1)
+     * @param codeName    표시되는 화면 코드 명칭
      * @param description 공통 코드의 세부 설명
      */
     @Builder

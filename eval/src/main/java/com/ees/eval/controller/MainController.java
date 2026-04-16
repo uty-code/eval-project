@@ -29,7 +29,7 @@ public class MainController {
      * @param model Thymeleaf 모델 객체
      * @return dashboard.html 템플릿 경로
      */
-    @GetMapping({"/", "/dashboard"})
+    @GetMapping({ "/", "/dashboard" })
     public String dashboard(Model model) {
         // 1. 기초 통계 데이터 - 실제 DB에서 조회
         model.addAttribute("employeeCount", employeeService.getAllEmployees().size());
@@ -47,13 +47,11 @@ public class MainController {
         // 2. 시각화용 데이터 (Notion 요구사항 기반 Mock 데이터 - 평가 기능 구현 후 대체 예정)
         // 등급 분포
         model.addAttribute("gradeStats", Map.of(
-            "S", 5, "A", 15, "B", 45, "C", 25, "D", 10
-        ));
+                "S", 5, "A", 15, "B", 45, "C", 25, "D", 10));
 
         // 부서별 평균/완료율 (예시)
         model.addAttribute("deptStats", Map.of(
-            "개발팀", 92, "인사팀", 85, "영업팀", 78, "고객지원팀", 88
-        ));
+                "개발팀", 92, "인사팀", 85, "영업팀", 78, "고객지원팀", 88));
 
         model.addAttribute("welcomeMessage", "사원 평가 시스템(EES) 관리자 페이지에 오신 것을 환영합니다.");
 

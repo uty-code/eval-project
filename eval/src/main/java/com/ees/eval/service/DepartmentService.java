@@ -74,7 +74,7 @@ public interface DepartmentService {
      * 소속 사원이 존재하는 경우 삭제를 거부합니다.
      *
      * @param deptId 삭제할 부서 식별자
-     * @throws IllegalStateException 소속 사원이 존재하는 부서를 삭제하려 할 경우 발생
+     * @throws IllegalStateException    소속 사원이 존재하는 부서를 삭제하려 할 경우 발생
      * @throws IllegalArgumentException 대상 부서가 존재하지 않을 경우 발생
      */
     void deleteDepartment(Long deptId);

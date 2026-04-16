@@ -38,16 +38,16 @@ public class EvaluationElement extends BaseEntity {
     /**
      * 평가 항목 엔티티를 생성하는 빌더 메서드입니다.
      *
-     * @param elementId 항목 ID
-     * @param periodId 차수 ID
+     * @param elementId       항목 ID
+     * @param periodId        차수 ID
      * @param elementTypeCode 항목 유형 코드
-     * @param elementName 항목 명칭
-     * @param maxScore 최대 점수
-     * @param weight 가중치
+     * @param elementName     항목 명칭
+     * @param maxScore        최대 점수
+     * @param weight          가중치
      */
     @Builder
     public EvaluationElement(Long elementId, Long periodId, String elementTypeCode,
-                             String elementName, BigDecimal maxScore, BigDecimal weight) {
+            String elementName, BigDecimal maxScore, BigDecimal weight) {
         this.elementId = elementId;
         this.periodId = periodId;
         this.elementTypeCode = elementTypeCode;

@@ -20,8 +20,8 @@ public class Role extends BaseEntity {
     /**
      * 권한 엔티티를 생성하는 빌더 메서드입니다.
      *
-     * @param roleId 권한 고유 ID
-     * @param roleName 권한 명칭 (예: ROLE_ADMIN)
+     * @param roleId      권한 고유 ID
+     * @param roleName    권한 명칭 (예: ROLE_ADMIN)
      * @param description 권한에 대한 상세 설명
      */
     @Builder

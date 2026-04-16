@@ -138,4 +138,11 @@ public interface EmployeeMapper {
      * @return 최신 등록순 상위 5명의 사원 목록
      */
     List<Employee> findTop5RecentWithDetail();
+
+    /**
+     * 재직 상태(EMPLOYED)이면서 논리 삭제되지 않은 사원의 수를 조회합니다.
+     *
+     * @return 재직 중인 사원 수
+     */
+    long countActiveEmployees();
 }

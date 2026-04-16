@@ -53,10 +53,10 @@ public class PositionServiceImpl implements PositionService {
         // 엔티티로 전환하여 데이터베이스 저장 준비 (감사 필드 주입)
         Position position = convertToEntity(positionDto);
         position.prePersist();
-        
+
         // 데이터베이스 영속화 수행
         positionMapper.insert(position);
-        
+
         return convertToDto(position);
     }
 
@@ -69,13 +69,13 @@ public class PositionServiceImpl implements PositionService {
         // 업데이트 전 시간 정보 갱신 및 데이터 변환
         Position position = convertToEntity(positionDto);
         position.preUpdate();
-        
+
         // MyBatis를 통해 행 단위 조건부 업데이트 실행
         int updatedRows = positionMapper.update(position);
         if (updatedRows == 0) {
             throw new EesOptimisticLockException("정보가 다른 사용자에 의해 변경되었거나 수정 충돌이 발생했습니다.");
         }
-        
+
         // 수정 완료 후 최신화된 객체 정보 조회 및 결과 반환
         return getPositionById(position.getPositionId());
     }
@@ -87,7 +87,7 @@ public class PositionServiceImpl implements PositionService {
     @Transactional
     public void deletePosition(Long positionId) {
         Long currentUserId = 1L; // 배포 시 컨텍스트 사용자 정보로 교체
-        
+
         // 테이블에서 실제 행을 지우지 않고 상태값만 업데이트 처리
         int updatedRows = positionMapper.softDelete(positionId, currentUserId, LocalDateTime.now());
         if (updatedRows == 0) {
