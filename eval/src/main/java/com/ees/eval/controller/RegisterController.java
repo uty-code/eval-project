@@ -18,6 +18,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
  * 사원 등록 신청(자가 등록) 및 관리자 승인/거절 기능을 담당하는 컨트롤러입니다.
@@ -31,6 +34,8 @@ public class RegisterController {
     private final EmployeeService employeeService;
     private final DepartmentService departmentService;
     private final PositionService positionService;
+    @Qualifier("virtualThreadExecutor")
+    private final Executor virtualThreadExecutor;
 
     /**
      * 사원 등록 신청 폼 화면을 반환합니다. (비인증 공개)
@@ -89,10 +94,35 @@ public class RegisterController {
      */
     @GetMapping("/employees/pending")
     @PreAuthorize("hasRole('ADMIN')")
-    public String pendingList(Model model) {
+    public String pendingList(
+            @RequestHeader(value = "HX-Request", required = false) boolean isHtmxRequest,
+            Model model) {
         List<EmployeeDTO> pendingEmployees = employeeService.getPendingEmployees();
         model.addAttribute("pendingEmployees", pendingEmployees);
-        model.addAttribute("pendingCount", pendingEmployees.size());
+
+        CompletableFuture<Long> activeCountFuture = CompletableFuture.supplyAsync(
+                employeeService::countActiveEmployees,
+                virtualThreadExecutor);
+
+        CompletableFuture<Long> thisYearHiredFuture = CompletableFuture.supplyAsync(
+                employeeService::countThisYearHired,
+                virtualThreadExecutor);
+
+        CompletableFuture<Long> totalEmployeeCountFuture = CompletableFuture.supplyAsync(
+                () -> employeeService.searchEmployeesPage(null, null, null, 1, 1).totalCount(),
+                virtualThreadExecutor);
+
+        CompletableFuture.allOf(activeCountFuture, thisYearHiredFuture, totalEmployeeCountFuture).join();
+
+        model.addAttribute("activeCount", activeCountFuture.join());
+        model.addAttribute("thisYearHired", thisYearHiredFuture.join());
+        model.addAttribute("totalEmployeeCount", totalEmployeeCountFuture.join());
+
+        // HTMX 요청일 경우 본문 컨테이너만 반환하여 성능 최적화
+        if (isHtmxRequest) {
+            return "employees/pending :: #employee-list-container";
+        }
+
         return "employees/pending";
     }
 

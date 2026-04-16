@@ -4,6 +4,7 @@ import com.ees.eval.domain.Department;
 import com.ees.eval.domain.Employee;
 import com.ees.eval.domain.Position;
 import com.ees.eval.dto.EmployeeDTO;
+import com.ees.eval.dto.EmployeePageDTO;
 import com.ees.eval.exception.EesOptimisticLockException;
 import com.ees.eval.mapper.DepartmentMapper;
 import com.ees.eval.mapper.EmployeeMapper;
@@ -11,15 +12,19 @@ import com.ees.eval.mapper.PositionMapper;
 import com.ees.eval.mapper.RoleMapper;
 import com.ees.eval.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +41,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final PositionMapper positionMapper;
     private final PasswordEncoder passwordEncoder;
     private final RoleMapper roleMapper;
+    @Qualifier("virtualThreadExecutor")
+    private final Executor virtualThreadExecutor;
 
     /**
      * {@inheritDoc}
@@ -117,9 +124,26 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .collect(Collectors.toMap(Position::getPositionId, Position::getPositionName));
 
         // 동적 SQL 검색 쿼리 호출
-        return employeeMapper.searchEmployees(searchName, searchDeptId, searchStatus).stream()
+        List<Employee> employees = employeeMapper.searchEmployees(searchName, searchDeptId, searchStatus);
+        
+        if (employees.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        // N+1 최적화: 사원들의 권한 목록을 IN 쿼리로 한 번에 조회하여 그룹화
+        List<Long> empIds = employees.stream().map(Employee::getEmpId).collect(Collectors.toList());
+        List<Map<String, Object>> roleMaps = employeeMapper.findRoleNamesByEmpIds(empIds);
+        
+        // EmpId를 키로, RoleName의 리스트를 값으로 가지는 Map 생성
+        Map<Long, List<String>> empRolesMap = roleMaps.stream()
+                .collect(Collectors.groupingBy(
+                        row -> ((Number) row.get("EMP_ID")).longValue(),
+                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())
+                ));
+
+        return employees.stream()
                 .map(emp -> {
-                    List<String> roleNames = employeeMapper.findRoleNamesByEmpId(emp.getEmpId());
+                    List<String> roleNames = empRolesMap.getOrDefault(emp.getEmpId(), Collections.emptyList());
                     String deptName = deptMap.get(emp.getDeptId());
                     String positionName = positionMap.get(emp.getPositionId());
                     return convertToDto(emp, roleNames, deptName, positionName);
@@ -254,16 +278,36 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional(readOnly = true)
     public List<EmployeeDTO> getPendingEmployees() {
+        // 부서/직급 전체 목록을 미리 Map으로 캐싱 (N+1 방지)
         Map<Long, String> deptMap = departmentMapper.findAll().stream()
                 .collect(Collectors.toMap(Department::getDeptId, Department::getDeptName));
         Map<Long, String> positionMap = positionMapper.findAll().stream()
                 .collect(Collectors.toMap(Position::getPositionId, Position::getPositionName));
 
-        return employeeMapper.findPendingEmployees().stream()
+        // 승인 대기 중인 사원 목록 조회
+        List<Employee> pendingEmployees = employeeMapper.findPendingEmployees();
+        
+        if (pendingEmployees.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // N+1 최적화: 대기 중인 사원들의 권한 목록을 IN 쿼리로 한 번에 조회하여 그룹화
+        List<Long> empIds = pendingEmployees.stream().map(Employee::getEmpId).collect(Collectors.toList());
+        List<Map<String, Object>> roleMaps = employeeMapper.findRoleNamesByEmpIds(empIds);
+        
+        // EmpId를 키로, RoleName의 리스트를 값으로 가지는 Map 생성
+        Map<Long, List<String>> empRolesMap = roleMaps.stream()
+                .collect(Collectors.groupingBy(
+                        row -> ((Number) row.get("EMP_ID")).longValue(),
+                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())
+                ));
+
+        return pendingEmployees.stream()
                 .map(emp -> {
+                    List<String> roleNames = empRolesMap.getOrDefault(emp.getEmpId(), Collections.emptyList());
                     String deptName = deptMap.get(emp.getDeptId());
                     String positionName = positionMap.get(emp.getPositionId());
-                    return convertToDto(emp, Collections.emptyList(), deptName, positionName);
+                    return convertToDto(emp, roleNames, deptName, positionName);
                 })
                 .collect(Collectors.toList());
     }
@@ -280,6 +324,16 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employeeMapper.findTop5RecentWithDetail().stream()
                 .map(emp -> convertToDto(emp, Collections.emptyList(), emp.getDeptName(), emp.getPositionName()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
+     * Mapper의 COUNT 쿼리를 호출하여 DB에서 직접 승인 대기 사원 수를 집계합니다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public long countPendingEmployees() {
+        return employeeMapper.countPendingEmployees();
     }
 
     /**
@@ -357,6 +411,72 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .updatedAt(employee.getUpdatedAt())
                 .updatedBy(employee.getUpdatedBy())
                 .build();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public long countThisYearHired() {
+        int currentYear = LocalDate.now().getYear();
+        return employeeMapper.countThisYearHired(currentYear);
+    }
+
+    /**
+     * {@inheritDoc}
+     * JOIN 쿼리로 사원+부서+직급을 한 번에 가져오고,
+     * 페이지 데이터 조회와 전체 건수 조회를 병렬로 실행하여 성능을 최적화합니다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public EmployeePageDTO searchEmployeesPage(
+            String searchName, Long searchDeptId, String searchStatus,
+            int pageNum, int pageSize) {
+
+        // OFFSET 계산 (0부터 시작)
+        int offset = (pageNum - 1) * pageSize;
+
+        // 페이지 데이터 조회(JOIN 쿼리)와 전체 건수 조회를 병렬로 실행
+        CompletableFuture<List<Employee>> employeesFuture = CompletableFuture.supplyAsync(
+                () -> employeeMapper.searchEmployeesWithDetail(searchName, searchDeptId, searchStatus, offset, pageSize),
+                virtualThreadExecutor);
+
+        CompletableFuture<Long> totalCountFuture = CompletableFuture.supplyAsync(
+                () -> employeeMapper.countSearchEmployees(searchName, searchDeptId, searchStatus),
+                virtualThreadExecutor);
+
+        // 두 조회가 모두 완료될 때까지 대기
+        CompletableFuture.allOf(employeesFuture, totalCountFuture).join();
+
+        List<Employee> employees = employeesFuture.join();
+        long totalCount = totalCountFuture.join();
+
+        if (employees.isEmpty()) {
+            return EmployeePageDTO.of(Collections.emptyList(), pageNum, pageSize, totalCount);
+        }
+
+        // N+1 최적화: 페이지에 속한 사원들의 권한 목록을 IN 쿼리로 한 번에 조회
+        List<Long> empIds = employees.stream().map(Employee::getEmpId).collect(Collectors.toList());
+        List<Map<String, Object>> roleMaps = employeeMapper.findRoleNamesByEmpIds(empIds);
+
+        // EmpId를 키로, 권한명 리스트를 값으로 가지는 Map 생성
+        Map<Long, List<String>> empRolesMap = roleMaps.stream()
+                .collect(Collectors.groupingBy(
+                        row -> ((Number) row.get("EMP_ID")).longValue(),
+                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())
+                ));
+
+        // JOIN으로 가져온 deptName/positionName + 배치 조회한 roleNames 조합하여 DTO 변환
+        List<EmployeeDTO> employeeDTOs = employees.stream()
+                .map(emp -> {
+                    List<String> roleNames = empRolesMap.getOrDefault(emp.getEmpId(), Collections.emptyList());
+                    // deptName, positionName 은 JOIN 쿼리가 이미 채워준 값 사용
+                    return convertToDto(emp, roleNames, emp.getDeptName(), emp.getPositionName());
+                })
+                .collect(Collectors.toList());
+
+        return EmployeePageDTO.of(employeeDTOs, pageNum, pageSize, totalCount);
     }
 
     /**
