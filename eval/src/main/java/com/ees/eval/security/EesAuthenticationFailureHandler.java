@@ -51,6 +51,9 @@ public class EesAuthenticationFailureHandler extends SimpleUrlAuthenticationFail
             } else if (cause instanceof LockedException) {
                 errorMessage = "locked"; // 잠긴 계정
                 break;
+            } else if (cause instanceof org.springframework.security.authentication.DisabledException) {
+                errorMessage = "pending"; // 승인 대기 계정
+                break;
             }
             cause = cause.getCause();
         }

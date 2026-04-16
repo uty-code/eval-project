@@ -141,6 +141,12 @@
                                             required>
                                             <option value="EMPLOYED"
                                                 th:selected="${employee.statusCode() == 'EMPLOYED'}">재직</option>
+                                            <option value="ON_LEAVE"
+                                                th:selected="${employee.statusCode() == 'ON_LEAVE' or employee.statusCode() == 'LEAVE'}">휴직</option>
+                                            <option value="RETIRED"
+                                                th:selected="${employee.statusCode() == 'RETIRED'}">퇴사</option>
+                                            <option value="PENDING" th:if="${employee.statusCode() == 'PENDING'}"
+                                                th:selected="true">승인 대기</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3">
