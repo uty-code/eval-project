@@ -197,3 +197,121 @@ h4,
     background: rgba(79, 70, 229, 0.1);
     color: #4f46e5;
 }
+
+/* ── 관리 버튼 크기 고정 ── */
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 0.4rem;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    padding: 0;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.btn-action:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+}
+
+.btn-action-edit:hover {
+    background: rgba(99, 102, 241, 0.25);
+    color: #818cf8;
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.btn-action-warning:hover {
+    background: rgba(245, 158, 11, 0.25);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.btn-action-danger:hover {
+    background: rgba(239, 68, 68, 0.25);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.btn-action.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ── 다크 테마 전역 보완 ── */
+/* Bootstrap dark 테마가 적용되더라도 커스텀 배경 보완 */
+.form-control,
+.form-select {
+    background-color: var(--surface-light) !important;
+    border-color: var(--border) !important;
+    color: var(--text-main) !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--surface-light) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+    color: var(--text-main) !important;
+}
+
+/* 드롭다운 옵션 다크 */
+.form-select option {
+    background-color: var(--surface);
+    color: var(--text-main);
+}
+
+/* 테이블 다크 커스텀 */
+.table-dark-custom {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text-main);
+    color: var(--text-main);
+}
+
+.table-dark-custom thead th {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.table-dark-custom tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.15s;
+}
+
+.table-dark-custom tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* 페이지네이션 다크 */
+.page-link {
+    background-color: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text-muted) !important;
+}
+
+.page-link:hover {
+    background-color: var(--surface-light) !important;
+    color: white !important;
+}
+
+.page-item.active .page-link {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: white !important;
+}
+
+.page-item.disabled .page-link {
+    opacity: 0.4;
+}

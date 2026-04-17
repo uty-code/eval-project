@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark">
+    <div id="page-content" class="container-fluid py-4">
 
         <!-- Page Header -->
         <div class="row align-items-center mb-4">
@@ -128,17 +128,16 @@
                                 <div class="d-flex gap-1 justify-content-center">
                                     <!-- 수정 버튼 -->
                                     <a th:href="@{'/departments/' + ${dept.deptId()} + '/edit'}"
-                                        class="btn btn-sm btn-outline-light px-2" title="수정"
+                                        class="btn-action btn-action-edit" title="수정"
                                         th:id="'btn-edit-' + ${dept.deptId()}">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
                                     <!-- 삭제 버튼 (소속 인원 0명인 경우만 활성화) -->
                                     <form th:action="@{'/departments/' + ${dept.deptId()} + '/delete'}" method="post"
                                         class="d-inline">
-                                        <button type="submit" class="btn btn-sm px-2"
-                                            style="border: 1.5px solid currentColor !important; position: relative; z-index: 1;"
-                                            th:classappend="${dept.employeeCount() == 0} ? 'btn-outline-danger' : 'btn-outline-secondary disabled'"
-                                            title="삭제" th:id="'btn-delete-' + ${dept.deptId()}"
+                                        <button type="submit" class="btn-action"
+                                            th:classappend="${dept.employeeCount() == 0} ? 'btn-action-danger' : 'disabled'"
+                                            th:id="'btn-delete-' + ${dept.deptId()}"
                                             th:data-confirm-msg="'이 부서를 삭제하시겠습니까?'"
                                             th:onclick="${dept.employeeCount() == 0} ? 'return confirm(this.getAttribute(\'data-confirm-msg\'))' : 'return false'"
                                             th:attr="title=${dept.employeeCount() > 0} ? '소속 인원이 있어 삭제 불가' : '삭제'">
