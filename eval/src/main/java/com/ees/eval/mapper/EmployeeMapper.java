@@ -55,17 +55,7 @@ public interface EmployeeMapper {
      */
     List<Employee> findAll();
 
-    /**
-     * 검색 조건(이름, 부서, 재직 상태)에 따라 사원 목록을 동적으로 조회합니다.
-     *
-     * @param searchName   검색할 사원 성명 (부분 일치, null 허용)
-     * @param searchDeptId 검색할 부서 ID (null 허용)
-     * @param searchStatus 검색할 재직 상태 코드 (null 허용)
-     * @return 조건에 해당하는 사원 리스트
-     */
-    List<Employee> searchEmployees(@Param("searchName") String searchName,
-                                   @Param("searchDeptId") Long searchDeptId,
-                                   @Param("searchStatus") String searchStatus);
+
 
     /**
      * 사원+부서+직급을 JOIN으로 한 번에 조회합니다 (성능 최적화 버전).
