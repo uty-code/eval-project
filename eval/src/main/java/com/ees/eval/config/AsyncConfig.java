@@ -2,6 +2,7 @@ package com.ees.eval.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -11,6 +12,7 @@ import java.util.concurrent.Executors;
  * Java 21의 Virtual Thread를 활용하여 I/O 바운드 작업(DB 조회 등)의 병렬 처리를 최적화합니다.
  */
 @Configuration
+@EnableAsync
 public class AsyncConfig {
 
     /**

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ees.eval.mapper.LoginLogMapper">
+
+    <resultMap id="LoginLogResultMap" type="com.ees.eval.domain.LoginLog">
+        <id     property="logId"      column="log_id"/>
+        <result property="empId"      column="emp_id"/>
+        <result property="loginInput" column="login_input"/>
+        <result property="resultCode" column="result_code"/>
+        <result property="ipAddress"  column="ip_address"/>
+        <result property="userAgent"  column="user_agent"/>
+        <result property="createdAt"  column="created_at"/>
+    </resultMap>
+
+    <!-- 로그인 이력 저장 -->
+    <insert id="insert" parameterType="com.ees.eval.domain.LoginLog">
+        INSERT INTO login_logs_51
+            (emp_id, login_input, result_code, ip_address, user_agent, created_at)
+        VALUES
+            (#{empId}, #{loginInput}, #{resultCode}, #{ipAddress}, #{userAgent}, GETDATE())
+    </insert>
+
+    <!-- 특정 사원의 로그인 이력 조회 (최신순) -->
+    <select id="findByEmpId" parameterType="long" resultMap="LoginLogResultMap">
+        SELECT log_id, emp_id, login_input, result_code, ip_address, user_agent, created_at
+        FROM login_logs_51
+        WHERE emp_id = #{empId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 전체 로그인 이력 조회 (관리자용, 최신순) -->
+    <select id="findAll" resultMap="LoginLogResultMap">
+        SELECT log_id, emp_id, login_input, result_code, ip_address, user_agent, created_at
+        FROM login_logs_51
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

@@ -90,10 +90,14 @@ public class EmployeeController {
                 () -> employeeService.searchEmployeesPage(null, null, null, 1, 1).totalCount(),
                 virtualThreadExecutor);
 
+        CompletableFuture<Long> lockedCountFuture = CompletableFuture.supplyAsync(
+                employeeService::countLockedEmployees,
+                virtualThreadExecutor);
+
         // 모든 병렬 작업이 완료될 때까지 대기
         CompletableFuture.allOf(
                 pageFuture, departmentsFuture, positionsFuture,
-                activeCountFuture, thisYearHiredFuture, totalEmployeeCountFuture).join();
+                activeCountFuture, thisYearHiredFuture, totalEmployeeCountFuture, lockedCountFuture).join();
 
         com.ees.eval.dto.EmployeePageDTO page = pageFuture.join();
 
@@ -109,8 +113,27 @@ public class EmployeeController {
         model.addAttribute("searchName", searchName);
         model.addAttribute("searchDeptId", searchDeptId);
         model.addAttribute("searchStatus", searchStatus);
+        model.addAttribute("lockedCount", lockedCountFuture.join());
 
         return "employees/list";
+    }
+
+    /**
+     * 계정 잠금 사원 목록 화면을 반환합니다.
+     * login_fail_cnt >= 5 인 사원만 표시되며 잠금 해제 버튼을 제공합니다.
+     *
+     * @param model 뷰에 데이터를 전달하는 Model 객체
+     * @return 계정 잠금 관리 뷰 이름
+     */
+    @GetMapping("/locked")
+    public String lockedEmployees(Model model) {
+        model.addAttribute("lockedEmployees", employeeService.getLockedEmployees());
+        model.addAttribute("lockedCount", employeeService.countLockedEmployees());
+        model.addAttribute("totalEmployeeCount",
+                employeeService.searchEmployeesPage(null, null, null, 1, 1).totalCount());
+        model.addAttribute("activeCount", employeeService.countActiveEmployees());
+        model.addAttribute("thisYearHired", employeeService.countThisYearHired());
+        return "employees/locked";
     }
 
     /**
@@ -316,6 +339,30 @@ public class EmployeeController {
                     "비밀번호 초기화 중 오류가 발생했습니다: " + e.getMessage());
         }
         return "redirect:/employees";
+    }
+
+    /**
+     * 계정 잠금을 해제합니다.
+     * login_fail_cnt를 0으로 초기화하여 다음 로그인 시 잠금이 해제됩니다.
+     *
+     * @param empId              잠금 해제할 사원 식별자
+     * @param redirectAttributes 리다이렉트 시 전달할 Flash 메시지
+     * @return 사원 수정 폼으로 리다이렉트
+     */
+    @PostMapping("/{empId}/unlock")
+    public String unlockAccount(
+            @PathVariable Long empId,
+            RedirectAttributes redirectAttributes) {
+        try {
+            employeeService.unlockAccount(empId);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "계정 잠금이 해제되었습니다. 해당 사원은 다시 로그인할 수 있습니다.");
+        } catch (Exception e) {
+            log.error("계정 잠금 해제 실패 (empId={}): {}", empId, e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "계정 잠금 해제 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        return "redirect:/employees/" + empId + "/edit";
     }
 
     /**

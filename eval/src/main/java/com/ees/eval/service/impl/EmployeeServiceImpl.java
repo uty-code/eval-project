@@ -432,6 +432,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .hireDate(employee.getHireDate())
                 .deptName(deptName)
                 .positionName(positionName)
+                .loginFailCnt(employee.getLoginFailCnt())
                 .roleNames(roleNames != null ? roleNames : Collections.emptyList())
                 .isDeleted(employee.getIsDeleted())
                 .version(employee.getVersion())
@@ -441,6 +442,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .updatedBy(employee.getUpdatedBy())
                 .build();
     }
+
 
     /**
      * {@inheritDoc}
@@ -558,6 +560,39 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (updated == 0) {
             throw new IllegalStateException("연락처 수정에 실패했습니다.");
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     * login_fail_cnt를 0으로 초기화하여 잠긴 계정을 해제합니다.
+     */
+    @Override
+    @Transactional
+    public void unlockAccount(Long empId) {
+        int updated = employeeMapper.resetLoginFailCnt(empId);
+        if (updated == 0) {
+            throw new IllegalArgumentException("잠금 해제 대상 사원을 찾을 수 없습니다. empId: " + empId);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * login_fail_cnt >= 5인 사원 목록을 조회하여 DTO로 변환합니다.
+     */
+    @Override
+    public List<EmployeeDTO> getLockedEmployees() {
+        return employeeMapper.findLockedEmployees().stream()
+                .map(emp -> convertToDto(emp, Collections.emptyList(), emp.getDeptName(), emp.getPositionName()))
+                .toList();
+    }
+
+    /**
+     * {@inheritDoc}
+     * login_fail_cnt >= 5인 사원 수를 반환합니다.
+     */
+    @Override
+    public long countLockedEmployees() {
+        return employeeMapper.countLockedEmployees();
     }
 
     /**

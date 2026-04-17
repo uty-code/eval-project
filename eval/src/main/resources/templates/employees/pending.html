@@ -37,7 +37,7 @@
         <div id="employee-list-container">
             <!-- Stats Row (HTMX 교체 범위 안) -->
             <div class="row g-3 mb-4">
-                <div class="col-md-3">
+                <div class="col">
                     <div class="glass-card p-3 d-flex align-items-center gap-3">
                         <div class="rounded-circle d-flex align-items-center justify-content-center"
                             style="width:46px;height:46px;background:rgba(99,102,241,0.15);">
@@ -49,7 +49,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col">
                     <div class="glass-card p-3 d-flex align-items-center gap-3">
                         <div class="rounded-circle d-flex align-items-center justify-content-center"
                             style="width:46px;height:46px;background:rgba(16,185,129,0.15);">
@@ -61,7 +61,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col">
                     <div class="glass-card p-3 d-flex align-items-center gap-3">
                         <div class="rounded-circle d-flex align-items-center justify-content-center"
                             style="width:46px;height:46px;background:rgba(186,104,200,0.15);">
@@ -73,7 +73,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col">
                     <div class="glass-card p-3 d-flex align-items-center gap-3">
                         <div class="rounded-circle d-flex align-items-center justify-content-center"
                             style="width:46px;height:46px;background:rgba(245,158,11,0.15);">
@@ -82,6 +82,19 @@
                         <div>
                             <div class="text-muted small">승인 대기</div>
                             <div class="fw-bold fs-4" th:text="${pendingCount}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="glass-card p-3 d-flex align-items-center gap-3"
+                        style="border-color:rgba(239,68,68,0.3);">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:46px;height:46px;background:rgba(239,68,68,0.15);">
+                            <i class="bi bi-lock-fill fs-5" style="color:#f87171;"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">계정 잠금</div>
+                            <div class="fw-bold fs-4" style="color:#f87171;" th:text="${lockedCount}">0</div>
                         </div>
                     </div>
                 </div>
@@ -101,6 +114,12 @@
                 </a>
                 <a th:href="@{/employees/new}" class="nav-link-custom">
                     <i class="bi bi-person-plus-fill"></i> 신규 사원 등록
+                </a>
+                <a href="javascript:void(0)" class="nav-link-custom" hx-get="/employees/locked"
+                    hx-target="#page-content" hx-select="#page-content" hx-push-url="true">
+                    <i class="bi bi-lock-fill"></i> 계정 잠금
+                    <span class="tab-badge" th:if="${lockedCount != null and lockedCount > 0}" th:text="${lockedCount}"
+                        style="background:rgba(239,68,68,0.2);color:#f87171;">0</span>
                 </a>
             </div>
 

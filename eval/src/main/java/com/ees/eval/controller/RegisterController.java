@@ -110,11 +110,16 @@ public class RegisterController {
                 () -> employeeService.searchEmployeesPage(null, null, null, 1, 1).totalCount(),
                 virtualThreadExecutor);
 
-        CompletableFuture.allOf(activeCountFuture, thisYearHiredFuture, totalEmployeeCountFuture).join();
+        CompletableFuture<Long> lockedCountFuture = CompletableFuture.supplyAsync(
+                employeeService::countLockedEmployees,
+                virtualThreadExecutor);
+
+        CompletableFuture.allOf(activeCountFuture, thisYearHiredFuture, totalEmployeeCountFuture, lockedCountFuture).join();
 
         model.addAttribute("activeCount", activeCountFuture.join());
         model.addAttribute("thisYearHired", thisYearHiredFuture.join());
         model.addAttribute("totalEmployeeCount", totalEmployeeCountFuture.join());
+        model.addAttribute("lockedCount", lockedCountFuture.join());
 
         return "employees/pending";
     }

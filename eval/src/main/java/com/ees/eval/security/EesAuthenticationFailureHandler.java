@@ -1,6 +1,7 @@
 package com.ees.eval.security;
 
 import com.ees.eval.exception.EmployeeRetiredException;
+import com.ees.eval.service.LoginLogService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,6 +29,7 @@ import java.io.IOException;
 public class EesAuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
 
     private final EmployeeMapper employeeMapper;
+    private final LoginLogService loginLogService;
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
@@ -73,11 +75,18 @@ public class EesAuthenticationFailureHandler extends SimpleUrlAuthenticationFail
             }
         }
 
+        // 로그인 이력 기록 (비동기)
+        String logResultCode = switch (errorMessage) {
+            case "retired"  -> "FAIL_RETIRED";
+            case "locked"   -> "FAIL_LOCKED";
+            case "pending"  -> "FAIL_PENDING";
+            default         -> "FAIL_INVALID";
+        };
+        String loginInput = request.getParameter("username");
+        loginLogService.recordFailure(loginInput != null ? loginInput : "", logResultCode, request);
+
         // 로그인 페이지로 에러 코드와 함께 리다이렉트
         String redirectUrl = "/login?error=" + errorMessage;
-        
-        // 부가적인 정보를 메시지에 담고 싶을 경우 활용 가능
-        // redirectUrl += "&message=" + URLEncoder.encode(exception.getMessage(), StandardCharsets.UTF_8);
 
         setDefaultFailureUrl(redirectUrl);
         super.onAuthenticationFailure(request, response, exception);

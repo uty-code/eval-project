@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'admin-login-logs', ~{}, ~{})}">
+
+<head>
+    <title>로그인 이력 - EES 사원 평가 시스템</title>
+</head>
+
+<body>
+    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark">
+
+        <!-- Page Header -->
+        <div class="row align-items-center mb-4">
+            <div class="col">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/}" class="text-primary text-decoration-none">대시보드</a>
+                        </li>
+                        <li class="breadcrumb-item active text-muted">로그인 이력</li>
+                    </ol>
+                </nav>
+                <h1 class="fw-bold fs-3 mb-0">
+                    <i class="bi bi-clock-history me-2 text-primary"></i>로그인 이력
+                    <span th:if="${empId}" class="fs-5 fw-normal text-muted ms-2">
+                        — 사번 <span th:text="${empId}"></span>
+                    </span>
+                </h1>
+            </div>
+            <div class="col-auto d-flex gap-2">
+                <a th:if="${empId}" th:href="@{/admin/login-logs}"
+                   class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-list-ul me-1"></i>전체 보기
+                </a>
+            </div>
+        </div>
+
+        <!-- 통계 카드 -->
+        <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-lg-3">
+                <div class="glass-card p-4 text-center">
+                    <div class="fs-1 fw-bold text-white"
+                         th:text="${#lists.size(logs)}">0</div>
+                    <div class="text-muted small mt-1">전체 기록</div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="glass-card p-4 text-center">
+                    <div class="fs-1 fw-bold text-success"
+                         th:text="${#lists.size(logs.?[resultCode == 'SUCCESS'])}">0</div>
+                    <div class="text-muted small mt-1">로그인 성공</div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="glass-card p-4 text-center">
+                    <div class="fs-1 fw-bold text-danger"
+                         th:text="${#lists.size(logs.?[resultCode != 'SUCCESS'])}">0</div>
+                    <div class="text-muted small mt-1">로그인 실패</div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="glass-card p-4 text-center">
+                    <div class="fs-1 fw-bold text-warning"
+                         th:text="${#lists.size(logs.?[resultCode == 'FAIL_LOCKED'])}">0</div>
+                    <div class="text-muted small mt-1">계정 잠금 시도</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 테이블 카드 -->
+        <div class="glass-card p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="fw-bold mb-0">
+                    <i class="bi bi-table me-2 text-primary"></i>상세 이력
+                </h5>
+                <!-- 검색 -->
+                <div class="input-group" style="max-width:260px;">
+                    <span class="input-group-text bg-dark border-secondary text-muted">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" id="log-search"
+                           class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                           placeholder="IP / 사번 검색...">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0" id="log-table">
+                    <thead>
+                        <tr style="border-color:rgba(255,255,255,0.1);">
+                            <th class="text-muted small fw-semibold">#</th>
+                            <th class="text-muted small fw-semibold">일시</th>
+                            <th class="text-muted small fw-semibold">사번 (입력값)</th>
+                            <th class="text-muted small fw-semibold">결과</th>
+                            <th class="text-muted small fw-semibold">IP 주소</th>
+                            <th class="text-muted small fw-semibold">브라우저</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-tbody">
+                        <tr th:if="${#lists.isEmpty(logs)}">
+                            <td colspan="6" class="text-center text-muted py-5">
+                                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                로그인 이력이 없습니다.
+                            </td>
+                        </tr>
+                        <tr th:each="log, stat : ${logs}"
+                            style="border-color:rgba(255,255,255,0.06);">
+                            <td class="text-muted small" th:text="${stat.count}">1</td>
+                            <td class="small text-white-50"
+                                th:text="${log.createdAt != null ?
+                                    #temporals.format(log.createdAt, 'yyyy-MM-dd HH:mm:ss') : '-'}">-</td>
+                            <td>
+                                <span class="fw-semibold" th:text="${log.loginInput}">-</span>
+                                <span th:if="${log.empId != null}"
+                                      class="ms-1 text-muted small">(emp: <span th:text="${log.empId}"></span>)</span>
+                            </td>
+                            <td>
+                                <!-- 성공 -->
+                                <span th:if="${log.resultCode == 'SUCCESS'}"
+                                      class="badge rounded-pill bg-success bg-opacity-25 text-success px-3">
+                                    <i class="bi bi-check-circle-fill me-1"></i>성공
+                                </span>
+                                <!-- 잠금 -->
+                                <span th:if="${log.resultCode == 'FAIL_LOCKED'}"
+                                      class="badge rounded-pill bg-warning bg-opacity-25 text-warning px-3">
+                                    <i class="bi bi-lock-fill me-1"></i>계정 잠금
+                                </span>
+                                <!-- 퇴사 -->
+                                <span th:if="${log.resultCode == 'FAIL_RETIRED'}"
+                                      class="badge rounded-pill bg-secondary bg-opacity-50 text-light px-3">
+                                    <i class="bi bi-door-closed-fill me-1"></i>퇴사 계정
+                                </span>
+                                <!-- 승인 대기 -->
+                                <span th:if="${log.resultCode == 'FAIL_PENDING'}"
+                                      class="badge rounded-pill bg-info bg-opacity-25 text-info px-3">
+                                    <i class="bi bi-hourglass-split me-1"></i>승인 대기
+                                </span>
+                                <!-- 비밀번호 불일치 -->
+                                <span th:if="${log.resultCode == 'FAIL_INVALID'}"
+                                      class="badge rounded-pill bg-danger bg-opacity-25 text-danger px-3">
+                                    <i class="bi bi-x-circle-fill me-1"></i>인증 실패
+                                </span>
+                                <!-- 기타 -->
+                                <span th:unless="${log.resultCode == 'SUCCESS' or
+                                                  log.resultCode == 'FAIL_LOCKED' or
+                                                  log.resultCode == 'FAIL_RETIRED' or
+                                                  log.resultCode == 'FAIL_PENDING' or
+                                                  log.resultCode == 'FAIL_INVALID'}"
+                                      class="badge rounded-pill bg-secondary px-3"
+                                      th:text="${log.resultCode}">기타</span>
+                            </td>
+                            <td class="small text-white-50 font-monospace"
+                                th:text="${log.ipAddress ?: '-'}">-</td>
+                            <td class="small text-muted"
+                                style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                                th:text="${log.userAgent ?: '-'}"
+                                th:title="${log.userAgent}">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <script>
+            // 실시간 테이블 필터
+            document.getElementById('log-search').addEventListener('input', function() {
+                const q = this.value.toLowerCase();
+                document.querySelectorAll('#log-tbody tr').forEach(tr => {
+                    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+                });
+            });
+        </script>
+    </div>
+</body>
+</html>

@@ -248,4 +248,19 @@ public interface EmployeeMapper {
      */
     int updateContactInfo(@Param("empId") Long empId, @Param("email") String email,
                           @Param("phone") String phone);
+
+    /**
+     * 계정이 잠긴(login_fail_cnt >= 5) 사원 목록을 조회합니다.
+     * 부서명과 직급명이 JOIN을 통해 함께 반환됩니다.
+     *
+     * @return 잠긴 계정 사원 리스트 (실패 횟수 내림차순)
+     */
+    List<Employee> findLockedEmployees();
+
+    /**
+     * 계정이 잠긴(login_fail_cnt >= 5) 사원 수를 조회합니다.
+     *
+     * @return 잠긴 계정 사원 수
+     */
+    long countLockedEmployees();
 }

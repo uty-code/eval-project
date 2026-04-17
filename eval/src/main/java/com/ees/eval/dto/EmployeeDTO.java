@@ -19,6 +19,7 @@ import java.util.List;
  * @param hireDate     입사일
  * @param deptName     JOIN으로 가져온 부서 명칭
  * @param positionName JOIN으로 가져온 직급 명칭
+ * @param loginFailCnt 로그인 실패 횟수 (5 이상이면 계정 잠금)
  * @param roleNames    JOIN으로 가져온 보유 권한 명칭 목록
  * @param isDeleted    삭제 여부 (y/n)
  * @param version      낙관적 락을 위한 버전 번호
@@ -40,6 +41,7 @@ public record EmployeeDTO(
         LocalDate hireDate,
         String deptName,
         String positionName,
+        Integer loginFailCnt,
         List<String> roleNames,
         String isDeleted,
         Integer version,

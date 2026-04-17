@@ -452,5 +452,40 @@
         where emp_id   = #{empId}
           and is_deleted = 'n'
     </update>
+    <!-- 계정 잠금(login_fail_cnt >= 5) 사원 목록 조회 (부서/직급 JOIN 포함) -->
+    <select id="findLockedEmployees" resultType="com.ees.eval.domain.Employee">
+        select
+            e.emp_id         as EMP_ID,
+            e.dept_id        as DEPT_ID,
+            e.position_id    as POSITION_ID,
+            e.name           as NAME,
+            e.email          as EMAIL,
+            e.phone          as PHONE,
+            e.status_code    as STATUS_CODE,
+            e.login_fail_cnt as LOGIN_FAIL_CNT,
+            e.hire_date      as HIRE_DATE,
+            e.is_deleted     as IS_DELETED,
+            e.version        as VERSION,
+            e.created_at     as CREATED_AT,
+            e.created_by     as CREATED_BY,
+            e.updated_at     as UPDATED_AT,
+            e.updated_by     as UPDATED_BY,
+            d.dept_name      as DEPT_NAME,
+            p.position_name  as POSITION_NAME
+        from employees_51 e
+        left join departments_51 d on e.dept_id = d.dept_id and d.is_deleted = 'n'
+        left join positions_51   p on e.position_id = p.position_id and p.is_deleted = 'n'
+        where e.is_deleted = 'n'
+          and e.login_fail_cnt >= 5
+        order by e.login_fail_cnt desc, e.emp_id asc
+    </select>
+
+    <!-- 계정 잠금(login_fail_cnt >= 5) 사원 수 조회 -->
+    <select id="countLockedEmployees" resultType="long">
+        select count(*)
+        from employees_51
+        where is_deleted = 'n'
+          and login_fail_cnt >= 5
+    </select>
 
 </mapper>
