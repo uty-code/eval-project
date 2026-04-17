@@ -128,7 +128,9 @@
             and e.name like '%' + #{searchName} + '%'
         </if>
         <if test="searchDeptId != null">
-            and e.dept_id = #{searchDeptId}
+            and e.dept_id IN (
+                SELECT dept_id FROM departments_51 WHERE dept_id = #{searchDeptId} OR parent_dept_id = #{searchDeptId}
+            )
         </if>
         <if test="searchStatus != null and searchStatus != ''">
             and e.status_code = #{searchStatus}
@@ -146,7 +148,9 @@
             and e.name like '%' + #{searchName} + '%'
         </if>
         <if test="searchDeptId != null">
-            and e.dept_id = #{searchDeptId}
+            and e.dept_id IN (
+                SELECT dept_id FROM departments_51 WHERE dept_id = #{searchDeptId} OR parent_dept_id = #{searchDeptId}
+            )
         </if>
         <if test="searchStatus != null and searchStatus != ''">
             and e.status_code = #{searchStatus}
