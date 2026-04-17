@@ -95,6 +95,26 @@ public interface EmployeeMapper {
     List<Employee> findByDeptId(Long deptId);
 
     /**
+     * 부서 내 부서장(MANAGER) 사번을 조회합니다.
+     */
+    Long findManagerEmpIdByDeptId(Long deptId);
+
+    /**
+     * 부서 내 부서장(MANAGER) 이름을 조회합니다.
+     */
+    String findManagerNameByDeptId(Long deptId);
+
+    /**
+     * 부서 내 기존 부서장 권한을 회수 처리합니다.
+     */
+    int deleteManagerRoleByDeptId(@Param("deptId") Long deptId, @Param("adminId") Long adminId, @Param("now") LocalDateTime now);
+
+    /**
+     * 특정 사원에게 부서장(MANAGER) 권한을 직접 부여합니다.
+     */
+    int insertManagerRoleByEmpId(@Param("empId") Long empId, @Param("adminId") Long adminId, @Param("now") LocalDateTime now);
+
+    /**
      * 특정 사원이 보유한 권한명(role_name) 목록을 employee_roles + roles JOIN으로 조회합니다.
      *
      * @param empId 대상 사원의 식별자

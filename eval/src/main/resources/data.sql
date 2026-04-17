@@ -98,3 +98,34 @@ if not exists (
     from employees_51 e, roles_51 r
     where e.email = 'admin@ees.com'
       and r.role_name = 'ROLE_ADMIN';
+
+-- ==========================================
+-- 6. º»ºÎ ¹× ÇÏÀ§ ÆÀ (»ùÇÃ °èÃş ±¸Á¶)
+-- ==========================================
+if not exists (select 1 from departments_51 where dept_name = N'°³¹ßº»ºÎ')
+    insert into departments_51 (dept_name, is_active, is_deleted, version, created_at, created_by)
+    values (N'°³¹ßº»ºÎ', 'y', 'n', 0, getdate(), 1);
+
+declare @dev_hq_id bigint = (select dept_id from departments_51 where dept_name = N'°³¹ßº»ºÎ');
+
+if not exists (select 1 from departments_51 where dept_name = N'ÇÁ·ĞÆ®¿£µåÆÀ' and parent_dept_id = @dev_hq_id)
+    insert into departments_51 (parent_dept_id, dept_name, is_active, is_deleted, version, created_at, created_by)
+    values (@dev_hq_id, N'ÇÁ·ĞÆ®¿£µåÆÀ', 'y', 'n', 0, getdate(), 1);
+
+if not exists (select 1 from departments_51 where dept_name = N'¹é¿£µåÆÀ' and parent_dept_id = @dev_hq_id)
+    insert into departments_51 (parent_dept_id, dept_name, is_active, is_deleted, version, created_at, created_by)
+    values (@dev_hq_id, N'¹é¿£µåÆÀ', 'y', 'n', 0, getdate(), 1);
+
+if not exists (select 1 from departments_51 where dept_name = N'±âÈ¹º»ºÎ')
+    insert into departments_51 (dept_name, is_active, is_deleted, version, created_at, created_by)
+    values (N'±âÈ¹º»ºÎ', 'y', 'n', 0, getdate(), 1);
+
+declare @plan_hq_id bigint = (select dept_id from departments_51 where dept_name = N'±âÈ¹º»ºÎ');
+
+if not exists (select 1 from departments_51 where dept_name = N'¼­ºñ½º±âÈ¹ÆÀ' and parent_dept_id = @plan_hq_id)
+    insert into departments_51 (parent_dept_id, dept_name, is_active, is_deleted, version, created_at, created_by)
+    values (@plan_hq_id, N'¼­ºñ½º±âÈ¹ÆÀ', 'y', 'n', 0, getdate(), 1);
+
+if not exists (select 1 from departments_51 where dept_name = N'UI/UXÆÀ' and parent_dept_id = @plan_hq_id)
+    insert into departments_51 (parent_dept_id, dept_name, is_active, is_deleted, version, created_at, created_by)
+    values (@plan_hq_id, N'UI/UXÆÀ', 'y', 'n', 0, getdate(), 1);

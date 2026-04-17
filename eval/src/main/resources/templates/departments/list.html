@@ -85,7 +85,7 @@
                     <thead>
                         <tr class="text-muted small border-bottom border-secondary opacity-50">
                             <th class="py-3">부서명</th>
-                            <th class="py-3">상위 부서</th>
+                            <th class="py-3">부서장</th>
                             <th class="py-3 text-center">소속 인원</th>
                             <th class="py-3 text-center">상태</th>
                             <th class="py-3">등록일</th>
@@ -113,10 +113,10 @@
                                 <span class="fw-semibold" th:text="${dept.deptName()}">개발팀</span>
                             </td>
                             <td class="py-3">
-                                <span th:if="${dept.parentDeptName() != null}"
+                                <span th:if="${dept.leaderName() != null}"
                                     class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-3 py-2"
-                                    th:text="${dept.parentDeptName()}">경영지원팀</span>
-                                <span th:unless="${dept.parentDeptName() != null}" class="text-muted small">-</span>
+                                    th:text="${dept.leaderName()}">홍길동</span>
+                                <span th:unless="${dept.leaderName() != null}" class="text-muted small">-</span>
                             </td>
                             <td class="py-3 text-center">
                                 <span class="badge fw-normal px-3 py-2"

@@ -6,6 +6,7 @@ import com.ees.eval.dto.PositionDTO;
 import com.ees.eval.service.DepartmentService;
 import com.ees.eval.service.EmployeeService;
 import com.ees.eval.service.PositionService;
+import com.ees.eval.util.PhoneUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,9 +19,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
  * 사원 등록 신청(자가 등록) 및 관리자 승인/거절 기능을 담당하는 컨트롤러입니다.
@@ -34,8 +32,6 @@ public class RegisterController {
     private final EmployeeService employeeService;
     private final DepartmentService departmentService;
     private final PositionService positionService;
-    @Qualifier("virtualThreadExecutor")
-    private final Executor virtualThreadExecutor;
 
     /**
      * 사원 등록 신청 폼 화면을 반환합니다. (비인증 공개)
@@ -63,9 +59,7 @@ public class RegisterController {
             @RequestParam("password") String password,
             RedirectAttributes redirectAttributes) {
         try {
-            if (phone == null || !phone.matches("^010-\\d{4}-\\d{4}$")) {
-                throw new IllegalArgumentException("전화번호 양식이 올바르지 않습니다. (예: 010-1111-2222)");
-            }
+            PhoneUtils.validate(phone);
             EmployeeDTO dto = EmployeeDTO.builder()
                     .name(name)
                     .email(email)

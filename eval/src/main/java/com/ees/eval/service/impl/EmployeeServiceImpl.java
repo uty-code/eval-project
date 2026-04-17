@@ -11,6 +11,7 @@ import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.PositionMapper;
 import com.ees.eval.mapper.RoleMapper;
 import com.ees.eval.service.EmployeeService;
+import com.ees.eval.util.PhoneUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -211,6 +212,35 @@ public class EmployeeServiceImpl implements EmployeeService {
         int updatedRows = employeeMapper.softDelete(empId, currentUserId, LocalDateTime.now());
         if (updatedRows == 0) {
             throw new IllegalArgumentException("삭제 대상 사원을 찾을 수 없습니다. empId: " + empId);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EmployeeDTO> getEmployeesByDeptId(Long deptId) {
+        return employeeMapper.findByDeptId(deptId).stream()
+                .map(emp -> convertToDto(emp, java.util.Collections.emptyList(), emp.getDeptName(), emp.getPositionName()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getDepartmentLeaderId(Long deptId) {
+        return employeeMapper.findManagerEmpIdByDeptId(deptId);
+    }
+
+    @Override
+    @Transactional
+    public void assignDepartmentLeader(Long deptId, Long leaderEmpId) {
+        Long adminId = 1L; // TODO: SecurityContext에서 추출
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. 해당 부서의 기존 매니저 권한 모두 회수
+        employeeMapper.deleteManagerRoleByDeptId(deptId, adminId, now);
+
+        // 2. 새로운 리더가 지정되었다면 매니저 권한 부여
+        if (leaderEmpId != null) {
+            employeeMapper.insertManagerRoleByEmpId(leaderEmpId, adminId, now);
         }
     }
 
@@ -507,17 +537,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public void updateContactInfo(Long empId, String email, String phone) {
-        // 전화번호 포맷 정리 (숫자만 남기고 재포맷)
-        String formattedPhone = phone;
-        if (phone != null && !phone.isBlank()) {
-            String digits = phone.replaceAll("[^0-9]", "");
-            if (digits.length() == 11) {
-                formattedPhone = digits.substring(0, 3) + "-" + digits.substring(3, 7) + "-" + digits.substring(7);
-            } else if (digits.length() == 10) {
-                formattedPhone = digits.substring(0, 3) + "-" + digits.substring(3, 6) + "-" + digits.substring(6);
-            }
-        }
-        int updated = employeeMapper.updateContactInfo(empId, email, formattedPhone);
+        int updated = employeeMapper.updateContactInfo(empId, email, PhoneUtils.format(phone));
         if (updated == 0) {
             throw new IllegalStateException("연락처 수정에 실패했습니다.");
         }
@@ -530,13 +550,20 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public void unlockAccount(Long empId) {
-        // 1. 로그인 실패 횟수 초기화
         int updated = employeeMapper.resetLoginFailCnt(empId);
         if (updated == 0) {
             throw new IllegalArgumentException("잠금 해제 대상 사원을 찾을 수 없습니다. empId: " + empId);
         }
+        resetPasswordToEmpId(empId);
+    }
 
-        // 2. 비밀번호를 사번과 동일하게 초기화 (암호화 처리)
+    /**
+     * {@inheritDoc}
+     * 비밀번호를 사번과 동일하게 초기화합니다. (실패 횟수 초기화 없음)
+     */
+    @Override
+    @Transactional
+    public void resetPasswordToEmpId(Long empId) {
         String encodedPassword = passwordEncoder.encode(String.valueOf(empId));
         employeeMapper.updatePassword(empId, encodedPassword);
     }

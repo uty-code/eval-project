@@ -114,18 +114,32 @@
                         <div class="form-text text-muted small px-1">형식: 010-XXXX-XXXX</div>
                     </div>
 
-                    <!-- 부서 / 직급 -->
-                    <div class="col-md-6">
-                        <label for="deptId" class="form-label text-muted small px-1">부서 <span
-                                class="text-danger">*</span></label>
-                        <select class="form-select" id="deptId" name="deptId" required>
-                            <option value="">부서 선택</option>
-                            <option th:each="dept : ${departments}" th:value="${dept.deptId()}"
-                                th:text="${dept.deptName()}">
-                            </option>
+                    <!-- 본부 / 팀 -->
+                    <div class="col-12">
+                        <label for="hqSelect" class="form-label text-muted small px-1">본부 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="hqSelect">
+                            <option value="">본부 선택</option>
+                            <th:block th:each="dept : ${departments}">
+                                <option th:if="${dept.parentDeptId() == null}"
+                                        th:value="${dept.deptId()}"
+                                        th:text="${dept.deptName()}">본부명</option>
+                            </th:block>
                         </select>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12">
+                        <label for="teamSelect" class="form-label text-muted small px-1">팀 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="teamSelect">
+                            <option value="">팀 선택</option>
+                            <th:block th:each="dept : ${departments}">
+                                <option th:if="${dept.parentDeptId() != null}"
+                                        th:value="${dept.deptId()}"
+                                        th:attr="data-parent-id=${dept.parentDeptId()}"
+                                        th:text="${dept.deptName()}">팀명</option>
+                            </th:block>
+                        </select>
+                        <input type="hidden" id="deptId" name="deptId" required>
+                    </div>
+                    <div class="col-12">
                         <label for="positionId" class="form-label text-muted small px-1">직급 <span
                                 class="text-danger">*</span></label>
                         <select class="form-select" id="positionId" name="positionId" required>
@@ -203,14 +217,43 @@
             this.value = val;
         });
 
-        // 비밀번호 확인
+        // 본부/팀 2단계 연동
+        const hqSelect   = document.getElementById('hqSelect');
+        const teamSelect = document.getElementById('teamSelect');
+        const hiddenDept = document.getElementById('deptId');
+
+        function filterTeams() {
+            const hqId = hqSelect.value;
+            Array.from(teamSelect.options).forEach(opt => {
+                if (!opt.value) { opt.style.display = ''; return; }
+                opt.style.display = (!hqId || opt.getAttribute('data-parent-id') === hqId) ? '' : 'none';
+            });
+            const sel = teamSelect.options[teamSelect.selectedIndex];
+            if (sel && sel.style.display === 'none') teamSelect.value = '';
+            hiddenDept.value = teamSelect.value;
+        }
+
+        hqSelect.addEventListener('change', filterTeams);
+        teamSelect.addEventListener('change', () => { hiddenDept.value = teamSelect.value; });
+        filterTeams();
+
+        // 비밀번호 확인 + 팀 유효성 체크
         document.getElementById('register-form').addEventListener('submit', function (e) {
-            const pw = document.getElementById('password').value;
+            hiddenDept.value = teamSelect.value;
+            const pw  = document.getElementById('password').value;
             const pwc = document.getElementById('passwordConfirm').value;
             if (pw !== pwc) {
                 e.preventDefault();
                 alert('비밀번호가 일치하지 않습니다.');
                 document.getElementById('passwordConfirm').focus();
+                return;
+            }
+            if (!hiddenDept.value) {
+                e.preventDefault();
+                teamSelect.setCustomValidity('팀을 선택해 주세요.');
+                teamSelect.reportValidity();
+            } else {
+                teamSelect.setCustomValidity('');
             }
         });
     </script>
