@@ -78,4 +78,13 @@ public interface DepartmentService {
      * @throws IllegalArgumentException 대상 부서가 존재하지 않을 경우 발생
      */
     void deleteDepartment(Long deptId);
+
+    /**
+     * 부서의 사용 여부(is_active)를 전환합니다.
+     * 사용중(y)이면 미사용중(n)으로, 미사용중(n)이면 사용중(y)으로 변경합니다.
+     *
+     * @param deptId 대상 부서 식별자
+     * @throws IllegalArgumentException 대상 부서가 존재하지 않을 경우 발생
+     */
+    void toggleDepartmentStatus(Long deptId);
 }
