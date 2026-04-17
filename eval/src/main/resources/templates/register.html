@@ -117,7 +117,7 @@
                     <!-- 본부 / 팀 -->
                     <div class="col-12">
                         <label for="hqSelect" class="form-label text-muted small px-1">본부 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="hqSelect">
+                        <select class="form-select" id="hqSelect" autocomplete="off">
                             <option value="">본부 선택</option>
                             <th:block th:each="dept : ${departments}">
                                 <option th:if="${dept.parentDeptId() == null}"
@@ -128,7 +128,7 @@
                     </div>
                     <div class="col-12">
                         <label for="teamSelect" class="form-label text-muted small px-1">팀 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="teamSelect">
+                        <select class="form-select" id="teamSelect" autocomplete="off">
                             <option value="">팀 선택</option>
                             <th:block th:each="dept : ${departments}">
                                 <option th:if="${dept.parentDeptId() != null}"
@@ -222,14 +222,36 @@
         const teamSelect = document.getElementById('teamSelect');
         const hiddenDept = document.getElementById('deptId');
 
+        // 팀 옵션 원본 풀 생성
+        const teamOptionsPool = Array.from(teamSelect.options).map(opt => ({
+            value: opt.value,
+            text: opt.text,
+            parentId: opt.getAttribute('data-parent-id')
+        }));
+
+        // 2. 본부에 속한 하위 팀만 표시하도록 필터링 (DOM 재생성 방식)
         function filterTeams() {
             const hqId = hqSelect.value;
-            Array.from(teamSelect.options).forEach(opt => {
-                if (!opt.value) { opt.style.display = ''; return; }
-                opt.style.display = (!hqId || opt.getAttribute('data-parent-id') === hqId) ? '' : 'none';
+            const currentTeamVal = teamSelect.value;
+
+            // 기존 옵션 제거
+            teamSelect.innerHTML = '';
+
+            // 일치하는 옵션만 다시 추가
+            teamOptionsPool.forEach(opt => {
+                if (!opt.value || hqId === "" || opt.parentId === hqId) {
+                    const newOpt = new Option(opt.text, opt.value);
+                    if (opt.parentId) newOpt.setAttribute('data-parent-id', opt.parentId);
+                    teamSelect.appendChild(newOpt);
+                }
             });
-            const sel = teamSelect.options[teamSelect.selectedIndex];
-            if (sel && sel.style.display === 'none') teamSelect.value = '';
+
+            // 값 복원 시도
+            if (Array.from(teamSelect.options).some(o => o.value === currentTeamVal)) {
+                teamSelect.value = currentTeamVal;
+            } else {
+                teamSelect.value = "";
+            }
             hiddenDept.value = teamSelect.value;
         }
 

@@ -58,7 +58,7 @@
                     <!-- 상위 부서 선택 -->
                     <div class="col-md-6">
                         <label for="parentDeptId" class="form-label text-muted small">상위 부서</label>
-                        <select class="form-select" id="parentDeptId" name="parentDeptId">
+                        <select class="form-select" id="parentDeptId" name="parentDeptId" autocomplete="off">
                             <option value="">-- 최상위 부서 (없음) --</option>
                             <option th:each="dept : ${allDepartments}" th:value="${dept.deptId()}"
                                 th:text="${dept.deptName()}" th:selected="${department.parentDeptId() != null

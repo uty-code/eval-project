@@ -110,7 +110,7 @@
                                     <!-- 본부 선택 -->
                                     <div class="col-md-3">
                                         <label for="hqSelect" class="form-label text-muted small fw-semibold">본부 <span class="text-danger">*</span></label>
-                                        <select id="hqSelect"
+                                        <select id="hqSelect" autocomplete="off"
                                             class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white">
                                             <option value="">본부 선택</option>
                                             <th:block th:each="dept : ${departments}">
@@ -123,7 +123,7 @@
                                     <!-- 팀 선택 -->
                                     <div class="col-md-3">
                                         <label for="teamSelect" class="form-label text-muted small fw-semibold">팀 <span class="text-danger">*</span></label>
-                                        <select id="teamSelect"
+                                        <select id="teamSelect" autocomplete="off"
                                             class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white">
                                             <option value="">팀 선택</option>
                                             <th:block th:each="dept : ${departments}">
@@ -278,34 +278,63 @@
                 const hiddenDept = document.getElementById('deptId');
                 const form       = document.getElementById('employee-form');
 
-                // 팀 옵션 필터링
+                // 팀 옵션 원본 풀 생성
+                const teamOptionsPool = Array.from(teamSelect.options).map(opt => ({
+                    value: opt.value,
+                    text: opt.text,
+                    parentId: opt.getAttribute('data-parent-id')
+                }));
+
+                // 2. 본부에 속한 하위 팀만 표시하도록 필터링 (DOM 재생성 방식)
                 function filterTeams() {
                     const hqId = hqSelect.value;
-                    Array.from(teamSelect.options).forEach(opt => {
-                        if (!opt.value) { opt.style.display = ''; return; }
-                        opt.style.display = (!hqId || opt.getAttribute('data-parent-id') === hqId) ? '' : 'none';
+                    const currentTeamVal = teamSelect.value;
+
+                    // 기존 옵션 제거
+                    teamSelect.innerHTML = '';
+
+                    // 일치하는 옵션만 다시 추가
+                    teamOptionsPool.forEach(opt => {
+                        if (!opt.value || hqId === "" || opt.parentId === hqId) {
+                            const newOpt = new Option(opt.text, opt.value);
+                            if (opt.parentId) newOpt.setAttribute('data-parent-id', opt.parentId);
+                            teamSelect.appendChild(newOpt);
+                        }
                     });
-                    const sel = teamSelect.options[teamSelect.selectedIndex];
-                    if (sel && sel.style.display === 'none') teamSelect.value = '';
+
+                    // 값 복원 시도
+                    if (Array.from(teamSelect.options).some(o => o.value === currentTeamVal)) {
+                        teamSelect.value = currentTeamVal;
+                    } else {
+                        teamSelect.value = "";
+                    }
                     hiddenDept.value = teamSelect.value;
                 }
 
                 // 기존 값 복원 (수정 모드)
                 const initialDeptId = hiddenDept.value;
                 if (initialDeptId) {
-                    const teamOpt = teamSelect.querySelector(`option[value="${initialDeptId}"]`);
-                    if (teamOpt) {
-                        hqSelect.value   = teamOpt.getAttribute('data-parent-id');
-                        teamSelect.value = initialDeptId;
+                    const teamData = teamOptionsPool.find(o => o.value === initialDeptId.toString());
+                    if (teamData && teamData.parentId) {
+                        hqSelect.value = teamData.parentId;
                     } else {
-                        const hqOpt = hqSelect.querySelector(`option[value="${initialDeptId}"]`);
-                        if (hqOpt) hqSelect.value = initialDeptId;
+                        // 팀 풀에 없으면 본부 목록에서 직접 확인
+                        if (Array.from(hqSelect.options).some(o => o.value === initialDeptId.toString())) {
+                            hqSelect.value = initialDeptId;
+                        }
                     }
                 }
 
                 hqSelect.addEventListener('change', filterTeams);
                 teamSelect.addEventListener('change', () => { hiddenDept.value = teamSelect.value; });
-                filterTeams(); // 초기 렌더링
+                
+                // 초기 상태 반영
+                filterTeams();
+                if (initialDeptId) {
+                    if (Array.from(teamSelect.options).some(o => o.value === initialDeptId)) {
+                        teamSelect.value = initialDeptId;
+                    }
+                }
 
                 // 폼 전송 전 유효성 검사
                 form.addEventListener('submit', function (e) {

@@ -50,28 +50,28 @@
                         <!-- 2. 본부 (Headquarters) -->
                         <div class="col-md-2">
                             <label for="searchHqId" class="form-label text-muted small fw-semibold">본부</label>
-                            <select id="searchHqId" class="form-select bg-transparent border-secondary border-opacity-50">
-                                <option value="">전체 본부</option>
-                                <th:block th:each="dept : ${departments}">
-                                    <option th:if="${dept.parentDeptId() == null}"
-                                            th:value="${dept.deptId()}"
-                                            th:text="${dept.deptName()}">본부명</option>
-                                </th:block>
-                            </select>
+                             <select id="searchHqId" class="form-select bg-transparent border-secondary border-opacity-50" autocomplete="off">
+                                 <option value="">전체 본부</option>
+                                 <th:block th:each="dept : ${departments}">
+                                     <option th:if="${dept.parentDeptId() == null}"
+                                             th:value="${dept.deptId()}"
+                                             th:text="${dept.deptName()}">본부명</option>
+                                 </th:block>
+                             </select>
                         </div>
 
                         <!-- 3. 팀 (Team) -->
                         <div class="col-md-2">
                             <label for="searchTeamId" class="form-label text-muted small fw-semibold">팀</label>
-                            <select id="searchTeamId" class="form-select bg-transparent border-secondary border-opacity-50">
-                                <option value="">전체 팀</option>
-                                <th:block th:each="dept : ${departments}">
-                                    <option th:if="${dept.parentDeptId() != null}"
-                                            th:value="${dept.deptId()}"
-                                            th:attr="data-parent-id=${dept.parentDeptId()}"
-                                            th:text="${dept.deptName()}">팀명</option>
-                                </th:block>
-                            </select>
+                             <select id="searchTeamId" class="form-select bg-transparent border-secondary border-opacity-50" autocomplete="off">
+                                 <option value="">전체 팀</option>
+                                 <th:block th:each="dept : ${departments}">
+                                     <option th:if="${dept.parentDeptId() != null}"
+                                             th:value="${dept.deptId()}"
+                                             th:attr="data-parent-id=${dept.parentDeptId()}"
+                                             th:text="${dept.deptName()}">팀명</option>
+                                 </th:block>
+                             </select>
                         </div>
                         <input type="hidden" id="hidden_searchDeptId" name="searchDeptId" th:value="${searchDeptId}" />
                         <!-- 4. 재직 상태 -->
@@ -287,51 +287,72 @@
                     const hiddenDeptId = document.getElementById('hidden_searchDeptId');
                     const searchForm = document.getElementById('search-form');
 
+                    // 팀 옵션 원본 풀 생성 (최초 1회 저장)
+                    const teamOptionsPool = Array.from(teamSelect.options).map(opt => ({
+                        value: opt.value,
+                        text: opt.text,
+                        parentId: opt.getAttribute('data-parent-id')
+                    }));
+
                     // 1. 기존 파라미터(searchDeptId) 복원 로직
                     const initialDeptId = hiddenDeptId.value;
                     if (initialDeptId) {
-                        // 선택한 값이 팀(Team)인지 본부(HQ)인지 검사
-                        let teamOpt = teamSelect.querySelector(`option[value="${initialDeptId}"]`);
-                        if (teamOpt) {
-                            hqSelect.value = teamOpt.getAttribute('data-parent-id');
-                            teamSelect.value = initialDeptId;
+                        const teamData = teamOptionsPool.find(o => o.value === initialDeptId.toString());
+                        if (teamData && teamData.parentId) {
+                            hqSelect.value = teamData.parentId;
                         } else {
-                            let hqOpt = hqSelect.querySelector(`option[value="${initialDeptId}"]`);
-                            if (hqOpt) {
+                            // 팀 풀에 없으면 본부 목록에서 직접 확인
+                            if (Array.from(hqSelect.options).some(o => o.value === initialDeptId.toString())) {
                                 hqSelect.value = initialDeptId;
                             }
                         }
                     }
 
-                    // 2. 본부에 속한 하위 팀만 표시하도록 필터링
+                    // 2. 본부에 속한 하위 팀만 표시하도록 필터링 (DOM 재생성 방식)
                     function filterTeams() {
                         const hqId = hqSelect.value;
-                        Array.from(teamSelect.options).forEach(opt => {
-                            if (opt.value === "") { 
-                                opt.style.display = ''; 
-                            } else if (hqId === "" || opt.getAttribute('data-parent-id') === hqId) {
-                                opt.style.display = '';
-                            } else {
-                                opt.style.display = 'none';
+                        const currentTeamVal = teamSelect.value;
+
+                        // 기존 옵션 제거
+                        teamSelect.innerHTML = '';
+
+                        // 일치하는 옵션만 다시 추가
+                        teamOptionsPool.forEach(opt => {
+                            if (!opt.value || hqId === "" || opt.parentId === hqId) {
+                                const newOpt = new Option(opt.text, opt.value);
+                                if (opt.parentId) newOpt.setAttribute('data-parent-id', opt.parentId);
+                                teamSelect.appendChild(newOpt);
                             }
                         });
-                        
-                        // 현재 선택된 팀이 안보이게 처리되었다면 초기화
-                        const selOpt = teamSelect.options[teamSelect.selectedIndex];
-                        if (selOpt && selOpt.style.display === 'none') {
+
+                        // 값 복원 시도
+                        if (currentTeamVal && Array.from(teamSelect.options).some(o => o.value === currentTeamVal)) {
+                            teamSelect.value = currentTeamVal;
+                        } else {
                             teamSelect.value = "";
                         }
                     }
 
-                    hqSelect.addEventListener('change', filterTeams);
-                    filterTeams(); // 초기 상태 반영
+                    hqSelect.addEventListener('change', function() {
+                        filterTeams();
+                    });
+                    
+                    // 초기 상태 반영
+                    filterTeams();
+                    if (initialDeptId) {
+                         if (Array.from(teamSelect.options).some(o => o.value === initialDeptId.toString())) {
+                             teamSelect.value = initialDeptId;
+                         }
+                    }
 
                     // 3. 폼 전송 전, 선택된 본부/팀 ID를 searchDeptId 에 통합
                     searchForm.addEventListener('submit', function() {
-                        if (teamSelect.value) {
-                            hiddenDeptId.value = teamSelect.value;
-                        } else if (hqSelect.value) {
-                            hiddenDeptId.value = hqSelect.value;
+                        const tVal = teamSelect.value;
+                        const hVal = hqSelect.value;
+                        if (tVal) {
+                            hiddenDeptId.value = tVal;
+                        } else if (hVal) {
+                            hiddenDeptId.value = hVal;
                         } else {
                             hiddenDeptId.value = "";
                         }
