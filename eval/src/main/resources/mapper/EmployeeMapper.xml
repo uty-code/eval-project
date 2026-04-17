@@ -292,6 +292,16 @@
         )
     </insert>
 
+    <!-- 사원의 모든 권한 매핑을 소프트 삭제 처리 (권한 교체용 초기화) -->
+    <update id="deleteEmployeeRolesByEmpId">
+        update employee_roles_51
+        set is_deleted = 'y',
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        where emp_id   = #{empId}
+          and is_deleted = 'n'
+    </update>
+
     <!-- 사원 정보 수정 (낙관적 락 버전 체크 포함) -->
     <update id="update">
         update employees_51
@@ -425,5 +435,22 @@
           and YEAR(hire_date) = #{year}
           and status_code != 'PENDING'
     </select>
+
+    <!-- 사원 비밀번호 변경 -->
+    <update id="updatePassword">
+        update employees_51
+        set password = #{newPassword}
+        where emp_id = #{empId}
+          and is_deleted = 'n'
+    </update>
+
+    <!-- 사원 연락처(이메일, 전화번호) 변경 -->
+    <update id="updateContactInfo">
+        update employees_51
+        set email = #{email},
+            phone = #{phone}
+        where emp_id   = #{empId}
+          and is_deleted = 'n'
+    </update>
 
 </mapper>

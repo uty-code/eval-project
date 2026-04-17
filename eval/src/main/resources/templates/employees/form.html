@@ -141,6 +141,12 @@
                                             required>
                                             <option value="EMPLOYED"
                                                 th:selected="${employee.statusCode() == 'EMPLOYED'}">재직</option>
+                                            <option value="ON_LEAVE"
+                                                th:selected="${employee.statusCode() == 'ON_LEAVE' or employee.statusCode() == 'LEAVE'}">휴직</option>
+                                            <option value="RETIRED"
+                                                th:selected="${employee.statusCode() == 'RETIRED'}">퇴사</option>
+                                            <option value="PENDING" th:if="${employee.statusCode() == 'PENDING'}"
+                                                th:selected="true">승인 대기</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3">
@@ -155,35 +161,36 @@
                                 </div>
                             </div>
 
-                            <!-- Role Info Section (Only for New Employee) -->
-                            <th:block th:if="${isNew}">
-                                <hr class="border-secondary opacity-25 my-4">
-                                <div class="col-12">
-                                    <h5 class="fw-bold text-primary mb-3"><i class="bi bi-shield-lock me-2"></i>초기 권한 설정
-                                    </h5>
-                                    <div
-                                        class="p-3 bg-dark bg-opacity-25 border border-secondary border-opacity-25 rounded-3">
-                                        <div class="form-text text-muted small mb-3">
-                                            시스템 접근 권한을 설정합니다. 관리자 권한 부여 시 주의해 주세요.<br>
-                                            (기본 정보 등록 이후 별도의 권한 관리 메뉴에서 수정 가능합니다.)
-                                        </div>
-                                        <div class="d-flex flex-wrap gap-4">
-                                            <div class="form-check" th:each="role : ${roles}">
-                                                <input class="form-check-input bg-dark border-secondary" type="radio"
-                                                    name="roleIds" th:value="${role.roleId()}"
-                                                    th:id="'role-' + ${role.roleId()}" th:checked="${roleStat.first}">
-                                                <label class="form-check-label text-white-50"
-                                                    th:for="'role-' + ${role.roleId()}">
-                                                    <span
-                                                        th:text="${role.roleName() == 'ROLE_ADMIN' ? '관리자 (ADMIN)' :
-                                                                  (role.roleName() == 'ROLE_MANAGER' ? '부서장 (MANAGER)' :
-                                                                  (role.roleName() == 'ROLE_EXECUTIVE' ? '임원 (EXECUTIVE)' : '일반 사원 (USER)'))}"></span>
-                                                </label>
-                                            </div>
+                            <!-- Role Info Section (신규/수정 모두 표시) -->
+                            <hr class="border-secondary opacity-25 my-4">
+                            <div class="col-12">
+                                <h5 class="fw-bold text-primary mb-3"><i class="bi bi-shield-lock me-2"></i>
+                                    <span th:text="${isNew ? '초기 권한 설정' : '권한 변경'}">권한 설정</span>
+                                </h5>
+                                <div
+                                    class="p-3 bg-dark bg-opacity-25 border border-secondary border-opacity-25 rounded-3">
+                                    <div class="form-text text-muted small mb-3">
+                                        시스템 접근 권한을 설정합니다. 관리자 권한 부여 시 주의해 주세요.<br>
+                                        <span th:if="${!isNew}" class="text-warning">※ 수정 시 기존 권한은 초기화되고 선택한 권한으로 교체됩니다.</span>
+                                        <span th:if="${isNew}">(기본 정보 등록 이후 권한 변경이 가능합니다.)</span>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-4">
+                                        <div class="form-check" th:each="role : ${roles}">
+                                            <input class="form-check-input bg-dark border-secondary" type="radio"
+                                                name="roleIds" th:value="${role.roleId()}"
+                                                th:id="'role-' + ${role.roleId()}"
+                                                th:checked="${isNew ? roleStat.first : employee.roleNames().contains(role.roleName())}">
+                                            <label class="form-check-label text-white-50"
+                                                th:for="'role-' + ${role.roleId()}">
+                                                <span
+                                                    th:text="${role.roleName() == 'ROLE_ADMIN' ? '관리자 (ADMIN)' :
+                                                              (role.roleName() == 'ROLE_MANAGER' ? '부서장 (MANAGER)' :
+                                                              (role.roleName() == 'ROLE_EXECUTIVE' ? '임원 (EXECUTIVE)' : '일반 사원 (USER)'))}"></span>
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
-                            </th:block>
+                            </div>
 
                         </div>
 

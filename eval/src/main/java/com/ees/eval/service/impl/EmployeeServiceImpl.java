@@ -210,6 +210,37 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     /**
      * {@inheritDoc}
+     * 사원 기본 정보 수정 후 권한도 함께 교체합니다.
+     * 기존 권한(employee_roles_51)은 소프트 삭제 처리 후 새 권한을 삽입합니다.
+     */
+    @Override
+    @Transactional
+    public EmployeeDTO updateEmployee(EmployeeDTO employeeDto, List<Long> roleIds) {
+        // 1. 기본 정보 먼저 수정 (낙관적 락 포함)
+        Employee employee = convertToEntity(employeeDto);
+        employee.preUpdate();
+
+        int updatedRows = employeeMapper.update(employee);
+        if (updatedRows == 0) {
+            throw new EesOptimisticLockException("사원 정보가 다른 사용자에 의해 변경되었거나 수정 충돌이 발생했습니다.");
+        }
+
+        // 2. 권한 교체: 기존 권한 소프트 삭제 후 새 권한 삽입
+        if (roleIds != null && !roleIds.isEmpty()) {
+            LocalDateTime now = LocalDateTime.now();
+            Long adminId = 1L; // TODO: SecurityContext에서 현재 로그인 사용자 ID로 교체
+            employeeMapper.deleteEmployeeRolesByEmpId(employee.getEmpId(), adminId, now);
+            for (Long roleId : roleIds) {
+                employeeMapper.insertEmployeeRole(employee.getEmpId(), roleId, adminId, now);
+            }
+        }
+
+        // 3. 최신 데이터 재조회
+        return getEmployeeById(employee.getEmpId());
+    }
+
+    /**
+     * {@inheritDoc}
      */
     @Override
     @Transactional
@@ -477,6 +508,58 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .collect(Collectors.toList());
 
         return EmployeePageDTO.of(employeeDTOs, pageNum, pageSize, totalCount);
+    }
+
+    /**
+     * {@inheritDoc}
+     * 현재 비밀번호를 검증 후 BCrypt로 암호화하여 새 비밀번호로 교체합니다.
+     */
+    @Override
+    @Transactional
+    public void changePassword(Long empId, String currentPassword, String newPassword) {
+        // 1. 현재 비밀번호 조회 (인증용 쿼리)
+        Employee employee = employeeMapper.findByIdForAuth(empId)
+                .orElseThrow(() -> new IllegalArgumentException("사원을 찾을 수 없습니다."));
+
+        // 2. 현재 비밀번호 일치 여부 검증
+        if (!passwordEncoder.matches(currentPassword, employee.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        // 3. 새 비밀번호가 현재 비밀번호와 동일한 경우 변경 불가
+        if (passwordEncoder.matches(newPassword, employee.getPassword())) {
+            throw new IllegalArgumentException("새 비밀번호는 현재 비밀번호와 달라야 합니다.");
+        }
+
+        // 4. 새 비밀번호 암호화 후 저장
+        String encodedNewPassword = passwordEncoder.encode(newPassword);
+        int updated = employeeMapper.updatePassword(empId, encodedNewPassword);
+        if (updated == 0) {
+            throw new IllegalStateException("비밀번호 변경에 실패했습니다.");
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * 이메일과 전화번호만 업데이트합니다.
+     */
+    @Override
+    @Transactional
+    public void updateContactInfo(Long empId, String email, String phone) {
+        // 전화번호 포맷 정리 (숫자만 남기고 재포맷)
+        String formattedPhone = phone;
+        if (phone != null && !phone.isBlank()) {
+            String digits = phone.replaceAll("[^0-9]", "");
+            if (digits.length() == 11) {
+                formattedPhone = digits.substring(0, 3) + "-" + digits.substring(3, 7) + "-" + digits.substring(7);
+            } else if (digits.length() == 10) {
+                formattedPhone = digits.substring(0, 3) + "-" + digits.substring(3, 6) + "-" + digits.substring(6);
+            }
+        }
+        int updated = employeeMapper.updateContactInfo(empId, email, formattedPhone);
+        if (updated == 0) {
+            throw new IllegalStateException("연락처 수정에 실패했습니다.");
+        }
     }
 
     /**

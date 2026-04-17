@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'profile', ~{}, ~{})}">
+
+<head>
+    <title>내 프로필 - EES 사원 평가 시스템</title>
+</head>
+
+<body>
+    <div id="page-content" class="container-fluid py-4" data-bs-theme="dark">
+
+        <!-- Page Header -->
+        <div class="row align-items-center mb-4">
+            <div class="col">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/}" class="text-primary text-decoration-none">대시보드</a>
+                        </li>
+                        <li class="breadcrumb-item active text-muted">내 프로필</li>
+                    </ol>
+                </nav>
+                <h1 class="fw-bold fs-3 mb-0">
+                    <i class="bi bi-person-circle me-2 text-primary"></i>내 프로필
+                </h1>
+            </div>
+        </div>
+
+        <!-- 공통 알림 메시지 -->
+        <div th:if="${successMessage}"
+            class="alert border-0 mb-4 d-flex align-items-center gap-2"
+            style="background:rgba(34,197,94,0.15);color:#4ade80;border-left:3px solid #4ade80!important;border-left-style:solid!important;"
+            role="alert">
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <span th:text="${successMessage}"></span>
+        </div>
+        <div th:if="${errorMessage}"
+            class="alert border-0 mb-4 d-flex align-items-center gap-2"
+            style="background:rgba(239,68,68,0.15);color:#f87171;border-left:3px solid #f87171!important;border-left-style:solid!important;"
+            role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            <span th:text="${errorMessage}"></span>
+        </div>
+
+        <div class="row g-4" th:if="${employee}">
+
+            <!-- 왼쪽: 아바타 + 요약 카드 -->
+            <div class="col-lg-4">
+                <div class="glass-card p-4 text-center">
+                    <div class="d-flex justify-content-center mb-4">
+                        <div class="position-relative">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                style="width:100px;height:100px;background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);font-size:2.5rem;font-weight:700;color:#fff;">
+                                <span th:text="${#strings.substring(employee.name(),0,1)}">A</span>
+                            </div>
+                            <span class="position-absolute bottom-0 end-0 badge rounded-pill px-2 py-1"
+                                th:classappend="${employee.statusCode()=='EMPLOYED'?'bg-success':
+                                                 (employee.statusCode()=='ON_LEAVE'?'bg-warning text-dark':
+                                                 (employee.statusCode()=='PENDING'?'bg-info text-dark':'bg-secondary'))}"
+                                style="font-size:0.65rem;"
+                                th:text="${employee.statusCode()=='EMPLOYED'?'재직':
+                                          (employee.statusCode()=='ON_LEAVE'?'휴직':
+                                          (employee.statusCode()=='PENDING'?'대기':'퇴직'))}">재직</span>
+                        </div>
+                    </div>
+
+                    <h4 class="fw-bold mb-1" th:text="${employee.name()}">홍길동</h4>
+                    <p class="text-muted small mb-3" th:text="${employee.positionName()}">직급</p>
+
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+                        <span th:each="role : ${employee.roleNames()}"
+                            class="badge rounded-pill px-3 py-1"
+                            th:classappend="${role=='ROLE_ADMIN'?'bg-danger bg-opacity-25 text-danger':
+                                            (role=='ROLE_MANAGER'?'bg-warning bg-opacity-25 text-warning':
+                                            (role=='ROLE_EXECUTIVE'?'bg-info bg-opacity-25 text-info':'bg-primary bg-opacity-25 text-primary'))}"
+                            th:text="${role=='ROLE_ADMIN'?'관리자':
+                                      (role=='ROLE_MANAGER'?'부서장':
+                                      (role=='ROLE_EXECUTIVE'?'임원':'일반 사원'))}">일반 사원</span>
+                    </div>
+
+                    <hr class="border-secondary opacity-25">
+
+                    <div class="text-start">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-diagram-3 text-primary" style="width:20px;"></i>
+                            <div>
+                                <div class="text-muted" style="font-size:0.7rem;">부서</div>
+                                <div class="fw-semibold small" th:text="${employee.deptName()?:'-'}">-</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-calendar-check text-primary" style="width:20px;"></i>
+                            <div>
+                                <div class="text-muted" style="font-size:0.7rem;">입사일</div>
+                                <div class="fw-semibold small"
+                                    th:text="${employee.hireDate()!=null?#temporals.format(employee.hireDate(),'yyyy년 MM월 dd일'):'-'}">-</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-hash text-primary" style="width:20px;"></i>
+                            <div>
+                                <div class="text-muted" style="font-size:0.7rem;">사번</div>
+                                <div class="fw-semibold small" th:text="${employee.empId()}">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 오른쪽: 상세 정보 + 수정 폼 -->
+            <div class="col-lg-8 d-flex flex-column gap-4">
+
+                <!-- 기본 정보 (읽기 전용) -->
+                <div class="glass-card p-4 p-md-5">
+                    <h5 class="fw-bold mb-4">
+                        <i class="bi bi-person-lines-fill me-2 text-primary"></i>기본 정보
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-semibold">성명</label>
+                            <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                                <span class="fw-semibold" th:text="${employee.name()}">-</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-semibold">사번</label>
+                            <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                                <span class="fw-semibold" th:text="${employee.empId()}">-</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-semibold">부서</label>
+                            <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                                <span class="fw-semibold" th:text="${employee.deptName()?:'-'}">-</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-semibold">직급</label>
+                            <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                                <span class="fw-semibold" th:text="${employee.positionName()?:'-'}">-</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-semibold">입사일</label>
+                            <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                                <span class="fw-semibold" th:text="${employee.hireDate()!=null?#temporals.format(employee.hireDate(),'yyyy년 MM월 dd일'):'-'}">-</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-semibold">재직 상태</label>
+                            <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                                <span class="badge rounded-pill"
+                                    th:classappend="${employee.statusCode()=='EMPLOYED'?'bg-success':
+                                                     (employee.statusCode()=='ON_LEAVE'?'bg-warning text-dark':
+                                                     (employee.statusCode()=='PENDING'?'bg-info text-dark':'bg-secondary'))}"
+                                    th:text="${employee.statusCode()=='EMPLOYED'?'재직 중':
+                                              (employee.statusCode()=='ON_LEAVE'?'휴직 중':
+                                              (employee.statusCode()=='PENDING'?'승인 대기':'퇴직'))}">재직 중</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-muted small fw-semibold">보유 권한</label>
+                            <div class="p-3 rounded-3 d-flex flex-wrap gap-2" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                                <span th:each="role : ${employee.roleNames()}"
+                                    class="badge rounded-pill px-3 py-2"
+                                    th:classappend="${role=='ROLE_ADMIN'?'bg-danger bg-opacity-25 text-danger':
+                                                    (role=='ROLE_MANAGER'?'bg-warning bg-opacity-25 text-warning':
+                                                    (role=='ROLE_EXECUTIVE'?'bg-info bg-opacity-25 text-info':'bg-primary bg-opacity-25 text-primary'))}"
+                                    th:text="${role=='ROLE_ADMIN'?'🛡 관리자 (ADMIN)':
+                                              (role=='ROLE_MANAGER'?'👥 부서장 (MANAGER)':
+                                              (role=='ROLE_EXECUTIVE'?'⭐ 임원 (EXECUTIVE)':'👤 일반 사원 (USER)'))}">-</span>
+                                <span th:if="${#lists.isEmpty(employee.roleNames())}" class="text-muted small">권한 없음</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 연락처 수정 폼 -->
+                <div class="glass-card p-4 p-md-5">
+                    <h5 class="fw-bold mb-4">
+                        <i class="bi bi-pencil-square me-2 text-primary"></i>연락처 수정
+                    </h5>
+                    <form th:action="@{/settings/profile/contact}" method="post">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="email" class="form-label text-muted small fw-semibold">
+                                    이메일 <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary text-primary">
+                                        <i class="bi bi-envelope"></i>
+                                    </span>
+                                    <input type="email" id="email" name="email"
+                                        class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                        th:value="${employee.email()}" required
+                                        placeholder="이메일 주소">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label text-muted small fw-semibold">전화번호</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary text-primary">
+                                        <i class="bi bi-telephone"></i>
+                                    </span>
+                                    <input type="tel" id="phone" name="phone"
+                                        class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                        th:value="${employee.phone()}"
+                                        placeholder="010-0000-0000">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-save me-2"></i>연락처 저장
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 비밀번호 변경 (아코디언) -->
+                <div class="glass-card p-4 p-md-5">
+                    <!-- 비밀번호 변경 알림 메시지 -->
+                    <div th:if="${pwSuccessMessage}"
+                        class="alert border-0 mb-4 d-flex align-items-center gap-2"
+                        style="background:rgba(34,197,94,0.15);color:#4ade80;border-left:3px solid #4ade80!important;border-left-style:solid!important;">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span th:text="${pwSuccessMessage}"></span>
+                    </div>
+                    <div th:if="${pwErrorMessage}"
+                        class="alert border-0 mb-4 d-flex align-items-center gap-2"
+                        style="background:rgba(239,68,68,0.15);color:#f87171;border-left:3px solid #f87171!important;border-left-style:solid!important;">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <span th:text="${pwErrorMessage}"></span>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between mb-0" id="pw-toggle-header"
+                        style="cursor:pointer;" onclick="togglePasswordSection()">
+                        <h5 class="fw-bold mb-0">
+                            <i class="bi bi-shield-lock me-2 text-primary"></i>비밀번호 변경
+                        </h5>
+                        <i class="bi bi-chevron-down text-muted" id="pw-chevron" style="transition:transform 0.3s;"></i>
+                    </div>
+
+                    <div id="pw-section" style="display:none;">
+                        <hr class="border-secondary opacity-25 mt-3 mb-4">
+                        <form th:action="@{/settings/profile/password}" method="post" id="pw-form">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label for="currentPassword" class="form-label text-muted small fw-semibold">
+                                        현재 비밀번호 <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" id="currentPassword" name="currentPassword"
+                                            class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            required placeholder="현재 비밀번호">
+                                        <button class="btn btn-outline-secondary" type="button"
+                                            onclick="togglePw('currentPassword',this)"><i class="bi bi-eye"></i></button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="newPassword" class="form-label text-muted small fw-semibold">
+                                        새 비밀번호 <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" id="newPassword" name="newPassword"
+                                            class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            required minlength="4" placeholder="새 비밀번호 (최소 4자)">
+                                        <button class="btn btn-outline-secondary" type="button"
+                                            onclick="togglePw('newPassword',this)"><i class="bi bi-eye"></i></button>
+                                    </div>
+                                    <!-- 비밀번호 강도 바 -->
+                                    <div id="str-wrap" class="mt-2" style="display:none;">
+                                        <div class="d-flex gap-1 mb-1">
+                                            <div class="flex-fill rounded" style="height:4px;" id="sb1"></div>
+                                            <div class="flex-fill rounded" style="height:4px;" id="sb2"></div>
+                                            <div class="flex-fill rounded" style="height:4px;" id="sb3"></div>
+                                            <div class="flex-fill rounded" style="height:4px;" id="sb4"></div>
+                                        </div>
+                                        <small id="str-label" class="text-muted"></small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="confirmPassword" class="form-label text-muted small fw-semibold">
+                                        새 비밀번호 확인 <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" id="confirmPassword" name="confirmPassword"
+                                            class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            required minlength="4" placeholder="새 비밀번호 재입력">
+                                        <button class="btn btn-outline-secondary" type="button"
+                                            onclick="togglePw('confirmPassword',this)"><i class="bi bi-eye"></i></button>
+                                    </div>
+                                    <div id="confirm-msg" class="form-text mt-1" style="display:none;"></div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="submit" class="btn btn-warning px-4 text-dark fw-semibold">
+                                    <i class="bi bi-shield-check me-2"></i>비밀번호 변경
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 데이터 없을 때 -->
+        <div th:unless="${employee}" class="text-center py-5">
+            <i class="bi bi-exclamation-circle text-muted" style="font-size:3rem;"></i>
+            <p class="text-muted mt-3">프로필 정보를 불러올 수 없습니다.</p>
+        </div>
+
+        <script>
+            // 비밀번호 섹션 토글
+            function togglePasswordSection() {
+                const section = document.getElementById('pw-section');
+                const chevron = document.getElementById('pw-chevron');
+                const visible = section.style.display !== 'none';
+                section.style.display = visible ? 'none' : 'block';
+                chevron.style.transform = visible ? '' : 'rotate(180deg)';
+            }
+
+            // 비밀번호 에러가 있으면 자동으로 열기
+            (function() {
+                const hasErr = /*[[${pwErrorMessage != null || pwSuccessMessage != null}]]*/ false;
+                if (hasErr) togglePasswordSection();
+            })();
+
+            // 눈 아이콘 토글
+            function togglePw(id, btn) {
+                const inp = document.getElementById(id);
+                const ic = btn.querySelector('i');
+                inp.type = inp.type === 'password' ? 'text' : 'password';
+                ic.className = inp.type === 'text' ? 'bi bi-eye-slash' : 'bi bi-eye';
+            }
+
+            // 강도 측정
+            document.getElementById('newPassword').addEventListener('input', function() {
+                const v = this.value;
+                const wrap = document.getElementById('str-wrap');
+                wrap.style.display = v ? 'block' : 'none';
+                if (!v) return;
+                let s = 0;
+                if (v.length >= 4) s++;
+                if (v.length >= 8) s++;
+                if (/[A-Z]|[0-9]/.test(v)) s++;
+                if (/[^A-Za-z0-9]/.test(v)) s++;
+                const colors = ['#ef4444','#f97316','#eab308','#22c55e'];
+                const labels = ['매우 약함','약함','보통','강함'];
+                ['sb1','sb2','sb3','sb4'].forEach((id, i) => {
+                    document.getElementById(id).style.backgroundColor = i < s ? colors[s-1] : 'rgba(255,255,255,0.1)';
+                });
+                const lbl = document.getElementById('str-label');
+                lbl.textContent = '강도: ' + labels[s-1];
+                lbl.style.color = colors[s-1];
+            });
+
+            // 비밀번호 일치 확인
+            document.getElementById('confirmPassword').addEventListener('input', function() {
+                const msg = document.getElementById('confirm-msg');
+                if (!this.value) { msg.style.display='none'; return; }
+                msg.style.display = 'block';
+                const match = this.value === document.getElementById('newPassword').value;
+                msg.textContent = match ? '✓ 비밀번호가 일치합니다.' : '✗ 비밀번호가 일치하지 않습니다.';
+                msg.style.color = match ? '#4ade80' : '#f87171';
+            });
+
+            // 폼 제출 전 최종 검증
+            document.getElementById('pw-form').addEventListener('submit', function(e) {
+                const np = document.getElementById('newPassword').value;
+                const cp = document.getElementById('confirmPassword').value;
+                if (np !== cp) { e.preventDefault(); document.getElementById('confirmPassword').focus(); }
+            });
+        </script>
+    </div>
+</body>
+</html>

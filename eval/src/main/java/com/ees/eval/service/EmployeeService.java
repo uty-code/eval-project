@@ -71,6 +71,17 @@ public interface EmployeeService {
     EmployeeDTO updateEmployee(EmployeeDTO employeeDto);
 
     /**
+     * 사원 정보와 권한을 함께 수정합니다.
+     * 기존 권한은 소프트 삭제 후 새 권한으로 교체됩니다.
+     *
+     * @param employeeDto 수정할 데이터가 포함된 DTO
+     * @param roleIds     새로 부여할 권한 ID 목록
+     * @return 수정 완료된 사원 정보 DTO
+     * @throws com.ees.eval.exception.EesOptimisticLockException 데이터 충돌 시 발생
+     */
+    EmployeeDTO updateEmployee(EmployeeDTO employeeDto, List<Long> roleIds);
+
+    /**
      * 사원을 논리적으로 삭제(Soft Delete) 처리합니다.
      *
      * @param empId 삭제할 사원의 고유 식별자
@@ -162,4 +173,23 @@ public interface EmployeeService {
     com.ees.eval.dto.EmployeePageDTO searchEmployeesPage(
             String searchName, Long searchDeptId, String searchStatus,
             int pageNum, int pageSize);
+
+    /**
+     * 현재 비밀번호를 검증한 후 새 비밀번호로 변경합니다.
+     *
+     * @param empId           비밀번호를 변경할 사원 식별자
+     * @param currentPassword 현재 비밀번호 (평문, 검증용)
+     * @param newPassword     변경할 새 비밀번호 (평문, BCrypt 암호화 후 저장)
+     * @throws IllegalArgumentException 현재 비밀번호가 일치하지 않을 경우 발생
+     */
+    void changePassword(Long empId, String currentPassword, String newPassword);
+
+    /**
+     * 사원 본인의 이메일과 전화번호를 수정합니다.
+     *
+     * @param empId 수정할 사원 식별자
+     * @param email 새 이메일 주소
+     * @param phone 새 전화번호 (평문, 포맷팅은 서비스 내에서 처리)
+     */
+    void updateContactInfo(Long empId, String email, String phone);
 }

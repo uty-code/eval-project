@@ -230,6 +230,7 @@ public class EmployeeController {
             @RequestParam("statusCode") String statusCode,
             @RequestParam("hireDate") LocalDate hireDate,
             @RequestParam("version") Integer version,
+            @RequestParam(value = "roleIds", required = false) List<Long> roleIds,
             RedirectAttributes redirectAttributes) {
         try {
             // DTO 빌드 후 서비스 계층 호출 (낙관적 락 version 포함)
@@ -245,7 +246,12 @@ public class EmployeeController {
                     .version(version)
                     .build();
 
-            employeeService.updateEmployee(dto);
+            // roleIds가 있으면 권한도 함께 교체, 없으면 기존 권한 유지
+            if (roleIds != null && !roleIds.isEmpty()) {
+                employeeService.updateEmployee(dto, roleIds);
+            } else {
+                employeeService.updateEmployee(dto);
+            }
             redirectAttributes.addFlashAttribute("successMessage",
                     "'" + name + "' 사원 정보가 수정되었습니다.");
         } catch (Exception e) {

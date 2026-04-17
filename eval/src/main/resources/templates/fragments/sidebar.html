@@ -91,4 +91,16 @@
             </a>
         </nav>
     </div>
+
+    <div class="px-3 mb-4">
+        <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">내 설정</h6>
+        <nav class="nav flex-column">
+            <a class="nav-link" th:href="@{/settings/profile}"
+                th:classappend="${activeMenu == 'profile' ? 'active' : ''}">
+                <i class="bi bi-person-circle"></i>
+                <span>내 프로필</span>
+            </a>
+        </nav>
+    </div>
+
 </aside>

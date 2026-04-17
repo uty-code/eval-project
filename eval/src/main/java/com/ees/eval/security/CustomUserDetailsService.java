@@ -49,8 +49,13 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "해당 아이디의 사원을 찾을 수 없습니다: " + username));
 
-        // 1.1 재직 상태 체크 (재직 중인 사원만 로그인 허용)
-        if (!"EMPLOYED".equalsIgnoreCase(employee.getStatusCode())) {
+        // 1.1 재직 상태 체크
+        String status = employee.getStatusCode();
+        if ("PENDING".equalsIgnoreCase(status)) {
+            throw new org.springframework.security.authentication.DisabledException("승인 대기 중인 계정입니다.");
+        } else if ("RETIRED".equalsIgnoreCase(status)) {
+            throw new EmployeeRetiredException("퇴사 처리된 계정입니다.");
+        } else if (!"EMPLOYED".equalsIgnoreCase(status) && !"ON_LEAVE".equalsIgnoreCase(status) && !"LEAVE".equalsIgnoreCase(status)) {
             throw new EmployeeRetiredException("재직 중인 사원만 로그인할 수 있습니다.");
         }
 

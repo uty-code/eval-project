@@ -108,12 +108,14 @@
                                     <td>
                                         <!-- 재직 상태 코드에 따라 배지 색상 분기 -->
                                         <span th:if="${emp.statusCode == 'EMPLOYED'}"
-                                              class="badge bg-success bg-opacity-10 text-success fw-normal px-2">재직중</span>
-                                        <span th:if="${emp.statusCode == 'LEAVE'}"
-                                              class="badge bg-warning bg-opacity-10 text-warning fw-normal px-2">휴직중</span>
+                                              class="badge bg-success bg-opacity-10 text-success fw-normal px-2">재직</span>
+                                        <span th:if="${emp.statusCode == 'ON_LEAVE' or emp.statusCode == 'LEAVE'}"
+                                              class="badge bg-warning bg-opacity-10 text-warning fw-normal px-2">휴직</span>
                                         <span th:if="${emp.statusCode == 'RETIRED'}"
-                                              class="badge bg-danger bg-opacity-10 text-danger fw-normal px-2">퇴직</span>
-                                        <span th:if="${emp.statusCode != 'EMPLOYED' and emp.statusCode != 'LEAVE' and emp.statusCode != 'RETIRED'}"
+                                              class="badge bg-danger bg-opacity-10 text-danger fw-normal px-2">퇴사</span>
+                                        <span th:if="${emp.statusCode == 'PENDING'}"
+                                              class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2">승인 대기</span>
+                                        <span th:if="${emp.statusCode != 'EMPLOYED' and emp.statusCode != 'ON_LEAVE' and emp.statusCode != 'LEAVE' and emp.statusCode != 'RETIRED' and emp.statusCode != 'PENDING'}"
                                               class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2"
                                               th:text="${emp.statusCode}">-</span>
                                     </td>
