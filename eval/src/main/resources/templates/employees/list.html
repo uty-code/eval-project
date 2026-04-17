@@ -105,11 +105,11 @@
             <!-- Custom Tab System (HTMX 기반 동적 교체) -->
             <div class="nav-tabs-custom mb-3">
                 <a href="javascript:void(0)" class="nav-link-custom active" hx-get="/employees"
-                    hx-target="#page-content" hx-select="#page-content" hx-push-url="true">
+                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
                     <i class="bi bi-people-fill"></i> 사원 목록
                 </a>
                 <a href="javascript:void(0)" class="nav-link-custom" hx-get="/employees/pending"
-                    hx-target="#page-content" hx-select="#page-content" hx-push-url="true">
+                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
                     <i class="bi bi-person-plus-fill"></i> 승인 대기
                     <span class="tab-badge" th:if="${pendingCount > 0}" th:text="${pendingCount}">0</span>
                 </a>
@@ -117,7 +117,7 @@
                     <i class="bi bi-person-plus-fill"></i> 신규 사원 등록
                 </a>
                 <a href="javascript:void(0)" class="nav-link-custom" hx-get="/employees/locked"
-                    hx-target="#page-content" hx-select="#page-content" hx-push-url="true">
+                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
                     <i class="bi bi-lock-fill"></i> 계정 잠금
                     <span class="tab-badge" th:if="${lockedCount > 0}" th:text="${lockedCount}"
                         style="background:rgba(239,68,68,0.2);color:#f87171;">0</span>
