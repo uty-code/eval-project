@@ -125,21 +125,20 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 동적 SQL 검색 쿼리 호출
         List<Employee> employees = employeeMapper.searchEmployees(searchName, searchDeptId, searchStatus);
-        
+
         if (employees.isEmpty()) {
             return Collections.emptyList();
         }
-        
+
         // N+1 최적화: 사원들의 권한 목록을 IN 쿼리로 한 번에 조회하여 그룹화
         List<Long> empIds = employees.stream().map(Employee::getEmpId).collect(Collectors.toList());
         List<Map<String, Object>> roleMaps = employeeMapper.findRoleNamesByEmpIds(empIds);
-        
+
         // EmpId를 키로, RoleName의 리스트를 값으로 가지는 Map 생성
         Map<Long, List<String>> empRolesMap = roleMaps.stream()
                 .collect(Collectors.groupingBy(
                         row -> ((Number) row.get("EMP_ID")).longValue(),
-                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())
-                ));
+                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())));
 
         return employees.stream()
                 .map(emp -> {
@@ -317,7 +316,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 승인 대기 중인 사원 목록 조회
         List<Employee> pendingEmployees = employeeMapper.findPendingEmployees();
-        
+
         if (pendingEmployees.isEmpty()) {
             return Collections.emptyList();
         }
@@ -325,13 +324,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         // N+1 최적화: 대기 중인 사원들의 권한 목록을 IN 쿼리로 한 번에 조회하여 그룹화
         List<Long> empIds = pendingEmployees.stream().map(Employee::getEmpId).collect(Collectors.toList());
         List<Map<String, Object>> roleMaps = employeeMapper.findRoleNamesByEmpIds(empIds);
-        
+
         // EmpId를 키로, RoleName의 리스트를 값으로 가지는 Map 생성
         Map<Long, List<String>> empRolesMap = roleMaps.stream()
                 .collect(Collectors.groupingBy(
                         row -> ((Number) row.get("EMP_ID")).longValue(),
-                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())
-                ));
+                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())));
 
         return pendingEmployees.stream()
                 .map(emp -> {
@@ -470,7 +468,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 페이지 데이터 조회(JOIN 쿼리)와 전체 건수 조회를 병렬로 실행
         CompletableFuture<List<Employee>> employeesFuture = CompletableFuture.supplyAsync(
-                () -> employeeMapper.searchEmployeesWithDetail(searchName, searchDeptId, searchStatus, offset, pageSize),
+                () -> employeeMapper.searchEmployeesWithDetail(searchName, searchDeptId, searchStatus, offset,
+                        pageSize),
                 virtualThreadExecutor);
 
         CompletableFuture<Long> totalCountFuture = CompletableFuture.supplyAsync(
@@ -495,8 +494,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         Map<Long, List<String>> empRolesMap = roleMaps.stream()
                 .collect(Collectors.groupingBy(
                         row -> ((Number) row.get("EMP_ID")).longValue(),
-                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())
-                ));
+                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())));
 
         // JOIN으로 가져온 deptName/positionName + 배치 조회한 roleNames 조합하여 DTO 변환
         List<EmployeeDTO> employeeDTOs = employees.stream()

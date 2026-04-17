@@ -57,7 +57,6 @@ public class EmployeeController {
             @RequestParam(value = "searchDeptId", required = false) Long searchDeptId,
             @RequestParam(value = "searchStatus", required = false) String searchStatus,
             @RequestParam(value = "page", defaultValue = "1") int pageNum,
-            @RequestHeader(value = "HX-Request", required = false) boolean isHtmxRequest,
             Model model) {
 
         // 검색 파라미터 전처리
@@ -110,11 +109,6 @@ public class EmployeeController {
         model.addAttribute("searchName", searchName);
         model.addAttribute("searchDeptId", searchDeptId);
         model.addAttribute("searchStatus", searchStatus);
-
-        // HTMX 요청일 경우 본문 컨테이너만 반환하여 성능 최적화
-        if (isHtmxRequest) {
-            return "employees/list :: #employee-list-container";
-        }
 
         return "employees/list";
     }

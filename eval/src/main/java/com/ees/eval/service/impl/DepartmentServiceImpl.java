@@ -13,8 +13,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -53,14 +56,51 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional(readOnly = true)
     public List<DepartmentDTO> getAllDepartments() {
-        // 전체 부서 목록을 조회하고 각각에 대해 상위 부서명과 인원수를 추가
-        return departmentMapper.findAll().stream()
+        // 1. 전체 부서 조회 및 DTO 변환
+        List<DepartmentDTO> allDepts = departmentMapper.findAll().stream()
                 .map(dept -> {
                     String parentName = departmentMapper.findParentDeptName(dept.getDeptId());
                     int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
                     return convertToDto(dept, parentName, count);
                 })
                 .collect(Collectors.toList());
+
+        // 2. 부모-자식 트리 맵 구성 (parentDeptId 기준 그룹화)
+        Map<Long, List<DepartmentDTO>> childrenMap = allDepts.stream()
+                .filter(d -> d.parentDeptId() != null)
+                .collect(Collectors.groupingBy(DepartmentDTO::parentDeptId));
+
+        // 3. 최상위(Root) 부서 목록 추출 후 ID 순 정렬
+        List<DepartmentDTO> roots = allDepts.stream()
+                .filter(d -> d.parentDeptId() == null)
+                .sorted(Comparator.comparing(DepartmentDTO::deptId))
+                .toList();
+
+        // 4. DFS로 트리 순회하여 한 줄로 펼침(Flatten)
+        List<DepartmentDTO> sortedDepts = new ArrayList<>();
+        for (DepartmentDTO root : roots) {
+            buildTreeList(root, childrenMap, sortedDepts, 0);
+        }
+
+        return sortedDepts;
+    }
+
+    /**
+     * DFS 방식으로 부서를 재귀 순회하여 리스트에 순차적으로 담습니다.
+     * depth 파라미터를 통해 트리의 깊이를 재계산합니다.
+     */
+    private void buildTreeList(DepartmentDTO node, Map<Long, List<DepartmentDTO>> childrenMap,
+            List<DepartmentDTO> result, int depth) {
+        
+        // 트리의 깊이(depth)를 설정한 복제본 객체를 추가
+        DepartmentDTO nodeWithDepth = node.toBuilder().treeDepth(depth).build();
+        result.add(nodeWithDepth);
+
+        List<DepartmentDTO> children = childrenMap.getOrDefault(node.deptId(), Collections.emptyList());
+        // 하위 부서도 식별자 순으로 정렬 후 깊이를 1 증가시켜 재귀 탐색
+        children.stream()
+                .sorted(Comparator.comparing(DepartmentDTO::deptId))
+                .forEach(child -> buildTreeList(child, childrenMap, result, depth + 1));
     }
 
     /**

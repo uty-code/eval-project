@@ -3,7 +3,8 @@
     <div class="px-3 mb-4">
         <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">메인 메뉴</h6>
         <nav class="nav flex-column">
-            <a class="nav-link" th:href="@{/}" th:classappend="${activeMenu == 'dashboard' ? 'active' : ''}">
+            <a class="nav-link" th:href="@{/}" hx-get="/" hx-target="#page-content" hx-select="#page-content"
+                hx-swap="outerHTML" hx-push-url="true" th:classappend="${activeMenu == 'dashboard' ? 'active' : ''}">
                 <i class="bi bi-speedometer2"></i>
                 <span>대시보드</span>
             </a>
@@ -13,12 +14,15 @@
     <div class="px-3 mb-4" sec:authorize="!hasRole('USER')">
         <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">조직 및 인사 관리</h6>
         <nav class="nav flex-column">
-            <a class="nav-link" th:href="@{/departments}"
+            <a class="nav-link" th:href="@{/departments}" hx-get="/departments" hx-target="#page-content"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
                 th:classappend="${activeMenu == 'departments' ? 'active' : ''}">
                 <i class="bi bi-diagram-3-fill"></i>
                 <span>부서 관리</span>
             </a>
-            <a class="nav-link" th:href="@{/employees}" th:classappend="${activeMenu == 'employees' ? 'active' : ''}">
+            <a class="nav-link" th:href="@{/employees}" hx-get="/employees" hx-target="#page-content"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                th:classappend="${activeMenu == 'employees' ? 'active' : ''}">
                 <i class="bi bi-people-fill"></i>
                 <span>사원 관리</span>
                 <span class="badge bg-warning text-dark ms-1" th:if="${pendingCount > 0}"

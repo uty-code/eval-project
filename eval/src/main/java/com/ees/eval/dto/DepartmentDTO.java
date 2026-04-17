@@ -20,13 +20,14 @@ import java.time.LocalDateTime;
  * @param updatedAt 수정 일시
  * @param updatedBy 수정자 ID
  */
-@Builder
+@Builder(toBuilder = true)
 public record DepartmentDTO(
     Long deptId,
     Long parentDeptId,
     String deptName,
     String parentDeptName,
     Integer employeeCount,
+    Integer treeDepth,
     String isDeleted,
     Integer version,
     LocalDateTime createdAt,

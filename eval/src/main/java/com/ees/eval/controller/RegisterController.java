@@ -94,9 +94,7 @@ public class RegisterController {
      */
     @GetMapping("/employees/pending")
     @PreAuthorize("hasRole('ADMIN')")
-    public String pendingList(
-            @RequestHeader(value = "HX-Request", required = false) boolean isHtmxRequest,
-            Model model) {
+    public String pendingList(Model model) {
         List<EmployeeDTO> pendingEmployees = employeeService.getPendingEmployees();
         model.addAttribute("pendingEmployees", pendingEmployees);
 
@@ -117,11 +115,6 @@ public class RegisterController {
         model.addAttribute("activeCount", activeCountFuture.join());
         model.addAttribute("thisYearHired", thisYearHiredFuture.join());
         model.addAttribute("totalEmployeeCount", totalEmployeeCountFuture.join());
-
-        // HTMX 요청일 경우 본문 컨테이너만 반환하여 성능 최적화
-        if (isHtmxRequest) {
-            return "employees/pending :: #employee-list-container";
-        }
 
         return "employees/pending";
     }

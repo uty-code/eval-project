@@ -95,8 +95,13 @@
         }
 
         @keyframes htmx-loading {
-            0% { left: -100%; }
-            100% { left: 100%; }
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
         }
 
         .htmx-request .htmx-indicator {
@@ -136,6 +141,22 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Page Specific Scripts -->
     <th:block th:replace="${extraScripts} ?: ~{}"></th:block>
+
+    <!-- HTMX Sidebar Active State Manager -->
+    <script>
+        document.addEventListener('htmx:pushedIntoHistory', function (evt) {
+            const newPath = evt.detail.path;
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href');
+                if (href !== '#' && href !== '/' && newPath.startsWith(href)) {
+                    link.classList.add('active');
+                } else if (href === '/' && newPath === '/') {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
