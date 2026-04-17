@@ -186,6 +186,13 @@ public interface EmployeeService {
     void updateContactInfo(Long empId, String email, String phone);
 
     /**
+     * 비밀번호를 사번과 동일하게 초기화합니다. (계정 잠금 해제 없이 비밀번호만 초기화)
+     *
+     * @param empId 대상 사원 식별자
+     */
+    void resetPasswordToEmpId(Long empId);
+
+    /**
      * 계정 잠금(login_fail_cnt >= 5)을 해제합니다.
      * login_fail_cnt를 0으로 초기화하여 다음 로그인 시 잠금이 적용되지 않도록 합니다.
      *
