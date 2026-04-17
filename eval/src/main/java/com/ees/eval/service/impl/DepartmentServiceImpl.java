@@ -223,6 +223,28 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     /**
+     * {@inheritDoc}
+     * 현재 is_active 상태를 조회한 후 반대 값으로 전환합니다.
+     * y → n (사용중 → 미사용중)
+     * n → y (미사용중 → 사용중)
+     */
+    @Override
+    @Transactional
+    public void toggleDepartmentStatus(Long deptId) {
+        // 1. 대상 부서 존재 여부 확인
+        Department dept = departmentMapper.findById(deptId)
+                .orElseThrow(() -> new IllegalArgumentException("부서를 찾을 수 없습니다. deptId: " + deptId));
+
+        // 2. 현재 상태와 반대 값으로 전환 (y -> n, n -> y)
+        String currentStatus = dept.getIsActive();
+        String newStatus = "y".equals(currentStatus) ? "n" : "y";
+
+        // 3. 상태 업데이트 수행
+        Long currentUserId = 1L; // 추후 SecurityContext에서 교체 예정
+        departmentMapper.updateActiveStatus(deptId, newStatus, currentUserId, LocalDateTime.now());
+    }
+
+    /**
      * 부서 도메인 엔티티를 DTO 레코드로 변환합니다.
      *
      * @param dept           부서 엔티티
@@ -237,6 +259,7 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .deptName(dept.getDeptName())
                 .parentDeptName(parentDeptName)
                 .employeeCount(employeeCount)
+                .isActive(dept.getIsActive())
                 .isDeleted(dept.getIsDeleted())
                 .version(dept.getVersion())
                 .createdAt(dept.getCreatedAt())
@@ -257,6 +280,8 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .deptId(dto.deptId())
                 .parentDeptId(dto.parentDeptId())
                 .deptName(dto.deptName())
+                // 신규 생성 시 기본값 'y', 수정 시 기존 값 유지
+                .isActive(dto.isActive() != null ? dto.isActive() : "y")
                 .build();
         dept.setIsDeleted(dto.isDeleted());
         dept.setVersion(dto.version());

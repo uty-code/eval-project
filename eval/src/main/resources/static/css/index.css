@@ -241,6 +241,12 @@ h4,
     border-color: rgba(239, 68, 68, 0.3);
 }
 
+.btn-action-success:hover {
+    background: rgba(16, 185, 129, 0.25);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
 .btn-action.disabled {
     opacity: 0.35;
     cursor: not-allowed;

@@ -170,4 +170,26 @@ public class DepartmentController {
         }
         return "redirect:/departments";
     }
+
+    /**
+     * 부서의 사용 여부(is_active)를 전환합니다.
+     * 사용중(y)이면 미사용중(n)으로, 미사용중(n)이면 사용중(y)으로 변경합니다.
+     *
+     * @param deptId             대상 부서 식별자
+     * @param redirectAttributes 리다이렉트 시 전달할 Flash 메시지
+     * @return 부서 목록 화면으로 리다이렉트
+     */
+    @PostMapping("/{deptId}/toggle-status")
+    public String toggleDepartmentStatus(
+            @PathVariable Long deptId,
+            RedirectAttributes redirectAttributes) {
+        try {
+            departmentService.toggleDepartmentStatus(deptId);
+            redirectAttributes.addFlashAttribute("successMessage", "부서 사용 상태가 변경되었습니다.");
+        } catch (Exception e) {
+            log.error("부서 상태 변경 실패: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "상태 변경 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        return "redirect:/departments";
+    }
 }

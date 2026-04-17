@@ -87,6 +87,7 @@
                             <th class="py-3">부서명</th>
                             <th class="py-3">상위 부서</th>
                             <th class="py-3 text-center">소속 인원</th>
+                            <th class="py-3 text-center">상태</th>
                             <th class="py-3">등록일</th>
                             <th class="py-3 text-center">관리</th>
                         </tr>
@@ -94,19 +95,21 @@
                     <tbody>
                         <!-- 데이터 없을 경우 -->
                         <tr th:if="${#lists.isEmpty(departments)}">
-                            <td colspan="5" class="text-center text-muted py-5">
+                            <td colspan="6" class="text-center text-muted py-5">
                                 <i class="bi bi-diagram-3 fs-1 d-block mb-3 opacity-50"></i>
                                 등록된 부서가 없습니다. 신규 부서를 등록해 주세요.
                             </td>
                         </tr>
                         <!-- 부서 목록 -->
-                        <tr th:each="dept : ${departments}" th:id="'dept-' + ${dept.deptId()}">
+                        <tr th:each="dept : ${departments}" th:id="'dept-' + ${dept.deptId()}"
+                            th:classappend="${dept.isActive() == 'n'} ? 'opacity-60' : ''">
                             <td class="py-3">
                                 <!-- 하위 부서는 들여쓰기로 계층 표현 (깊이당 1.2rem씩 여백) -->
                                 <span th:if="${dept.treeDepth() != null && dept.treeDepth() > 0}"
                                     th:style="'margin-left: ' + (${dept.treeDepth()} * 1.1) + 'rem;'"
                                     class="text-muted me-2 small">└</span>
-                                <i class="bi bi-diagram-3-fill text-primary opacity-75 me-2"></i>
+                                <i class="bi bi-diagram-3-fill me-2"
+                                    th:classappend="${dept.isActive() == 'y'} ? 'text-primary opacity-75' : 'text-muted opacity-50'"></i>
                                 <span class="fw-semibold" th:text="${dept.deptName()}">개발팀</span>
                             </td>
                             <td class="py-3">
@@ -120,6 +123,17 @@
                                     th:classappend="${dept.employeeCount() > 0} ? 'bg-primary bg-opacity-10 text-primary' : 'bg-secondary bg-opacity-10 text-muted'"
                                     th:text="${dept.employeeCount()} + '명'">0명</span>
                             </td>
+                            <!-- 사용 여부 배지 -->
+                            <td class="py-3 text-center">
+                                <span th:if="${dept.isActive() == 'y'}"
+                                    class="badge fw-normal px-3 py-2 bg-success bg-opacity-10 text-success">
+                                    <i class="bi bi-check-circle-fill me-1"></i>사용중
+                                </span>
+                                <span th:unless="${dept.isActive() == 'y'}"
+                                    class="badge fw-normal px-3 py-2 bg-secondary bg-opacity-10 text-muted">
+                                    <i class="bi bi-dash-circle me-1"></i>미사용
+                                </span>
+                            </td>
                             <td class="py-3 text-muted small"
                                 th:text="${dept.createdAt() != null} ? ${#temporals.format(dept.createdAt(), 'yyyy-MM-dd')} : '-'">
                                 2026-01-01
@@ -132,6 +146,18 @@
                                         th:id="'btn-edit-' + ${dept.deptId()}">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
+                                    <!-- 사용 여부 토글 버튼 -->
+                                    <form th:action="@{'/departments/' + ${dept.deptId()} + '/toggle-status'}" method="post"
+                                        class="d-inline">
+                                        <button type="submit" class="btn-action"
+                                            th:classappend="${dept.isActive() == 'y'} ? 'btn-action-warning' : 'btn-action-success'"
+                                            th:id="'btn-toggle-' + ${dept.deptId()}"
+                                            th:title="${dept.isActive() == 'y'} ? '미사용으로 변경' : '사용중으로 변경'"
+                                            th:onclick="return confirm(this.getAttribute('data-confirm-msg'))"
+                                            th:attr="data-confirm-msg=${dept.isActive() == 'y'} ? '이 부서를 미사용으로 변경하시겠습니까?' : '이 부서를 사용중으로 변경하시겠습니까?'">
+                                            <i th:class="${dept.isActive() == 'y'} ? 'bi bi-toggle-on' : 'bi bi-toggle-off'"></i>
+                                        </button>
+                                    </form>
                                     <!-- 삭제 버튼 (소속 인원 0명인 경우만 활성화) -->
                                     <form th:action="@{'/departments/' + ${dept.deptId()} + '/delete'}" method="post"
                                         class="d-inline">

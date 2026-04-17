@@ -9,6 +9,7 @@
             d.dept_id        as DEPT_ID,
             d.parent_dept_id as PARENT_DEPT_ID,
             d.dept_name      as DEPT_NAME,
+            d.is_active      as IS_ACTIVE,
             d.is_deleted     as IS_DELETED,
             d.version        as VERSION,
             d.created_at     as CREATED_AT,
@@ -20,12 +21,13 @@
           and d.is_deleted = 'n'
     </select>
 
-    <!-- 모든 활성 부서 목록 조회 -->
+    <!-- 모든 활성(미삭제) 부서 목록 조회 (사용 여부 포함) -->
     <select id="findAll" resultType="com.ees.eval.domain.Department">
         select
             d.dept_id        as DEPT_ID,
             d.parent_dept_id as PARENT_DEPT_ID,
             d.dept_name      as DEPT_NAME,
+            d.is_active      as IS_ACTIVE,
             d.is_deleted     as IS_DELETED,
             d.version        as VERSION,
             d.created_at     as CREATED_AT,
@@ -43,6 +45,7 @@
             d.dept_id        as DEPT_ID,
             d.parent_dept_id as PARENT_DEPT_ID,
             d.dept_name      as DEPT_NAME,
+            d.is_active      as IS_ACTIVE,
             d.is_deleted     as IS_DELETED,
             d.version        as VERSION,
             d.created_at     as CREATED_AT,
@@ -61,6 +64,7 @@
             d.dept_id        as DEPT_ID,
             d.parent_dept_id as PARENT_DEPT_ID,
             d.dept_name      as DEPT_NAME,
+            d.is_active      as IS_ACTIVE,
             d.is_deleted     as IS_DELETED,
             d.version        as VERSION,
             d.created_at     as CREATED_AT,
@@ -93,11 +97,12 @@
           and e.is_deleted = 'n'
     </select>
 
-    <!-- 부서 정보 삽입 -->
+    <!-- 부서 정보 삽입 (is_active 포함) -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="deptId">
         insert into departments_51 (
             parent_dept_id,
             dept_name,
+            is_active,
             is_deleted,
             version,
             created_at,
@@ -105,6 +110,7 @@
         ) values (
             #{parentDeptId},
             #{deptName},
+            #{isActive},
             #{isDeleted},
             #{version},
             #{createdAt},
@@ -112,17 +118,28 @@
         )
     </insert>
 
-    <!-- 부서 정보 수정 (낙관적 락 버전 체크 포함) -->
+    <!-- 부서 정보 수정 (낙관적 락 버전 체크 포함, is_active 포함) -->
     <update id="update">
         update departments_51
         set parent_dept_id = #{parentDeptId},
             dept_name      = #{deptName},
+            is_active      = #{isActive},
             version        = #{version} + 1,
             updated_at     = #{updatedAt},
             updated_by     = #{updatedBy}
         where dept_id      = #{deptId}
           and version      = #{version}
           and is_deleted   = 'n'
+    </update>
+
+    <!-- 부서 사용 여부(is_active) 전환 (y -> n, n -> y) -->
+    <update id="updateActiveStatus">
+        update departments_51
+        set is_active  = #{isActive},
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        where dept_id  = #{deptId}
+          and is_deleted = 'n'
     </update>
 
     <!-- 부서 논리적 삭제(Soft Delete) 처리 -->

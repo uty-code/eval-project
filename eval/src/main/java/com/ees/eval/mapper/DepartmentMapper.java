@@ -79,6 +79,18 @@ public interface DepartmentMapper {
     int update(Department department);
 
     /**
+     * 부서의 사용 여부(is_active)를 변경합니다.
+     *
+     * @param deptId    대상 부서 식별자
+     * @param isActive  변경할 사용 여부 값 ('y': 사용중, 'n': 미사용중)
+     * @param updatedBy 처리자 ID
+     * @param updatedAt 처리 시각
+     * @return 업데이트된 행의 수
+     */
+    int updateActiveStatus(@Param("deptId") Long deptId, @Param("isActive") String isActive,
+                           @Param("updatedBy") Long updatedBy, @Param("updatedAt") LocalDateTime updatedAt);
+
+    /**
      * 특정 부서를 논리적으로 삭제(Soft Delete) 처리합니다.
      *
      * @param deptId 삭제 처리할 부서 식별자

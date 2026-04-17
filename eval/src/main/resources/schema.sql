@@ -79,6 +79,7 @@ create table departments_51
     dept_id bigint identity(1,1) primary key,
     parent_dept_id bigint,
     dept_name nvarchar(100) not null,
+    is_active char(1) default 'y' not null,
     is_deleted char(1) default 'n',
     version int default 0,
     created_at datetime default getdate(),

@@ -24,17 +24,22 @@ public class Department extends BaseEntity {
     /** 부서명 */
     private String deptName;
 
+    /** 사용 여부 (y: 사용중, n: 미사용중) */
+    private String isActive;
+
     /**
      * 부서 엔티티를 생성하는 빌더 메서드입니다.
      *
      * @param deptId       부서 ID
      * @param parentDeptId 상위 부서 ID (최상위 부서일 경우 null)
      * @param deptName     부서 명칭
+     * @param isActive     사용 여부 (y/n)
      */
     @Builder
-    public Department(Long deptId, Long parentDeptId, String deptName) {
+    public Department(Long deptId, Long parentDeptId, String deptName, String isActive) {
         this.deptId = deptId;
         this.parentDeptId = parentDeptId;
         this.deptName = deptName;
+        this.isActive = isActive;
     }
 }

@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
  * @param deptName 부서 명칭
  * @param parentDeptName 셀프 JOIN으로 조회한 상위 부서 명칭
  * @param employeeCount 해당 부서 소속 활성 사원 수
+ * @param treeDepth 트리 깊이 (UI 들여쓰기 표현용)
+ * @param isActive 사용 여부 (y: 사용중, n: 미사용중)
  * @param isDeleted 삭제 여부 (y/n)
  * @param version 낙관적 락을 위한 버전 번호
  * @param createdAt 생성 일시
@@ -28,6 +30,7 @@ public record DepartmentDTO(
     String parentDeptName,
     Integer employeeCount,
     Integer treeDepth,
+    String isActive,
     String isDeleted,
     Integer version,
     LocalDateTime createdAt,

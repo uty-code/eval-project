@@ -60,8 +60,8 @@ if not exists (select 1 from roles_51 where role_name = 'ROLE_ADMIN')
 -- 3. 관리자 계정 전용 부서 (시스템 계정용 FK 필수)
 -- ==========================================
 if not exists (select 1 from departments_51 where dept_name = N'관리부서')
-    insert into departments_51 (dept_name, is_deleted, version, created_at, created_by)
-    values (N'관리부서', 'n', 0, getdate(), 1);
+    insert into departments_51 (dept_name, is_active, is_deleted, version, created_at, created_by)
+    values (N'관리부서', 'y', 'n', 0, getdate(), 1);
 
 -- ==========================================
 -- 4. 시스템 관리자 계정 (비밀번호: admin123)
