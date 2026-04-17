@@ -82,6 +82,28 @@ public interface EmployeeService {
     void deleteEmployee(Long empId);
 
     /**
+     * 특정 부서에 소속된 사원 목록을 조회합니다.
+     * @param deptId 부서 식별자
+     * @return 사원 목록
+     */
+    List<EmployeeDTO> getEmployeesByDeptId(Long deptId);
+
+    /**
+     * 특정 부서의 부서장(MANAGER) 사번을 조회합니다.
+     * @param deptId 부서 식별자
+     * @return 부서장 사번 (없으면 null)
+     */
+    Long getDepartmentLeaderId(Long deptId);
+
+    /**
+     * 부서의 부서장(리더)을 지정/변경합니다. 
+     * 기존 부서장의 권한은 회수되고 새 리더에게 부여됩니다.
+     * @param deptId 대상 부서
+     * @param leaderEmpId 지정할 리더 사번 (null일 경우 해제만 수행)
+     */
+    void assignDepartmentLeader(Long deptId, Long leaderEmpId);
+
+    /**
      * 로그인 시도 시 비밀번호 일치 여부를 확인합니다.
      * BCryptPasswordEncoder의 matches() 메서드를 통해 검증합니다.
      *

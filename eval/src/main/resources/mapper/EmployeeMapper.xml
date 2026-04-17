@@ -179,7 +179,52 @@
         order by e.emp_id asc
     </select>
 
-    <!-- 사원이 보유한 권한명 목록 조회 (employee_roles + roles JOIN) -->
+    <!-- 부서 내 부서장(MANAGER) 사번 단건 조회 (여러 명일 경우 최상위 권한자 또는 무작위 1건) -->
+    <select id="findManagerEmpIdByDeptId" resultType="java.lang.Long">
+        SELECT TOP 1 e.emp_id
+        FROM employees_51 e
+        JOIN employee_roles_51 er ON e.emp_id = er.emp_id AND er.is_deleted = 'n'
+        JOIN roles_51 r ON er.role_id = r.role_id AND r.is_deleted = 'n'
+        WHERE e.dept_id = #{deptId}
+          AND e.is_deleted = 'n'
+          AND r.role_name = 'ROLE_MANAGER'
+    </select>
+
+    <!-- 부서 내 부서장(MANAGER) 이름 단건 조회 -->
+    <select id="findManagerNameByDeptId" resultType="java.lang.String">
+        SELECT TOP 1 e.name
+        FROM employees_51 e
+        JOIN employee_roles_51 er ON e.emp_id = er.emp_id AND er.is_deleted = 'n'
+        JOIN roles_51 r ON er.role_id = r.role_id AND r.is_deleted = 'n'
+        WHERE e.dept_id = #{deptId}
+          AND e.is_deleted = 'n'
+          AND r.role_name = 'ROLE_MANAGER'
+    </select>
+
+    <!-- 부서 내 기존 부서장 권한 일괄 회수 (소프트 삭제) -->
+    <update id="deleteManagerRoleByDeptId">
+        UPDATE employee_roles_51
+        SET is_deleted = 'y',
+            updated_at = #{now},
+            updated_by = #{adminId}
+        WHERE is_deleted = 'n'
+          AND role_id = (SELECT top 1 role_id FROM roles_51 WHERE role_name = 'ROLE_MANAGER')
+          AND emp_id IN (SELECT emp_id FROM employees_51 WHERE dept_id = #{deptId})
+    </update>
+
+    <!-- 특정 사원에게 부서장(MANAGER) 권한 부여 (MERGE문 활용) -->
+    <insert id="insertManagerRoleByEmpId">
+        MERGE INTO employee_roles_51 AS target
+        USING (SELECT #{empId} AS emp_id, (SELECT top 1 role_id FROM roles_51 WHERE role_name = 'ROLE_MANAGER') AS role_id) AS source
+        ON (target.emp_id = source.emp_id AND target.role_id = source.role_id)
+        WHEN MATCHED AND target.is_deleted = 'y' THEN
+            UPDATE SET target.is_deleted = 'n', target.updated_at = #{now}, target.updated_by = #{adminId}
+        WHEN NOT MATCHED THEN
+            INSERT (emp_id, role_id, is_deleted, version, created_at, created_by)
+            VALUES (source.emp_id, source.role_id, 'n', 0, #{now}, #{adminId});
+    </insert>
+
+    <!-- 사원의 보유 권한 목록 조회 -->
     <select id="findRoleNamesByEmpId" resultType="java.lang.String">
         select
             r.role_name as ROLE_NAME
@@ -242,23 +287,19 @@
         )
     </insert>
 
-    <!-- 사원-권한 매핑 삽입 (employee_roles) -->
+    <!-- 사원-권한 매핑 삽입 (employee_roles) - MERGE를 통해 PK 충돌 방지 및 재활성화 -->
     <insert id="insertEmployeeRole">
-        insert into employee_roles_51 (
-            emp_id,
-            role_id,
-            is_deleted,
-            version,
-            created_at,
-            created_by
-        ) values (
-            #{empId},
-            #{roleId},
-            'n',
-            0,
-            #{createdAt},
-            #{createdBy}
-        )
+        MERGE INTO employee_roles_51 AS Target
+        USING (SELECT #{empId} AS emp_id, #{roleId} AS role_id) AS Source
+        ON Target.emp_id = Source.emp_id AND Target.role_id = Source.role_id
+        WHEN MATCHED THEN
+            UPDATE SET
+                Target.is_deleted = 'n',
+                Target.updated_at = #{createdAt},
+                Target.updated_by = #{createdBy}
+        WHEN NOT MATCHED THEN
+            INSERT (emp_id, role_id, is_deleted, version, created_at, created_by)
+            VALUES (Source.emp_id, Source.role_id, 'n', 0, #{createdAt}, #{createdBy});
     </insert>
 
     <!-- 사원의 모든 권한 매핑을 소프트 삭제 처리 (권한 교체용 초기화) -->

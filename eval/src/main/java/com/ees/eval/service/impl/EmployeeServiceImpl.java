@@ -215,6 +215,35 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<EmployeeDTO> getEmployeesByDeptId(Long deptId) {
+        return employeeMapper.findByDeptId(deptId).stream()
+                .map(emp -> convertToDto(emp, java.util.Collections.emptyList(), emp.getDeptName(), emp.getPositionName()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getDepartmentLeaderId(Long deptId) {
+        return employeeMapper.findManagerEmpIdByDeptId(deptId);
+    }
+
+    @Override
+    @Transactional
+    public void assignDepartmentLeader(Long deptId, Long leaderEmpId) {
+        Long adminId = 1L; // TODO: SecurityContext에서 추출
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. 해당 부서의 기존 매니저 권한 모두 회수
+        employeeMapper.deleteManagerRoleByDeptId(deptId, adminId, now);
+
+        // 2. 새로운 리더가 지정되었다면 매니저 권한 부여
+        if (leaderEmpId != null) {
+            employeeMapper.insertManagerRoleByEmpId(leaderEmpId, adminId, now);
+        }
+    }
+
     /**
      * {@inheritDoc}
      */
