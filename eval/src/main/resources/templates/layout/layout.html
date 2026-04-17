@@ -157,17 +157,6 @@
             });
         });
     </script>
-    <!-- 전역 알림 자동 닫기 스크립트 (4초 후 js-auto-dismiss 클래스 가진 alert 자동 닫기) -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            document.querySelectorAll('.js-auto-dismiss').forEach(function (el) {
-                setTimeout(function () {
-                    const bsAlert = bootstrap.Alert.getOrCreateInstance(el);
-                    if (bsAlert) bsAlert.close();
-                }, 4000);
-            });
-        });
-    </script>
 </body>
 
 </html>

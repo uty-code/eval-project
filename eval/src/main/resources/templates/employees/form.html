@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'employees', ~{}, ~{::script})}">
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'employees', ~{}, ~{})}">
 
 <head>
     <title th:text="${isNew ? '신규 사원 등록' : '사원 정보 수정'} + ' - EES 사원 평가 시스템'">사원 관리</title>
@@ -107,34 +107,18 @@
                             <div class="col-12">
                                 <h5 class="fw-bold text-primary mb-3"><i class="bi bi-briefcase me-2"></i>인사 정보</h5>
                                 <div class="row g-3">
-                                    <!-- 본부 선택 -->
                                     <div class="col-md-3">
-                                        <label for="hqSelect" class="form-label text-muted small fw-semibold">본부 <span class="text-danger">*</span></label>
-                                        <select id="hqSelect"
-                                            class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white">
-                                            <option value="">본부 선택</option>
-                                            <th:block th:each="dept : ${departments}">
-                                                <option th:if="${dept.parentDeptId() == null}"
-                                                        th:value="${dept.deptId()}"
-                                                        th:text="${dept.deptName()}">본부명</option>
-                                            </th:block>
+                                        <label for="deptId" class="form-label text-muted small fw-semibold">소속 부서 <span
+                                                class="text-danger">*</span></label>
+                                        <select id="deptId" name="deptId"
+                                            class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            required>
+                                            <option value="">부서 선택</option>
+                                            <option th:each="dept : ${departments}" th:value="${dept.deptId()}"
+                                                th:text="${dept.deptName()}"
+                                                th:selected="${employee.deptId() == dept.deptId()}">
+                                            </option>
                                         </select>
-                                    </div>
-                                    <!-- 팀 선택 -->
-                                    <div class="col-md-3">
-                                        <label for="teamSelect" class="form-label text-muted small fw-semibold">팀 <span class="text-danger">*</span></label>
-                                        <select id="teamSelect"
-                                            class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white">
-                                            <option value="">팀 선택</option>
-                                            <th:block th:each="dept : ${departments}">
-                                                <option th:if="${dept.parentDeptId() != null}"
-                                                        th:value="${dept.deptId()}"
-                                                        th:attr="data-parent-id=${dept.parentDeptId()}"
-                                                        th:text="${dept.deptName()}">팀명</option>
-                                            </th:block>
-                                        </select>
-                                        <!-- 실제 폼 전송값: 선택된 팀 ID -->
-                                        <input type="hidden" id="deptId" name="deptId" th:value="${employee.deptId()}" required>
                                     </div>
                                     <div class="col-md-3">
                                         <label for="positionId" class="form-label text-muted small fw-semibold">직급 <span
@@ -250,74 +234,35 @@
 
         <script>
             document.addEventListener("DOMContentLoaded", function () {
-
-                /* ── 전화번호 자동 포맷 ── */
                 const phoneInput = document.getElementById('phone');
                 if (phoneInput) {
                     phoneInput.addEventListener('input', function (e) {
-                        if (e.inputType === 'deleteContentBackward') return;
+                        // 사용자가 백스페이스로 지울 때는 자동 완성 로직을 건너뜁니다
+                        if (e.inputType === 'deleteContentBackward') {
+                            return;
+                        }
+
                         let value = e.target.value.replace(/[^0-9]/g, '');
                         let formattedValue = '';
+
                         if (value.length === 3) {
                             formattedValue = value + '-';
                         } else if (value.length > 3 && value.length <= 7) {
                             formattedValue = value.substring(0, 3) + '-' + value.substring(3);
-                            if (value.length === 7) formattedValue += '-';
+                            if (value.length === 7) {
+                                formattedValue += '-';
+                            }
                         } else if (value.length > 7) {
                             formattedValue = value.substring(0, 3) + '-' + value.substring(3, 7) + '-' + value.substring(7, 11);
                         } else {
                             formattedValue = value;
                         }
-                        if (e.target.value !== formattedValue) e.target.value = formattedValue;
+
+                        if (e.target.value !== formattedValue) {
+                            e.target.value = formattedValue;
+                        }
                     });
                 }
-
-                /* ── 본부 / 팀 2단계 연동 ── */
-                const hqSelect   = document.getElementById('hqSelect');
-                const teamSelect = document.getElementById('teamSelect');
-                const hiddenDept = document.getElementById('deptId');
-                const form       = document.getElementById('employee-form');
-
-                // 팀 옵션 필터링
-                function filterTeams() {
-                    const hqId = hqSelect.value;
-                    Array.from(teamSelect.options).forEach(opt => {
-                        if (!opt.value) { opt.style.display = ''; return; }
-                        opt.style.display = (!hqId || opt.getAttribute('data-parent-id') === hqId) ? '' : 'none';
-                    });
-                    const sel = teamSelect.options[teamSelect.selectedIndex];
-                    if (sel && sel.style.display === 'none') teamSelect.value = '';
-                    hiddenDept.value = teamSelect.value;
-                }
-
-                // 기존 값 복원 (수정 모드)
-                const initialDeptId = hiddenDept.value;
-                if (initialDeptId) {
-                    const teamOpt = teamSelect.querySelector(`option[value="${initialDeptId}"]`);
-                    if (teamOpt) {
-                        hqSelect.value   = teamOpt.getAttribute('data-parent-id');
-                        teamSelect.value = initialDeptId;
-                    } else {
-                        const hqOpt = hqSelect.querySelector(`option[value="${initialDeptId}"]`);
-                        if (hqOpt) hqSelect.value = initialDeptId;
-                    }
-                }
-
-                hqSelect.addEventListener('change', filterTeams);
-                teamSelect.addEventListener('change', () => { hiddenDept.value = teamSelect.value; });
-                filterTeams(); // 초기 렌더링
-
-                // 폼 전송 전 유효성 검사
-                form.addEventListener('submit', function (e) {
-                    hiddenDept.value = teamSelect.value;
-                    if (!hiddenDept.value) {
-                        e.preventDefault();
-                        teamSelect.setCustomValidity('팀을 선택해 주세요.');
-                        teamSelect.reportValidity();
-                    } else {
-                        teamSelect.setCustomValidity('');
-                    }
-                });
             });
         </script>
     </div>

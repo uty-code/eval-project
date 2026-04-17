@@ -10,9 +10,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import com.ees.eval.service.EmployeeService;
-import com.ees.eval.dto.EmployeeDTO;
-
 import java.util.List;
 
 /**
@@ -28,7 +25,6 @@ import java.util.List;
 public class DepartmentController {
 
     private final DepartmentService departmentService;
-    private final EmployeeService employeeService;
 
     /**
      * 부서 목록 화면을 반환합니다.
@@ -111,13 +107,6 @@ public class DepartmentController {
         DepartmentDTO department = departmentService.getDepartmentById(deptId);
         model.addAttribute("department", department);
         model.addAttribute("allDepartments", departmentService.getAllDepartments());
-        
-        // 부서장(리더) 지정을 위해 소속 사원 목록과 현재 부서장 ID 조회
-        List<EmployeeDTO> deptMembers = employeeService.getEmployeesByDeptId(deptId);
-        Long currentLeaderId = employeeService.getDepartmentLeaderId(deptId);
-        model.addAttribute("deptMembers", deptMembers);
-        model.addAttribute("currentLeaderId", currentLeaderId);
-        
         model.addAttribute("isNew", false);
         return "departments/form";
     }
@@ -137,7 +126,6 @@ public class DepartmentController {
             @PathVariable Long deptId,
             @RequestParam("deptName") String deptName,
             @RequestParam(value = "parentDeptId", required = false) Long parentDeptId,
-            @RequestParam(value = "leaderEmpId", required = false) Long leaderEmpId,
             @RequestParam("version") Integer version,
             RedirectAttributes redirectAttributes) {
         try {
@@ -149,10 +137,6 @@ public class DepartmentController {
                     .version(version)
                     .build();
             departmentService.updateDepartment(dto);
-            
-            // 부서장 지정/변경 처리
-            employeeService.assignDepartmentLeader(deptId, leaderEmpId);
-            
             redirectAttributes.addFlashAttribute("successMessage", "'" + deptName + "' 부서 정보가 수정되었습니다.");
         } catch (Exception e) {
             log.error("부서 수정 실패: {}", e.getMessage());

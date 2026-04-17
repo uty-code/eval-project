@@ -18,24 +18,117 @@
         </div>
 
         <!-- Flash Messages -->
-        <div th:replace="~{fragments/flash-messages :: flash-messages}"></div>
+        <div th:if="${successMessage}"
+            class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show"
+            role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${errorMessage}"
+            class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show"
+            role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
 
 
 
         <!-- Employee Dynamic Content Area (HTMX Swap Target) -->
         <div id="employee-list-container">
             <!-- Stats Row (HTMX 교체 범위 안) -->
-            <div th:replace="~{employees/fragments/stats-row :: stats-row}"></div>
+            <div class="row g-3 mb-4">
+                <div class="col">
+                    <div class="glass-card p-3 d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:46px;height:46px;background:rgba(99,102,241,0.15);">
+                            <i class="bi bi-people-fill text-primary fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">전체 사원 수</div>
+                            <div class="fw-bold fs-4" th:text="${totalEmployeeCount}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="glass-card p-3 d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:46px;height:46px;background:rgba(16,185,129,0.15);">
+                            <i class="bi bi-person-check-fill text-success fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">재직 중</div>
+                            <div class="fw-bold fs-4" th:text="${activeCount}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="glass-card p-3 d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:46px;height:46px;background:rgba(186,104,200,0.15);">
+                            <i class="bi bi-person-badge-fill text-purple fs-5" style="color: #a855f7;"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">올해 입사자</div>
+                            <div class="fw-bold fs-4" th:text="${thisYearHired}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="glass-card p-3 d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:46px;height:46px;background:rgba(245,158,11,0.15);">
+                            <i class="bi bi-hourglass-split text-warning fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">승인 대기</div>
+                            <div class="fw-bold fs-4" th:text="${pendingCount}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="glass-card p-3 d-flex align-items-center gap-3"
+                        style="border-color:rgba(239,68,68,0.3);">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:46px;height:46px;background:rgba(239,68,68,0.15);">
+                            <i class="bi bi-lock-fill fs-5" style="color:#f87171;"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small">계정 잠금</div>
+                            <div class="fw-bold fs-4" style="color:#f87171;" th:text="${lockedCount}">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Custom Tab System (HTMX 기반 동적 교체) -->
-            <div th:replace="~{employees/fragments/tab-nav :: tab-nav('list')}"></div>
+            <div class="nav-tabs-custom mb-3">
+                <a href="javascript:void(0)" class="nav-link-custom active" hx-get="/employees"
+                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                    <i class="bi bi-people-fill"></i> 사원 목록
+                </a>
+                <a href="javascript:void(0)" class="nav-link-custom" hx-get="/employees/pending"
+                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                    <i class="bi bi-person-plus-fill"></i> 승인 대기
+                    <span class="tab-badge" th:if="${pendingCount > 0}" th:text="${pendingCount}">0</span>
+                </a>
+                <a th:href="@{/employees/new}" class="nav-link-custom">
+                    <i class="bi bi-person-plus-fill"></i> 신규 사원 등록
+                </a>
+                <a href="javascript:void(0)" class="nav-link-custom" hx-get="/employees/locked"
+                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                    <i class="bi bi-lock-fill"></i> 계정 잠금
+                    <span class="tab-badge" th:if="${lockedCount > 0}" th:text="${lockedCount}"
+                        style="background:rgba(239,68,68,0.2);color:#f87171;">0</span>
+                </a>
+            </div>
 
             <!-- Search Filter Card -->
             <div class="glass-card p-4 mb-4">
                 <form th:action="@{/employees}" method="get" id="search-form">
                     <div class="row g-3 align-items-end">
-                        <!-- 1. 사원 성명 -->
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label for="searchName" class="form-label text-muted small fw-semibold">사원 성명</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-transparent border-secondary border-opacity-50">
@@ -46,40 +139,23 @@
                                     placeholder="이름으로 검색..." th:value="${searchName}">
                             </div>
                         </div>
-
-                        <!-- 2. 본부 (Headquarters) -->
-                        <div class="col-md-2">
-                            <label for="searchHqId" class="form-label text-muted small fw-semibold">본부</label>
-                            <select id="searchHqId" class="form-select bg-transparent border-secondary border-opacity-50">
-                                <option value="">전체 본부</option>
-                                <th:block th:each="dept : ${departments}">
-                                    <option th:if="${dept.parentDeptId() == null}"
-                                            th:value="${dept.deptId()}"
-                                            th:text="${dept.deptName()}">본부명</option>
-                                </th:block>
+                        <div class="col-md-3">
+                            <label for="searchDeptId" class="form-label text-muted small fw-semibold">부서</label>
+                            <select id="searchDeptId" name="searchDeptId"
+                                class="form-select bg-transparent border-secondary border-opacity-50">
+                                <option value="">전체 부서</option>
+                                <option th:each="dept : ${departments}" th:value="${dept.deptId()}"
+                                    th:text="${dept.deptName()}"
+                                    th:selected="${searchDeptId != null && searchDeptId == dept.deptId()}">
+                                    부서명
+                                </option>
                             </select>
                         </div>
-
-                        <!-- 3. 팀 (Team) -->
-                        <div class="col-md-2">
-                            <label for="searchTeamId" class="form-label text-muted small fw-semibold">팀</label>
-                            <select id="searchTeamId" class="form-select bg-transparent border-secondary border-opacity-50">
-                                <option value="">전체 팀</option>
-                                <th:block th:each="dept : ${departments}">
-                                    <option th:if="${dept.parentDeptId() != null}"
-                                            th:value="${dept.deptId()}"
-                                            th:attr="data-parent-id=${dept.parentDeptId()}"
-                                            th:text="${dept.deptName()}">팀명</option>
-                                </th:block>
-                            </select>
-                        </div>
-                        <input type="hidden" id="hidden_searchDeptId" name="searchDeptId" th:value="${searchDeptId}" />
-                        <!-- 4. 재직 상태 -->
                         <div class="col-md-3">
                             <label for="searchStatus" class="form-label text-muted small fw-semibold">재직 상태</label>
                             <select id="searchStatus" name="searchStatus"
                                 class="form-select bg-transparent border-secondary border-opacity-50">
-                                <option value="">전체 상태</option>
+                                <option value="">전체</option>
                                 <option value="EMPLOYED" th:selected="${searchStatus == 'EMPLOYED'}">재직</option>
                                 <option value="ON_LEAVE" th:selected="${searchStatus == 'ON_LEAVE'}">휴직</option>
                                 <option value="RETIRED" th:selected="${searchStatus == 'RETIRED'}">퇴사</option>
@@ -271,7 +347,7 @@
 
         <!-- Page Scripts -->
         <div id="page-scripts">
-            <script th:inline="javascript">
+            <script>
                 document.addEventListener('DOMContentLoaded', function () {
                     // 알림 메시지 5초 후 자동 닫기
                     document.querySelectorAll('.alert-dismissible').forEach(function (alert) {
@@ -281,61 +357,6 @@
                         }, 5000);
                     });
 
-                    // 본부/팀 동적 연동 및 검색 파라미터 매핑
-                    const hqSelect = document.getElementById('searchHqId');
-                    const teamSelect = document.getElementById('searchTeamId');
-                    const hiddenDeptId = document.getElementById('hidden_searchDeptId');
-                    const searchForm = document.getElementById('search-form');
-
-                    // 1. 기존 파라미터(searchDeptId) 복원 로직
-                    const initialDeptId = hiddenDeptId.value;
-                    if (initialDeptId) {
-                        // 선택한 값이 팀(Team)인지 본부(HQ)인지 검사
-                        let teamOpt = teamSelect.querySelector(`option[value="${initialDeptId}"]`);
-                        if (teamOpt) {
-                            hqSelect.value = teamOpt.getAttribute('data-parent-id');
-                            teamSelect.value = initialDeptId;
-                        } else {
-                            let hqOpt = hqSelect.querySelector(`option[value="${initialDeptId}"]`);
-                            if (hqOpt) {
-                                hqSelect.value = initialDeptId;
-                            }
-                        }
-                    }
-
-                    // 2. 본부에 속한 하위 팀만 표시하도록 필터링
-                    function filterTeams() {
-                        const hqId = hqSelect.value;
-                        Array.from(teamSelect.options).forEach(opt => {
-                            if (opt.value === "") { 
-                                opt.style.display = ''; 
-                            } else if (hqId === "" || opt.getAttribute('data-parent-id') === hqId) {
-                                opt.style.display = '';
-                            } else {
-                                opt.style.display = 'none';
-                            }
-                        });
-                        
-                        // 현재 선택된 팀이 안보이게 처리되었다면 초기화
-                        const selOpt = teamSelect.options[teamSelect.selectedIndex];
-                        if (selOpt && selOpt.style.display === 'none') {
-                            teamSelect.value = "";
-                        }
-                    }
-
-                    hqSelect.addEventListener('change', filterTeams);
-                    filterTeams(); // 초기 상태 반영
-
-                    // 3. 폼 전송 전, 선택된 본부/팀 ID를 searchDeptId 에 통합
-                    searchForm.addEventListener('submit', function() {
-                        if (teamSelect.value) {
-                            hiddenDeptId.value = teamSelect.value;
-                        } else if (hqSelect.value) {
-                            hiddenDeptId.value = hqSelect.value;
-                        } else {
-                            hiddenDeptId.value = "";
-                        }
-                    });
                 });
             </script>
         </div>

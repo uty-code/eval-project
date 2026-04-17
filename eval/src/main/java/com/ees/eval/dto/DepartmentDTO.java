@@ -28,7 +28,6 @@ public record DepartmentDTO(
     Long parentDeptId,
     String deptName,
     String parentDeptName,
-    String leaderName,
     Integer employeeCount,
     Integer treeDepth,
     String isActive,

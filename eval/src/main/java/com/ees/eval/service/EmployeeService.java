@@ -82,28 +82,6 @@ public interface EmployeeService {
     void deleteEmployee(Long empId);
 
     /**
-     * 특정 부서에 소속된 사원 목록을 조회합니다.
-     * @param deptId 부서 식별자
-     * @return 사원 목록
-     */
-    List<EmployeeDTO> getEmployeesByDeptId(Long deptId);
-
-    /**
-     * 특정 부서의 부서장(MANAGER) 사번을 조회합니다.
-     * @param deptId 부서 식별자
-     * @return 부서장 사번 (없으면 null)
-     */
-    Long getDepartmentLeaderId(Long deptId);
-
-    /**
-     * 부서의 부서장(리더)을 지정/변경합니다. 
-     * 기존 부서장의 권한은 회수되고 새 리더에게 부여됩니다.
-     * @param deptId 대상 부서
-     * @param leaderEmpId 지정할 리더 사번 (null일 경우 해제만 수행)
-     */
-    void assignDepartmentLeader(Long deptId, Long leaderEmpId);
-
-    /**
      * 로그인 시도 시 비밀번호 일치 여부를 확인합니다.
      * BCryptPasswordEncoder의 matches() 메서드를 통해 검증합니다.
      *
@@ -206,13 +184,6 @@ public interface EmployeeService {
      * @param phone 새 전화번호 (평문, 포맷팅은 서비스 내에서 처리)
      */
     void updateContactInfo(Long empId, String email, String phone);
-
-    /**
-     * 비밀번호를 사번과 동일하게 초기화합니다. (계정 잠금 해제 없이 비밀번호만 초기화)
-     *
-     * @param empId 대상 사원 식별자
-     */
-    void resetPasswordToEmpId(Long empId);
 
     /**
      * 계정 잠금(login_fail_cnt >= 5)을 해제합니다.

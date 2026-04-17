@@ -91,30 +91,6 @@
                     </div>
                 </div>
 
-                <!-- 부서장(리더) 지정 영역 (신규 등록 시에는 감춤) -->
-                <div class="col-md-12 mt-4" th:unless="${isNew}">
-                    <hr class="border-secondary opacity-25">
-                    <h6 class="fw-bold text-white mb-3"><i class="bi bi-person-badge me-2 text-primary"></i>부서장(리더) 지정</h6>
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <label for="leaderEmpId" class="form-label text-muted small">부서장 선택</label>
-                            <select class="form-select border-secondary bg-dark text-white" id="leaderEmpId" name="leaderEmpId">
-                                <option value="">-- 부서장 미지정 --</option>
-                                <option th:each="emp : ${deptMembers}" 
-                                        th:value="${emp.empId()}" 
-                                        th:text="${emp.name()} + ' (' + (${emp.positionName()} ?: '직급없음') + ')'"
-                                        th:selected="${currentLeaderId != null and currentLeaderId == emp.empId()}">
-                                    직원 선택
-                                </option>
-                            </select>
-                            <div class="form-text text-muted small mt-2">
-                                <i class="bi bi-info-circle me-1"></i>부서 소속 사원 중 1명을 리더로 지정합니다.<br>
-                                저장 시 기존 부서장의 권한은 회수되며, 새 리더는 평가자 생성 시 부서장(1차 평가자)로 자동 매핑됩니다.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- 버튼 영역 -->
                 <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-secondary border-opacity-25">
                     <a th:href="@{/departments}" class="btn btn-outline-light px-4">취소</a>

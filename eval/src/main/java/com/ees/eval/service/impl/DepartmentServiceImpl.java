@@ -47,10 +47,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         // 3. 소속 사원 인원수 카운트 조회
         int employeeCount = departmentMapper.countEmployeesByDeptId(deptId);
 
-        // 4. 부서장 이름 조회
-        String leaderName = employeeMapper.findManagerNameByDeptId(deptId);
-
-        return convertToDto(dept, parentDeptName, leaderName, employeeCount);
+        return convertToDto(dept, parentDeptName, employeeCount);
     }
 
     /**
@@ -63,9 +60,8 @@ public class DepartmentServiceImpl implements DepartmentService {
         List<DepartmentDTO> allDepts = departmentMapper.findAll().stream()
                 .map(dept -> {
                     String parentName = departmentMapper.findParentDeptName(dept.getDeptId());
-                    String leaderName = employeeMapper.findManagerNameByDeptId(dept.getDeptId());
                     int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
-                    return convertToDto(dept, parentName, leaderName, count);
+                    return convertToDto(dept, parentName, count);
                 })
                 .collect(Collectors.toList());
 
@@ -116,9 +112,8 @@ public class DepartmentServiceImpl implements DepartmentService {
         // 최상위 부서 목록 조회 (parent_dept_id IS NULL)
         return departmentMapper.findRootDepartments().stream()
                 .map(dept -> {
-                    String leaderName = employeeMapper.findManagerNameByDeptId(dept.getDeptId());
                     int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
-                    return convertToDto(dept, null, leaderName, count);
+                    return convertToDto(dept, null, count);
                 })
                 .collect(Collectors.toList());
     }
@@ -135,9 +130,8 @@ public class DepartmentServiceImpl implements DepartmentService {
 
         return departmentMapper.findByParentDeptId(parentDeptId).stream()
                 .map(dept -> {
-                    String leaderName = employeeMapper.findManagerNameByDeptId(dept.getDeptId());
                     int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
-                    return convertToDto(dept, parentDeptName, leaderName, count);
+                    return convertToDto(dept, parentDeptName, count);
                 })
                 .collect(Collectors.toList());
     }
@@ -258,13 +252,12 @@ public class DepartmentServiceImpl implements DepartmentService {
      * @param employeeCount  소속 사원 인원수
      * @return 변환된 DepartmentDTO
      */
-    private DepartmentDTO convertToDto(Department dept, String parentDeptName, String leaderName, int employeeCount) {
+    private DepartmentDTO convertToDto(Department dept, String parentDeptName, int employeeCount) {
         return DepartmentDTO.builder()
                 .deptId(dept.getDeptId())
                 .parentDeptId(dept.getParentDeptId())
                 .deptName(dept.getDeptName())
                 .parentDeptName(parentDeptName)
-                .leaderName(leaderName)
                 .employeeCount(employeeCount)
                 .isActive(dept.getIsActive())
                 .isDeleted(dept.getIsDeleted())
