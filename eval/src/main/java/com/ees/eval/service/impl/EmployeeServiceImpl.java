@@ -525,15 +525,20 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     /**
      * {@inheritDoc}
-     * login_fail_cnt를 0으로 초기화하여 잠긴 계정을 해제합니다.
+     * login_fail_cnt를 0으로 초기화하고, 비밀번호를 사번과 동일하게 초기화하여 잠긴 계정을 해제합니다.
      */
     @Override
     @Transactional
     public void unlockAccount(Long empId) {
+        // 1. 로그인 실패 횟수 초기화
         int updated = employeeMapper.resetLoginFailCnt(empId);
         if (updated == 0) {
             throw new IllegalArgumentException("잠금 해제 대상 사원을 찾을 수 없습니다. empId: " + empId);
         }
+
+        // 2. 비밀번호를 사번과 동일하게 초기화 (암호화 처리)
+        String encodedPassword = passwordEncoder.encode(String.valueOf(empId));
+        employeeMapper.updatePassword(empId, encodedPassword);
     }
 
     /**

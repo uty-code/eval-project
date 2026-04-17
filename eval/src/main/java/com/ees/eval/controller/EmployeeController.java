@@ -106,14 +106,10 @@ public class EmployeeController {
         model.addAttribute("employees", page.employees()); // 기존 th:each 호환성 유지
         model.addAttribute("departments", departmentsFuture.join());
         model.addAttribute("positions", positionsFuture.join());
-        model.addAttribute("activeCount", activeCountFuture.join());
-        model.addAttribute("thisYearHired", thisYearHiredFuture.join());
-        model.addAttribute("totalEmployeeCount", totalEmployeeCountFuture.join());
         // 검색 조건을 뷰로 다시 전달하여 폼 상태 유지
         model.addAttribute("searchName", searchName);
         model.addAttribute("searchDeptId", searchDeptId);
         model.addAttribute("searchStatus", searchStatus);
-        model.addAttribute("lockedCount", lockedCountFuture.join());
 
         return "employees/list";
     }
@@ -128,11 +124,6 @@ public class EmployeeController {
     @GetMapping("/locked")
     public String lockedEmployees(Model model) {
         model.addAttribute("lockedEmployees", employeeService.getLockedEmployees());
-        model.addAttribute("lockedCount", employeeService.countLockedEmployees());
-        model.addAttribute("totalEmployeeCount",
-                employeeService.searchEmployeesPage(null, null, null, 1, 1).totalCount());
-        model.addAttribute("activeCount", employeeService.countActiveEmployees());
-        model.addAttribute("thisYearHired", employeeService.countThisYearHired());
         return "employees/locked";
     }
 
@@ -356,13 +347,13 @@ public class EmployeeController {
         try {
             employeeService.unlockAccount(empId);
             redirectAttributes.addFlashAttribute("successMessage",
-                    "계정 잠금이 해제되었습니다. 해당 사원은 다시 로그인할 수 있습니다.");
+                    "계정 잠금이 해제되었으며, 비밀번호가 사번과 동일하게 초기화되었습니다.");
         } catch (Exception e) {
             log.error("계정 잠금 해제 실패 (empId={}): {}", empId, e.getMessage());
             redirectAttributes.addFlashAttribute("errorMessage",
                     "계정 잠금 해제 중 오류가 발생했습니다: " + e.getMessage());
         }
-        return "redirect:/employees/" + empId + "/edit";
+        return "redirect:/employees/locked";
     }
 
     /**

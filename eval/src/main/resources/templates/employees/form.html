@@ -217,13 +217,13 @@
                             </h6>
                             <p class="text-muted small mb-0">
                                 로그인 실패가 <strong class="text-danger"
-                                    th:text="${employee.loginFailCnt()}">0</strong>회 누적되어 계정이 잠겼습니다.
-                                잠금 해제 시 실패 횟수가 초기화됩니다.
+                                    th:text="${employee.loginFailCnt()}">0</strong>회 누적되어 계정이 잠겼습니다.<br>
+                                잠금 해제 시 <span class="text-info fw-bold">비밀번호가 사번과 동일하게 초기화</span>되며 실패 횟수가 0이 됩니다.
                             </p>
                         </div>
                         <form th:action="@{'/employees/' + ${employee.empId()} + '/unlock'}" method="post">
                             <button type="submit" class="btn btn-outline-danger px-4"
-                                    onclick="return confirm('계정 잠금을 해제하시겠습니까?')">
+                                    onclick="return confirm('계정 잠금을 해제하시겠습니까?\n비밀번호가 사번과 동일하게 초기화되며, 로그인 실패 횟수가 0으로 초기화됩니다.')">
                                 <i class="bi bi-unlock-fill me-2"></i>잠금 해제
                             </button>
                         </form>

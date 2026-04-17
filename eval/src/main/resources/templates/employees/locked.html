@@ -202,7 +202,7 @@
                                 <form th:action="@{'/employees/' + ${emp.empId()} + '/unlock'}" method="post">
                                     <button type="submit" class="btn-action btn-action-danger"
                                         th:id="'btn-unlock-' + ${emp.empId()}" title="잠금 해제"
-                                        onclick="return confirm('계정 잠금을 해제하시겠습니까?\n실패 횟수가 0으로 초기화됩니다.')">
+                                        onclick="return confirm('계정 잠금을 해제하시겠습니까?\n비밀번호가 사번과 동일하게 초기화되며, 로그인 실패 횟수가 0으로 초기화됩니다.')">
                                         <i class="bi bi-unlock-fill"></i>
                                     </button>
                                 </form>

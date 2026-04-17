@@ -97,30 +97,6 @@ public class RegisterController {
     public String pendingList(Model model) {
         List<EmployeeDTO> pendingEmployees = employeeService.getPendingEmployees();
         model.addAttribute("pendingEmployees", pendingEmployees);
-
-        CompletableFuture<Long> activeCountFuture = CompletableFuture.supplyAsync(
-                employeeService::countActiveEmployees,
-                virtualThreadExecutor);
-
-        CompletableFuture<Long> thisYearHiredFuture = CompletableFuture.supplyAsync(
-                employeeService::countThisYearHired,
-                virtualThreadExecutor);
-
-        CompletableFuture<Long> totalEmployeeCountFuture = CompletableFuture.supplyAsync(
-                () -> employeeService.searchEmployeesPage(null, null, null, 1, 1).totalCount(),
-                virtualThreadExecutor);
-
-        CompletableFuture<Long> lockedCountFuture = CompletableFuture.supplyAsync(
-                employeeService::countLockedEmployees,
-                virtualThreadExecutor);
-
-        CompletableFuture.allOf(activeCountFuture, thisYearHiredFuture, totalEmployeeCountFuture, lockedCountFuture).join();
-
-        model.addAttribute("activeCount", activeCountFuture.join());
-        model.addAttribute("thisYearHired", thisYearHiredFuture.join());
-        model.addAttribute("totalEmployeeCount", totalEmployeeCountFuture.join());
-        model.addAttribute("lockedCount", lockedCountFuture.join());
-
         return "employees/pending";
     }
 
