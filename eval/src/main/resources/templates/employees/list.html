@@ -38,91 +38,10 @@
         <!-- Employee Dynamic Content Area (HTMX Swap Target) -->
         <div id="employee-list-container">
             <!-- Stats Row (HTMX 교체 범위 안) -->
-            <div class="row g-3 mb-4">
-                <div class="col">
-                    <div class="glass-card p-3 d-flex align-items-center gap-3">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center"
-                            style="width:46px;height:46px;background:rgba(99,102,241,0.15);">
-                            <i class="bi bi-people-fill text-primary fs-5"></i>
-                        </div>
-                        <div>
-                            <div class="text-muted small">전체 사원 수</div>
-                            <div class="fw-bold fs-4" th:text="${totalEmployeeCount}">0</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="glass-card p-3 d-flex align-items-center gap-3">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center"
-                            style="width:46px;height:46px;background:rgba(16,185,129,0.15);">
-                            <i class="bi bi-person-check-fill text-success fs-5"></i>
-                        </div>
-                        <div>
-                            <div class="text-muted small">재직 중</div>
-                            <div class="fw-bold fs-4" th:text="${activeCount}">0</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="glass-card p-3 d-flex align-items-center gap-3">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center"
-                            style="width:46px;height:46px;background:rgba(186,104,200,0.15);">
-                            <i class="bi bi-person-badge-fill text-purple fs-5" style="color: #a855f7;"></i>
-                        </div>
-                        <div>
-                            <div class="text-muted small">올해 입사자</div>
-                            <div class="fw-bold fs-4" th:text="${thisYearHired}">0</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="glass-card p-3 d-flex align-items-center gap-3">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center"
-                            style="width:46px;height:46px;background:rgba(245,158,11,0.15);">
-                            <i class="bi bi-hourglass-split text-warning fs-5"></i>
-                        </div>
-                        <div>
-                            <div class="text-muted small">승인 대기</div>
-                            <div class="fw-bold fs-4" th:text="${pendingCount}">0</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="glass-card p-3 d-flex align-items-center gap-3"
-                        style="border-color:rgba(239,68,68,0.3);">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center"
-                            style="width:46px;height:46px;background:rgba(239,68,68,0.15);">
-                            <i class="bi bi-lock-fill fs-5" style="color:#f87171;"></i>
-                        </div>
-                        <div>
-                            <div class="text-muted small">계정 잠금</div>
-                            <div class="fw-bold fs-4" style="color:#f87171;" th:text="${lockedCount}">0</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div th:replace="~{employees/fragments/stats-row :: stats-row}"></div>
 
             <!-- Custom Tab System (HTMX 기반 동적 교체) -->
-            <div class="nav-tabs-custom mb-3">
-                <a href="javascript:void(0)" class="nav-link-custom active" hx-get="/employees"
-                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
-                    <i class="bi bi-people-fill"></i> 사원 목록
-                </a>
-                <a href="javascript:void(0)" class="nav-link-custom" hx-get="/employees/pending"
-                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
-                    <i class="bi bi-person-plus-fill"></i> 승인 대기
-                    <span class="tab-badge" th:if="${pendingCount > 0}" th:text="${pendingCount}">0</span>
-                </a>
-                <a th:href="@{/employees/new}" class="nav-link-custom">
-                    <i class="bi bi-person-plus-fill"></i> 신규 사원 등록
-                </a>
-                <a href="javascript:void(0)" class="nav-link-custom" hx-get="/employees/locked"
-                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
-                    <i class="bi bi-lock-fill"></i> 계정 잠금
-                    <span class="tab-badge" th:if="${lockedCount > 0}" th:text="${lockedCount}"
-                        style="background:rgba(239,68,68,0.2);color:#f87171;">0</span>
-                </a>
-            </div>
+            <div th:replace="~{employees/fragments/tab-nav :: tab-nav('list')}"></div>
 
             <!-- Search Filter Card -->
             <div class="glass-card p-4 mb-4">
