@@ -109,46 +109,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * {@inheritDoc}
-     * 검색 조건에 따라 동적으로 사원 목록을 조회합니다.
-     * 모든 조건이 null이면 전체 목록을 반환합니다.
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public List<EmployeeDTO> searchEmployees(String searchName, Long searchDeptId, String searchStatus) {
-        // 부서/직급 전체 목록을 미리 Map으로 캐싱 (N+1 방지)
-        Map<Long, String> deptMap = departmentMapper.findAll().stream()
-                .collect(Collectors.toMap(Department::getDeptId, Department::getDeptName));
-        Map<Long, String> positionMap = positionMapper.findAll().stream()
-                .collect(Collectors.toMap(Position::getPositionId, Position::getPositionName));
 
-        // 동적 SQL 검색 쿼리 호출
-        List<Employee> employees = employeeMapper.searchEmployees(searchName, searchDeptId, searchStatus);
-
-        if (employees.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        // N+1 최적화: 사원들의 권한 목록을 IN 쿼리로 한 번에 조회하여 그룹화
-        List<Long> empIds = employees.stream().map(Employee::getEmpId).collect(Collectors.toList());
-        List<Map<String, Object>> roleMaps = employeeMapper.findRoleNamesByEmpIds(empIds);
-
-        // EmpId를 키로, RoleName의 리스트를 값으로 가지는 Map 생성
-        Map<Long, List<String>> empRolesMap = roleMaps.stream()
-                .collect(Collectors.groupingBy(
-                        row -> ((Number) row.get("EMP_ID")).longValue(),
-                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())));
-
-        return employees.stream()
-                .map(emp -> {
-                    List<String> roleNames = empRolesMap.getOrDefault(emp.getEmpId(), Collections.emptyList());
-                    String deptName = deptMap.get(emp.getDeptId());
-                    String positionName = positionMap.get(emp.getPositionId());
-                    return convertToDto(emp, roleNames, deptName, positionName);
-                })
-                .collect(Collectors.toList());
-    }
 
     /**
      * {@inheritDoc}

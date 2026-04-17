@@ -54,6 +54,13 @@ public interface DepartmentMapper {
     String findParentDeptName(Long deptId);
 
     /**
+     * 모든 활성 부서의 소속 사원 수를 한 번에 집계합니다. (N+1 최적화용)
+     *
+     * @return 부서 ID(DEPT_ID)와 사원 수(CNT)를 담은 Map 리스트
+     */
+    List<java.util.Map<String, Object>> findAllEmployeeCounts();
+
+    /**
      * 해당 부서에 소속된 활성 사원 수를 카운트합니다.
      * 평가 시스템에서 부서별 통계 산출에 활용됩니다.
      *

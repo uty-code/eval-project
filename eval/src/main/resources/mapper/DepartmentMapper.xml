@@ -93,6 +93,16 @@
           and e.is_deleted = 'n'
     </select>
 
+    <!-- 모든 활성 부서 소속 사원 인원수 일괄 집계 (N+1 최적화용) -->
+    <select id="findAllEmployeeCounts" resultType="map">
+        select
+            dept_id as DEPT_ID,
+            count(*) as CNT
+        from employees_51
+        where is_deleted = 'n'
+        group by dept_id
+    </select>
+
     <!-- 부서 정보 삽입 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="deptId">
         insert into departments_51 (

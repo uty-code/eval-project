@@ -18,6 +18,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 /**
@@ -56,30 +58,46 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional(readOnly = true)
     public List<DepartmentDTO> getAllDepartments() {
-        // 1. 전체 부서 조회 및 DTO 변환
-        List<DepartmentDTO> allDepts = departmentMapper.findAll().stream()
+        // 1. 전체 부서 조회 (단일 쿼리)
+        List<Department> allDepts = departmentMapper.findAll();
+
+        // N+1 최적화를 위한 인메모리 매핑 (부모 부서명, 사원 수 캐싱)
+        Map<Long, String> deptIdToNameMap = allDepts.stream()
+                .collect(Collectors.toMap(Department::getDeptId, Department::getDeptName));
+        
+        Map<Long, Integer> countMap = departmentMapper.findAllEmployeeCounts().stream()
+                .collect(Collectors.toMap(
+                        m -> ((Number) m.get("DEPT_ID")).longValue(),
+                        m -> ((Number) m.get("CNT")).intValue()
+                ));
+
+        // 2. 전체 부서 DTO 변환 (메모리에서 매핑하여 반복 쿼리 제거)
+        List<DepartmentDTO> allDeptDtos = allDepts.stream()
                 .map(dept -> {
-                    String parentName = departmentMapper.findParentDeptName(dept.getDeptId());
-                    int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
+                    String parentName = dept.getParentDeptId() != null 
+                                        ? deptIdToNameMap.get(dept.getParentDeptId()) 
+                                        : null;
+                    int count = countMap.getOrDefault(dept.getDeptId(), 0);
                     return convertToDto(dept, parentName, count);
                 })
                 .collect(Collectors.toList());
 
-        // 2. 부모-자식 트리 맵 구성 (parentDeptId 기준 그룹화)
-        Map<Long, List<DepartmentDTO>> childrenMap = allDepts.stream()
+        // 3. 부모-자식 트리 맵 구성 (parentDeptId 기준 그룹화)
+        Map<Long, List<DepartmentDTO>> childrenMap = allDeptDtos.stream()
                 .filter(d -> d.parentDeptId() != null)
                 .collect(Collectors.groupingBy(DepartmentDTO::parentDeptId));
 
-        // 3. 최상위(Root) 부서 목록 추출 후 ID 순 정렬
-        List<DepartmentDTO> roots = allDepts.stream()
+        // 4. 최상위(Root) 부서 목록 추출 후 ID 순 정렬
+        List<DepartmentDTO> roots = allDeptDtos.stream()
                 .filter(d -> d.parentDeptId() == null)
                 .sorted(Comparator.comparing(DepartmentDTO::deptId))
                 .toList();
 
-        // 4. DFS로 트리 순회하여 한 줄로 펼침(Flatten)
+        // 5. DFS로 트리 순회하여 한 줄로 펼침(Flatten)
         List<DepartmentDTO> sortedDepts = new ArrayList<>();
+        Set<Long> visited = new HashSet<>();
         for (DepartmentDTO root : roots) {
-            buildTreeList(root, childrenMap, sortedDepts, 0);
+            buildTreeList(root, childrenMap, sortedDepts, 0, visited);
         }
 
         return sortedDepts;
@@ -88,10 +106,16 @@ public class DepartmentServiceImpl implements DepartmentService {
     /**
      * DFS 방식으로 부서를 재귀 순회하여 리스트에 순차적으로 담습니다.
      * depth 파라미터를 통해 트리의 깊이를 재계산합니다.
+     * 순환 참조(루프) 파괴 방지를 위해 visited 셋을 활용합니다.
      */
     private void buildTreeList(DepartmentDTO node, Map<Long, List<DepartmentDTO>> childrenMap,
-            List<DepartmentDTO> result, int depth) {
+            List<DepartmentDTO> result, int depth, Set<Long> visited) {
         
+        // 순환 참조 감지 (이미 방문한 노드라면 즉시 반환하여 루프 중단)
+        if (!visited.add(node.deptId())) {
+            return;
+        }
+
         // 트리의 깊이(depth)를 설정한 복제본 객체를 추가
         DepartmentDTO nodeWithDepth = node.toBuilder().treeDepth(depth).build();
         result.add(nodeWithDepth);
@@ -100,7 +124,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         // 하위 부서도 식별자 순으로 정렬 후 깊이를 1 증가시켜 재귀 탐색
         children.stream()
                 .sorted(Comparator.comparing(DepartmentDTO::deptId))
-                .forEach(child -> buildTreeList(child, childrenMap, result, depth + 1));
+                .forEach(child -> buildTreeList(child, childrenMap, result, depth + 1, visited));
     }
 
     /**
@@ -177,6 +201,21 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional
     public DepartmentDTO updateDepartment(DepartmentDTO departmentDto) {
+        // [안정성 검증 1] 자기 자신을 상위 부서로 지정하는 것 원천 차단
+        if (departmentDto.deptId().equals(departmentDto.parentDeptId())) {
+            throw new IllegalArgumentException("부서의 상위 부서로 자기 자신을 지정할 수 없습니다.");
+        }
+
+        // [안정성 검증 2] 자신의 하위 부서를 상위 부서로 지정하는지 탐색 (순환 참조 사이클 발생 원천 차단)
+        Long currentParentId = departmentDto.parentDeptId();
+        while (currentParentId != null) {
+            if (currentParentId.equals(departmentDto.deptId())) {
+                throw new IllegalArgumentException("자신의 하위 부서를 상위 부서로 지정할 수 없습니다. (순환 참조 구조 오류)");
+            }
+            Department parentEntity = departmentMapper.findById(currentParentId).orElse(null);
+            currentParentId = (parentEntity != null) ? parentEntity.getParentDeptId() : null;
+        }
+
         // 엔티티 변환 및 수정 일시 갱신
         Department dept = convertToEntity(departmentDto);
         dept.preUpdate();

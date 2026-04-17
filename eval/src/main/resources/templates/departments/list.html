@@ -102,9 +102,9 @@
                         <!-- 부서 목록 -->
                         <tr th:each="dept : ${departments}" th:id="'dept-' + ${dept.deptId()}">
                             <td class="py-3">
-                                <!-- 하위 부서는 들여쓰기로 계층 표현 (깊이당 1.2rem씩 여백) -->
+                                <!-- 하위 부서는 들여쓰기로 계층 표현 (깊이당 0.9rem씩 여백) -->
                                 <span th:if="${dept.treeDepth() != null && dept.treeDepth() > 0}"
-                                    th:style="'margin-left: ' + (${dept.treeDepth()} * 1.1) + 'rem;'"
+                                    th:style="'margin-left: ' + (${dept.treeDepth()} * 0.9) + 'rem;'"
                                     class="text-muted me-2 small">└</span>
                                 <i class="bi bi-diagram-3-fill text-primary opacity-75 me-2"></i>
                                 <span class="fw-semibold" th:text="${dept.deptName()}">개발팀</span>
