@@ -26,8 +26,7 @@
                             <span sec:authentication="principal.username">Admin</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end glass-card border-0 mt-2 shadow-lg">
-                            <li><a class="dropdown-item py-2" href="#"><i class="bi bi-person me-2"></i>내 프로필</a></li>
-                            <li><a class="dropdown-item py-2" href="#"><i class="bi bi-gear me-2"></i>설정</a></li>
+                            <li><a class="dropdown-item py-2" th:href="@{/settings/profile}"><i class="bi bi-person me-2"></i>내 프로필</a></li>
                             <li>
                                 <hr class="dropdown-divider border-secondary opacity-25">
                             </li>

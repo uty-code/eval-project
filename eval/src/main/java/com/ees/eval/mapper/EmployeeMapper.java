@@ -141,6 +141,17 @@ public interface EmployeeMapper {
                            @Param("createdBy") Long createdBy, @Param("createdAt") LocalDateTime createdAt);
 
     /**
+     * 특정 사원의 모든 권한 매핑을 소프트 삭제 처리합니다. (권한 교체 시 사전 초기화용)
+     *
+     * @param empId     대상 사원 식별자
+     * @param updatedBy 처리자 ID
+     * @param updatedAt 처리 시각
+     * @return 업데이트된 행 수
+     */
+    int deleteEmployeeRolesByEmpId(@Param("empId") Long empId, @Param("updatedBy") Long updatedBy,
+                                   @Param("updatedAt") LocalDateTime updatedAt);
+
+    /**
      * 기존 사원 정보를 수정합니다. 낙관적 락(version) 체크가 동반됩니다.
      *
      * @param employee 수정할 사원 정보를 담은 엔티티
@@ -217,4 +228,24 @@ public interface EmployeeMapper {
      * @return 해당 연도 입사자 수
      */
     long countThisYearHired(@Param("year") int year);
+
+    /**
+     * 특정 사원의 비밀번호를 새 값(암호화된)으로 변경합니다.
+     *
+     * @param empId       대상 사원 식별자
+     * @param newPassword BCrypt 암호화된 새 비밀번호
+     * @return 업데이트된 행 수
+     */
+    int updatePassword(@Param("empId") Long empId, @Param("newPassword") String newPassword);
+
+    /**
+     * 사원의 이메일과 전화번호를 갱신합니다.
+     *
+     * @param empId 대상 사원 식별자
+     * @param email 새 이메일 주소
+     * @param phone 새 전화번호
+     * @return 업데이트된 행 수
+     */
+    int updateContactInfo(@Param("empId") Long empId, @Param("email") String email,
+                          @Param("phone") String phone);
 }
