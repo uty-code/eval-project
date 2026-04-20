@@ -5,16 +5,13 @@ import com.ees.eval.service.LoginLogService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.security.authentication.LockedException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.ees.eval.mapper.EmployeeMapper;
 
 import java.io.IOException;
 
@@ -28,7 +25,6 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class EesAuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
 
-    private final EmployeeMapper employeeMapper;
     private final LoginLogService loginLogService;
 
     @Override
@@ -60,20 +56,9 @@ public class EesAuthenticationFailureHandler extends SimpleUrlAuthenticationFail
             cause = cause.getCause();
         }
         
-        // LockedException이 아니고 BadCredentialsException일 경우 시도 횟수 증가 로직
-        if (exception instanceof BadCredentialsException && !"retired".equals(errorMessage) && !"locked".equals(errorMessage)) {
-            String username = request.getParameter("username");
-            if (username != null && !username.trim().isEmpty()) {
-                try {
-                    Long empId = Long.parseLong(username);
-                    employeeMapper.incrementLoginFailCnt(empId);
-                } catch (NumberFormatException e) {
-                    // ignore invalid format
-                }
-                // 혹시 이 번 실패로 인해 5회가 되었다면 메시지를 locked로 보이게 할 수도 있으나,
-                // 다음 로그인 시도 때 LockedException 이 발생하므로 일단 invalid 로 둡니다.
-            }
-        }
+        // 로그인 실패 시 login_logs_51에 is_failure='y'로 기록됨
+        // (LoginLogService.recordFailure에서 처리)
+
 
         // 로그인 이력 기록 (비동기)
         String logResultCode = switch (errorMessage) {

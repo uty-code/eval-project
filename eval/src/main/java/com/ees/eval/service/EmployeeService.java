@@ -186,8 +186,8 @@ public interface EmployeeService {
     void updateContactInfo(Long empId, String email, String phone);
 
     /**
-     * 계정 잠금(login_fail_cnt >= 5)을 해제합니다.
-     * login_fail_cnt를 0으로 초기화하여 다음 로그인 시 잠금이 적용되지 않도록 합니다.
+     * 계정 잠금(로그인 연속 실패 5회 이상)을 해제합니다.
+     * login_logs_51의 실패 기록을 초기화하고, 비밀번호를 사번으로 리셋합니다.
      *
      * @param empId 잠금 해제할 사원 식별자
      * @throws IllegalArgumentException 대상 사원이 존재하지 않을 경우 발생
@@ -195,14 +195,14 @@ public interface EmployeeService {
     void unlockAccount(Long empId);
 
     /**
-     * 계정이 잠긴(login_fail_cnt >= 5) 사원 목록을 조회합니다.
+     * 계정이 잠긴(로그인 연속 실패 5회 이상) 사원 목록을 조회합니다.
      *
      * @return 잠긴 계정 사원 DTO 리스트
      */
     List<EmployeeDTO> getLockedEmployees();
 
     /**
-     * 계정이 잠긴(login_fail_cnt >= 5) 사원 수를 조회합니다.
+     * 계정이 잠긴(로그인 연속 실패 5회 이상) 사원 수를 조회합니다.
      *
      * @return 잠긴 계정 사원 수
      */

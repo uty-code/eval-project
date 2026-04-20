@@ -41,9 +41,6 @@ public class Employee extends BaseEntity {
     /** 재직 상태 (예: EMPLOYED, RETIRED) */
     private String statusCode;
 
-    /** 로그인 실패 횟수 (5회 오류 시 잠금) */
-    private Integer loginFailCnt;
-
     /** 입사일 */
     private LocalDate hireDate;
 
@@ -63,12 +60,11 @@ public class Employee extends BaseEntity {
      * @param name         사원 이름
      * @param email        이메일
      * @param statusCode   재직 상태
-     * @param loginFailCnt 로그인 실패 횟수
      * @param hireDate     입사일
      */
     @Builder
     public Employee(Long empId, Long deptId, Long positionId,
-            String password, String name, String email, String phone, String statusCode, Integer loginFailCnt,
+            String password, String name, String email, String phone, String statusCode,
             LocalDate hireDate) {
         this.empId = empId;
         this.deptId = deptId;
@@ -78,7 +74,6 @@ public class Employee extends BaseEntity {
         this.email = email;
         this.phone = phone;
         this.statusCode = statusCode;
-        this.loginFailCnt = loginFailCnt;
         this.hireDate = hireDate;
     }
 }

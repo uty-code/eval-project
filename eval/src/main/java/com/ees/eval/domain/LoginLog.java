@@ -37,5 +37,8 @@ public class LoginLog {
     /** 브라우저/기기 정보 */
     private String userAgent;
 
+    /** 로그인 실패 여부 ('y': 실패, 'n': 성공) */
+    private String isFailure;
+
     private LocalDateTime createdAt;
 }

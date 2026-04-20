@@ -211,7 +211,7 @@
 
             <!-- 계정 잠금 상태 패널 (수정 모드 + 잠긴 계정인 경우만 표시) -->
             <div class="col-lg-8 mt-4"
-                th:if="${!isNew and employee.loginFailCnt() != null and employee.loginFailCnt() >= 5}">
+                th:if="${!isNew and employee.isLocked() != null and employee.isLocked()}">
                 <div class="glass-card p-4 border border-danger border-opacity-50">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                         <div>
@@ -219,9 +219,8 @@
                                 <i class="bi bi-lock-fill me-2"></i>계정 잠금 상태
                             </h6>
                             <p class="text-muted small mb-0">
-                                로그인 실패가 <strong class="text-danger" th:text="${employee.loginFailCnt()}">0</strong>회
-                                누적되어 계정이 잠겼습니다.
-                                잠금 해제 시 실패 횟수가 초기화됩니다.
+                                로그인 실패가 5회 이상 누적되어 계정이 잠겼습니다.
+                                잠금 해제 시 실패 기록이 초기화됩니다.
                             </p>
                         </div>
                         <form th:action="@{'/employees/' + ${employee.empId()} + '/unlock'}" method="post">
