@@ -39,6 +39,33 @@
         order by d.dept_id asc
     </select>
 
+    <!-- 조건에 따른 부서 목록 조회 (부서명/코드, 사용 여부) -->
+    <select id="findAllWithConditions" resultType="com.ees.eval.domain.Department">
+        select
+            d.dept_id        as DEPT_ID,
+            d.parent_dept_id as PARENT_DEPT_ID,
+            d.dept_name      as DEPT_NAME,
+            d.is_active      as IS_ACTIVE,
+            d.is_deleted     as IS_DELETED,
+            d.version        as VERSION,
+            d.created_at     as CREATED_AT,
+            d.created_by     as CREATED_BY,
+            d.updated_at     as UPDATED_AT,
+            d.updated_by     as UPDATED_BY
+        from departments_51 d
+        <where>
+            d.is_deleted = 'n'
+            <if test="searchKeyword != null and searchKeyword != ''">
+                and (d.dept_name like concat('%', #{searchKeyword}, '%')
+                  or cast(d.dept_id as varchar) like concat('%', #{searchKeyword}, '%'))
+            </if>
+            <if test="searchStatus != null and searchStatus != ''">
+                and d.is_active = #{searchStatus}
+            </if>
+        </where>
+        order by d.dept_id asc
+    </select>
+
     <!-- 최상위 부서(parent_dept_id IS NULL) 목록 조회 -->
     <select id="findRootDepartments" resultType="com.ees.eval.domain.Department">
         select

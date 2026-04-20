@@ -28,16 +28,24 @@ public class DepartmentController {
 
     /**
      * 부서 목록 화면을 반환합니다.
+     * 검색 파라미터를 받아 필터링된 결과를 제공할 수 있습니다.
      *
+     * @param searchKeyword 검색어 (부서명 또는 부서코드)
+     * @param searchStatus 사용 여부 ('y', 'n', 또는 기본값 빈 문자열)
      * @param model 뷰에 데이터를 전달하는 Model 객체
      * @return 부서 목록 뷰 이름
      */
     @GetMapping
-    public String listDepartments(Model model) {
-        // 전체 부서 목록 조회 (상위 부서명, 사원수 포함)
-        List<DepartmentDTO> departments = departmentService.getAllDepartments();
+    public String listDepartments(
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "searchStatus", required = false) String searchStatus,
+            Model model) {
+
+        // 검색 조건이 있으면 필터링된 목록, 없으면 전체(트리형) 목록 반환
+        List<DepartmentDTO> departments = departmentService.searchDepartments(searchKeyword, searchStatus);
 
         // Thymeleaf에서 Stream API를 직접 사용할 수 없으므로 통계를 미리 계산하여 모델에 전달
+        // 전체 부서수는 검색 결과 목록 size를 참조하므로 따로 넘길 필요가 없음
         int totalEmployeeCount = departments.stream()
                 .mapToInt(d -> d.employeeCount() != null ? d.employeeCount() : 0)
                 .sum();
@@ -48,6 +56,11 @@ public class DepartmentController {
         model.addAttribute("departments", departments);
         model.addAttribute("totalEmployeeCount", totalEmployeeCount);
         model.addAttribute("rootDeptCount", rootDeptCount);
+        
+        // 검색 폼 유지를 위한 파라미터 전달
+        model.addAttribute("searchKeyword", searchKeyword);
+        model.addAttribute("searchStatus", searchStatus);
+        
         return "departments/list";
     }
 
