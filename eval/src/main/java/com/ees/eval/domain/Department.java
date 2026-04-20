@@ -24,6 +24,9 @@ public class Department extends BaseEntity {
     /** 부서명 */
     private String deptName;
 
+    /** 부서 리더(부서장) 사원 식별자 (FK → employees_51, NULL이면 리더 미지정) */
+    private Long leaderId;
+
     /** 사용 여부 (y: 사용중, n: 미사용중) */
     private String isActive;
 
@@ -32,13 +35,15 @@ public class Department extends BaseEntity {
      *
      * @param deptId       부서 ID
      * @param parentDeptId 상위 부서 ID (최상위 부서일 경우 null)
+     * @param leaderId     부서 리더 사원 ID (NULL이면 리더 미지정)
      * @param deptName     부서 명칭
      * @param isActive     사용 여부 (y/n)
      */
     @Builder
-    public Department(Long deptId, Long parentDeptId, String deptName, String isActive) {
+    public Department(Long deptId, Long parentDeptId, Long leaderId, String deptName, String isActive) {
         this.deptId = deptId;
         this.parentDeptId = parentDeptId;
+        this.leaderId = leaderId;
         this.deptName = deptName;
         this.isActive = isActive;
     }

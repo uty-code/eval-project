@@ -2,13 +2,16 @@ package com.ees.eval.service.impl;
 
 import com.ees.eval.domain.Department;
 import com.ees.eval.domain.Employee;
+import com.ees.eval.domain.Role;
 import com.ees.eval.dto.DepartmentDTO;
 import com.ees.eval.dto.EmployeeDTO;
 import com.ees.eval.exception.EesOptimisticLockException;
 import com.ees.eval.mapper.DepartmentMapper;
 import com.ees.eval.mapper.EmployeeMapper;
+import com.ees.eval.mapper.RoleMapper;
 import com.ees.eval.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,14 +25,17 @@ import java.util.stream.Collectors;
 
 /**
  * DepartmentService 인터페이스의 실제 비즈니스 로직 구현체입니다.
- * 계층형 부서 트리 관리, 소속 사원 조회, 부서 삭제 시 안전 검증 등을 수행합니다.
+ * 계층형 부서 트리 관리, 소속 사원 조회, 부서 삭제 시 안전 검증,
+ * 리더(부서장) 지정/해제 및 권한 자동 동기화 등을 수행합니다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DepartmentServiceImpl implements DepartmentService {
 
     private final DepartmentMapper departmentMapper;
     private final EmployeeMapper employeeMapper;
+    private final RoleMapper roleMapper;
 
     /**
      * {@inheritDoc}
@@ -44,10 +50,13 @@ public class DepartmentServiceImpl implements DepartmentService {
         // 2. 상위 부서명 셀프 JOIN 조회
         String parentDeptName = departmentMapper.findParentDeptName(deptId);
 
-        // 3. 소속 사원 인원수 카운트 조회
+        // 3. 리더(부서장) 사원명 JOIN 조회
+        String leaderName = departmentMapper.findLeaderName(deptId);
+
+        // 4. 소속 사원 인원수 카운트 조회
         int employeeCount = departmentMapper.countEmployeesByDeptId(deptId);
 
-        return convertToDto(dept, parentDeptName, employeeCount);
+        return convertToDto(dept, parentDeptName, leaderName, employeeCount);
     }
 
     /**
@@ -60,8 +69,9 @@ public class DepartmentServiceImpl implements DepartmentService {
         List<DepartmentDTO> allDepts = departmentMapper.findAll().stream()
                 .map(dept -> {
                     String parentName = departmentMapper.findParentDeptName(dept.getDeptId());
+                    String leaderName = departmentMapper.findLeaderName(dept.getDeptId());
                     int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
-                    return convertToDto(dept, parentName, count);
+                    return convertToDto(dept, parentName, leaderName, count);
                 })
                 .collect(Collectors.toList());
 
@@ -103,8 +113,9 @@ public class DepartmentServiceImpl implements DepartmentService {
         return departmentMapper.findAllWithConditions(searchKeyword, searchStatus).stream()
                 .map(dept -> {
                     String parentName = departmentMapper.findParentDeptName(dept.getDeptId());
+                    String leaderName = departmentMapper.findLeaderName(dept.getDeptId());
                     int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
-                    return convertToDto(dept, parentName, count).toBuilder().treeDepth(0).build();
+                    return convertToDto(dept, parentName, leaderName, count).toBuilder().treeDepth(0).build();
                 })
                 .collect(Collectors.toList());
     }
@@ -136,8 +147,9 @@ public class DepartmentServiceImpl implements DepartmentService {
         // 최상위 부서 목록 조회 (parent_dept_id IS NULL)
         return departmentMapper.findRootDepartments().stream()
                 .map(dept -> {
+                    String leaderName = departmentMapper.findLeaderName(dept.getDeptId());
                     int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
-                    return convertToDto(dept, null, count);
+                    return convertToDto(dept, null, leaderName, count);
                 })
                 .collect(Collectors.toList());
     }
@@ -154,8 +166,9 @@ public class DepartmentServiceImpl implements DepartmentService {
 
         return departmentMapper.findByParentDeptId(parentDeptId).stream()
                 .map(dept -> {
+                    String leaderName = departmentMapper.findLeaderName(dept.getDeptId());
                     int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
-                    return convertToDto(dept, parentDeptName, count);
+                    return convertToDto(dept, parentDeptName, leaderName, count);
                 })
                 .collect(Collectors.toList());
     }
@@ -269,19 +282,158 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     /**
+     * {@inheritDoc}
+     * 리더 지정 시 기존 리더의 부서장 권한을 회수하고, 새 리더에게 권한을 부여합니다.
+     * empId가 null인 경우 리더 해제(removeLeader)로 위임합니다.
+     */
+    @Override
+    @Transactional
+    public void assignLeader(Long deptId, Long empId) {
+        // NULL이 들어오면 리더 해제 처리
+        if (empId == null) {
+            removeLeader(deptId);
+            return;
+        }
+
+        // 1. 부서 존재 여부 확인
+        Department dept = departmentMapper.findById(deptId)
+                .orElseThrow(() -> new IllegalArgumentException("부서를 찾을 수 없습니다. deptId: " + deptId));
+
+        // 2. 대상 사원 존재 여부 및 해당 부서 소속 확인
+        Employee emp = employeeMapper.findById(empId)
+                .orElseThrow(() -> new IllegalArgumentException("사원을 찾을 수 없습니다. empId: " + empId));
+        if (!emp.getDeptId().equals(deptId)) {
+            throw new IllegalArgumentException("해당 부서 소속이 아닌 사원은 리더로 지정할 수 없습니다.");
+        }
+
+        // 3. 재직 중인 사원인지 확인
+        if (!"EMPLOYED".equals(emp.getStatusCode())) {
+            throw new IllegalArgumentException("재직 중인 사원만 리더로 지정할 수 있습니다.");
+        }
+
+        // 4. 이미 같은 리더라면 아무 작업도 하지 않음
+        if (empId.equals(dept.getLeaderId())) {
+            log.info("부서 {}의 리더가 이미 사원 {}입니다. 변경 사항 없음.", deptId, empId);
+            return;
+        }
+
+        // 5. 기존 리더가 있으면 권한 회수 (다른 부서 리더가 아닌 경우에만)
+        if (dept.getLeaderId() != null) {
+            revokeManagerRoleIfNotLeaderElsewhere(dept.getLeaderId(), deptId);
+        }
+
+        // 6. 새 리더 지정 (departments 테이블 업데이트)
+        Long currentUserId = 1L; // 추후 SecurityContext에서 교체 예정
+        departmentMapper.updateLeader(deptId, empId, currentUserId, LocalDateTime.now());
+
+        // 7. 새 리더에게 ROLE_MANAGER 권한 부여 (이미 보유 중이면 SKIP)
+        grantManagerRole(empId);
+
+        log.info("부서 {} 리더를 사원 {}(으)로 지정 완료. ROLE_MANAGER 권한 부여됨.", deptId, empId);
+    }
+
+    /**
+     * {@inheritDoc}
+     * 현재 리더를 해제하고, 다른 부서의 리더가 아니라면 ROLE_MANAGER 권한을 회수합니다.
+     */
+    @Override
+    @Transactional
+    public void removeLeader(Long deptId) {
+        // 1. 부서 존재 여부 확인
+        Department dept = departmentMapper.findById(deptId)
+                .orElseThrow(() -> new IllegalArgumentException("부서를 찾을 수 없습니다. deptId: " + deptId));
+
+        // 2. 현재 리더가 없으면 아무 작업도 하지 않음
+        if (dept.getLeaderId() == null) {
+            log.info("부서 {}에 리더가 미지정 상태입니다. 변경 사항 없음.", deptId);
+            return;
+        }
+
+        Long previousLeaderId = dept.getLeaderId();
+
+        // 3. 리더 해제 (leader_id를 NULL로)
+        Long currentUserId = 1L; // 추후 SecurityContext에서 교체 예정
+        departmentMapper.updateLeader(deptId, null, currentUserId, LocalDateTime.now());
+
+        // 4. 기존 리더의 권한 회수 (다른 부서 리더가 아닌 경우에만)
+        revokeManagerRoleIfNotLeaderElsewhere(previousLeaderId, deptId);
+
+        log.info("부서 {} 리더 해제 완료. 기존 리더: 사원 {}", deptId, previousLeaderId);
+    }
+
+    /**
+     * 사원에게 ROLE_MANAGER 권한을 부여합니다.
+     * 이미 보유 중이면 중복 부여하지 않습니다.
+     *
+     * @param empId 권한을 부여할 사원 식별자
+     */
+    private void grantManagerRole(Long empId) {
+        // 현재 사원의 권한 목록을 조회하여 이미 ROLE_MANAGER를 보유 중인지 확인
+        List<String> currentRoles = employeeMapper.findRoleNamesByEmpId(empId);
+        if (currentRoles.contains("ROLE_MANAGER")) {
+            log.debug("사원 {}은(는) 이미 ROLE_MANAGER 권한을 보유 중입니다.", empId);
+            return;
+        }
+
+        // ROLE_MANAGER의 role_id 조회
+        Role managerRole = roleMapper.findByRoleName("ROLE_MANAGER")
+                .orElseThrow(() -> new IllegalStateException("ROLE_MANAGER 권한 정보를 찾을 수 없습니다."));
+
+        // 기존 권한 소프트 삭제 후 ROLE_MANAGER로 교체
+        Long currentUserId = 1L; // 추후 SecurityContext에서 교체 예정
+        LocalDateTime now = LocalDateTime.now();
+        employeeMapper.deleteEmployeeRolesByEmpId(empId, currentUserId, now);
+        employeeMapper.insertEmployeeRole(empId, managerRole.getRoleId(), currentUserId, now);
+
+        log.info("사원 {}에게 ROLE_MANAGER 권한을 부여했습니다.", empId);
+    }
+
+    /**
+     * 사원의 ROLE_MANAGER 권한을 회수하고 ROLE_USER로 되돌립니다.
+     * 단, 해당 사원이 다른 부서의 리더를 겸임하고 있다면 권한을 유지합니다.
+     *
+     * @param empId          권한 회수 대상 사원 식별자
+     * @param excludeDeptId  현재 해제 중인 부서 ID (이 부서는 카운트에서 제외)
+     */
+    private void revokeManagerRoleIfNotLeaderElsewhere(Long empId, Long excludeDeptId) {
+        // 해당 사원이 리더로 등록된 부서 수를 확인
+        int leaderCount = departmentMapper.countDepartmentsByLeaderId(empId);
+
+        // 현재 해제 중인 부서를 제외했을 때 다른 부서 리더가 아닌 경우에만 권한 회수
+        // (아직 DB에서 해제가 반영되지 않았다면 -1 해야 정확)
+        if (leaderCount <= 1) {
+            // ROLE_USER의 role_id 조회
+            Role userRole = roleMapper.findByRoleName("ROLE_USER")
+                    .orElseThrow(() -> new IllegalStateException("ROLE_USER 권한 정보를 찾을 수 없습니다."));
+
+            Long currentUserId = 1L; // 추후 SecurityContext에서 교체 예정
+            LocalDateTime now = LocalDateTime.now();
+            employeeMapper.deleteEmployeeRolesByEmpId(empId, currentUserId, now);
+            employeeMapper.insertEmployeeRole(empId, userRole.getRoleId(), currentUserId, now);
+
+            log.info("사원 {}의 ROLE_MANAGER 권한을 회수하고 ROLE_USER로 전환했습니다.", empId);
+        } else {
+            log.info("사원 {}은(는) 다른 부서의 리더이므로 ROLE_MANAGER 권한을 유지합니다.", empId);
+        }
+    }
+
+    /**
      * 부서 도메인 엔티티를 DTO 레코드로 변환합니다.
      *
      * @param dept           부서 엔티티
      * @param parentDeptName 상위 부서명 (null 가능)
+     * @param leaderName     리더 사원명 (null 가능)
      * @param employeeCount  소속 사원 인원수
      * @return 변환된 DepartmentDTO
      */
-    private DepartmentDTO convertToDto(Department dept, String parentDeptName, int employeeCount) {
+    private DepartmentDTO convertToDto(Department dept, String parentDeptName, String leaderName, int employeeCount) {
         return DepartmentDTO.builder()
                 .deptId(dept.getDeptId())
                 .parentDeptId(dept.getParentDeptId())
+                .leaderId(dept.getLeaderId())
                 .deptName(dept.getDeptName())
                 .parentDeptName(parentDeptName)
+                .leaderName(leaderName)
                 .employeeCount(employeeCount)
                 .isActive(dept.getIsActive())
                 .isDeleted(dept.getIsDeleted())
@@ -303,6 +455,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         Department dept = Department.builder()
                 .deptId(dto.deptId())
                 .parentDeptId(dto.parentDeptId())
+                .leaderId(dto.leaderId())
                 .deptName(dto.deptName())
                 // 신규 생성 시 기본값 'y', 수정 시 기존 값 유지
                 .isActive(dto.isActive() != null ? dto.isActive() : "y")

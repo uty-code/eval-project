@@ -109,6 +109,7 @@ public class DepartmentController {
 
     /**
      * 부서 수정 폼 화면을 반환합니다.
+     * 리더 지정을 위해 해당 부서의 재직 중인 사원 목록도 함께 전달합니다.
      *
      * @param deptId 수정할 부서 식별자
      * @param model  뷰에 데이터를 전달하는 Model 객체
@@ -120,6 +121,8 @@ public class DepartmentController {
         DepartmentDTO department = departmentService.getDepartmentById(deptId);
         model.addAttribute("department", department);
         model.addAttribute("allDepartments", departmentService.getAllDepartments());
+        // 해당 부서 소속 사원 목록 (리더 후보 Select용)
+        model.addAttribute("deptEmployees", departmentService.getEmployeesByDeptId(deptId));
         model.addAttribute("isNew", false);
         return "departments/form";
     }
@@ -204,5 +207,37 @@ public class DepartmentController {
             redirectAttributes.addFlashAttribute("errorMessage", "상태 변경 중 오류가 발생했습니다: " + e.getMessage());
         }
         return "redirect:/departments";
+    }
+
+    /**
+     * 부서에 리더(부서장)를 지정하거나 해제합니다.
+     * 리더 지정 시 ROLE_MANAGER 권한이 자동 부여되고,
+     * 기존 리더는 해제되며 다른 부서 리더가 아니면 권한이 회수됩니다.
+     *
+     * @param deptId             대상 부서 식별자
+     * @param leaderId           리더로 지정할 사원 ID (빈 값이면 리더 해제)
+     * @param redirectAttributes 리다이렉트 시 전달할 Flash 메시지
+     * @return 부서 수정 폼으로 리다이렉트
+     */
+    @PostMapping("/{deptId}/assign-leader")
+    public String assignLeader(
+            @PathVariable Long deptId,
+            @RequestParam(value = "leaderId", required = false) Long leaderId,
+            RedirectAttributes redirectAttributes) {
+        try {
+            departmentService.assignLeader(deptId, leaderId);
+            if (leaderId != null) {
+                redirectAttributes.addFlashAttribute("successMessage", "부서 리더가 성공적으로 지정되었습니다.");
+            } else {
+                redirectAttributes.addFlashAttribute("successMessage", "부서 리더가 해제되었습니다.");
+            }
+        } catch (IllegalArgumentException e) {
+            log.warn("리더 지정 거부: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        } catch (Exception e) {
+            log.error("리더 지정 실패: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "리더 지정 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        return "redirect:/departments/" + deptId + "/edit";
     }
 }
