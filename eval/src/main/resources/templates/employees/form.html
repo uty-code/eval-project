@@ -112,12 +112,25 @@
                                                 class="text-danger">*</span></label>
                                         <select id="deptId" name="deptId"
                                             class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            style="font-size: 0.875rem;"
                                             required>
                                             <option value="">부서 선택</option>
-                                            <option th:each="dept : ${departments}" th:value="${dept.deptId()}"
-                                                th:text="${dept.deptName()}"
-                                                th:selected="${employee.deptId() == dept.deptId()}">
-                                            </option>
+                                            <th:block th:each="dept : ${departments}">
+                                                <!-- 상위부서 (본부): parentDeptId == null -->
+                                                <option th:if="${dept.parentDeptId() == null}"
+                                                    th:value="${dept.deptId()}"
+                                                    th:text="'🏢 ' + ${dept.deptName()}"
+                                                    th:selected="${employee.deptId() == dept.deptId()}"
+                                                    style="font-weight: 700; color: #a5b4fc;">
+                                                </option>
+                                                <!-- 하위부서 (팀): parentDeptId != null -->
+                                                <option th:unless="${dept.parentDeptId() == null}"
+                                                    th:value="${dept.deptId()}"
+                                                    th:text="'　└ ' + ${dept.deptName()}"
+                                                    th:selected="${employee.deptId() == dept.deptId()}"
+                                                    style="color: #94a3b8;">
+                                                </option>
+                                            </th:block>
                                         </select>
                                     </div>
                                     <div class="col-md-3">
