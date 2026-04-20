@@ -11,10 +11,9 @@ WHERE object_name(parent_object_id) LIKE ''%_51'';
 EXEC sp_executesql @drop_constraints_sql;
 ';
 
-drop table if exists final_grades_51;
+-- 이전 _51 테이블의 외래 키 제약 조건만 삭제 (다른 팀 테이블 보호)
 drop table if exists evidences_51;
 drop table if exists interviews_51;
-drop table if exists evaluation_histories_51;
 drop table if exists evaluations_51;
 drop table if exists evaluator_mappings_51;
 drop table if exists evaluation_elements_51;
@@ -192,7 +191,13 @@ create table evaluations_51
     mapping_id bigint not null,
     element_id bigint not null,
     score decimal(5,2),
+    old_score decimal(5,2),
+    reason nvarchar(255),
     comments nvarchar(max),
+    -- final_grades 통합을 위한 확정 점수 및 등급 정보
+    total_score decimal(7,2),
+    grade_code varchar(50),
+    confirm_status_code varchar(50),
     -- 텍스트 피드백/수행과정 기록용
     is_deleted char(1) default 'n',
     version int default 0,
@@ -202,22 +207,6 @@ create table evaluations_51
     updated_by bigint,
     foreign key (mapping_id) references evaluator_mappings_51(mapping_id),
     foreign key (element_id) references evaluation_elements_51(element_id)
-);
-
-create table evaluation_histories_51
-(
-    history_id bigint identity(1,1) primary key,
-    eval_id bigint not null,
-    old_score decimal(5,2),
-    new_score decimal(5,2),
-    reason nvarchar(255),
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint,
-    foreign key (eval_id) references evaluations_51(eval_id)
 );
 
 create table interviews_51
@@ -249,25 +238,4 @@ create table evidences_51
     updated_at datetime,
     updated_by bigint,
     foreign key (eval_id) references evaluations_51(eval_id)
-);
-
--- ==========================================
--- 5. 결과 확정
--- ==========================================
-create table final_grades_51
-(
-    grade_id bigint identity(1,1) primary key,
-    period_id bigint not null,
-    emp_id bigint not null,
-    total_score decimal(7,2),
-    grade_code varchar(50),
-    confirm_status_code varchar(50),
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint,
-    foreign key (period_id) references evaluation_periods_51(period_id),
-    foreign key (emp_id) references employees_51(emp_id)
 );

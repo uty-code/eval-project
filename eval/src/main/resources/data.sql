@@ -98,3 +98,34 @@ if not exists (
     from employees_51 e, roles_51 r
     where e.email = 'admin@ees.com'
       and r.role_name = 'ROLE_ADMIN';
+
+-- ==========================================
+-- 6. 공통 코드 (Common Codes)
+-- 평가 단계 / 차수 (EVAL_RELATION_TYPE)
+-- ==========================================
+if not exists (select 1 from common_codes_51 where group_code = 'EVAL_RELATION_TYPE' and code_value = 'SELF')
+    insert into common_codes_51 (group_code, code_value, code_name, description, is_deleted, version, created_at, created_by)
+    values ('EVAL_RELATION_TYPE', 'SELF', N'1차 본인 평가', N'피평가자 본인이 스스로를 평가하는 1차 평가입니다.', 'n', 0, getdate(), 1);
+
+if not exists (select 1 from common_codes_51 where group_code = 'EVAL_RELATION_TYPE' and code_value = 'MANAGER')
+    insert into common_codes_51 (group_code, code_value, code_name, description, is_deleted, version, created_at, created_by)
+    values ('EVAL_RELATION_TYPE', 'MANAGER', N'2차 부서장 평가', N'직속 부서장에 의한 2차 평가입니다.', 'n', 0, getdate(), 1);
+
+if not exists (select 1 from common_codes_51 where group_code = 'EVAL_RELATION_TYPE' and code_value = 'EXECUTIVE')
+    insert into common_codes_51 (group_code, code_value, code_name, description, is_deleted, version, created_at, created_by)
+    values ('EVAL_RELATION_TYPE', 'EXECUTIVE', N'3차 임원 평가', N'최종 확정을 위한 임원의 3차 평가입니다.', 'n', 0, getdate(), 1);
+
+-- ==========================================
+-- 평가 기간 상태 / 흐름 (EVAL_PERIOD_STATUS)
+-- ==========================================
+if not exists (select 1 from common_codes_51 where group_code = 'EVAL_PERIOD_STATUS' and code_value = 'READY')
+    insert into common_codes_51 (group_code, code_value, code_name, description, is_deleted, version, created_at, created_by)
+    values ('EVAL_PERIOD_STATUS', 'READY', N'평가 준비중', N'평가 기간이 시작되기 전 상태입니다.', 'n', 0, getdate(), 1);
+
+if not exists (select 1 from common_codes_51 where group_code = 'EVAL_PERIOD_STATUS' and code_value = 'IN_PROGRESS')
+    insert into common_codes_51 (group_code, code_value, code_name, description, is_deleted, version, created_at, created_by)
+    values ('EVAL_PERIOD_STATUS', 'IN_PROGRESS', N'진행중', N'현재 해당 평가 차수가 진행 중입니다.', 'n', 0, getdate(), 1);
+
+if not exists (select 1 from common_codes_51 where group_code = 'EVAL_PERIOD_STATUS' and code_value = 'COMPLETED')
+    insert into common_codes_51 (group_code, code_value, code_name, description, is_deleted, version, created_at, created_by)
+    values ('EVAL_PERIOD_STATUS', 'COMPLETED', N'평가 완료', N'모든 평가가 종료되고 결과가 확정된 상태입니다.', 'n', 0, getdate(), 1);
