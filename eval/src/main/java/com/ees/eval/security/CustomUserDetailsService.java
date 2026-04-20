@@ -70,9 +70,10 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .map(SimpleGrantedAuthority::new)
                 .toList();
 
-        // 4. login_logs_51 기반 연속 실패 횟수로 계정 잠금 여부 판단
+        // 4. login_logs_51 기반 연속 실패 횟수로 계정 잠금 여부 판단 (단, ROLE_ADMIN은 잠그지 않음)
         int recentFailures = loginLogMapper.countRecentFailures(empId);
-        boolean accountNonLocked = recentFailures < 5;
+        boolean isAdmin = roleNames.contains("ROLE_ADMIN");
+        boolean accountNonLocked = isAdmin || recentFailures < 5;
 
         return new User(
                 String.valueOf(employee.getEmpId()),
