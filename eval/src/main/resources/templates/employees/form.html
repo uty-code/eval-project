@@ -141,10 +141,12 @@
                                             required>
                                             <option value="EMPLOYED"
                                                 th:selected="${employee.statusCode() == 'EMPLOYED'}">재직</option>
-                                            <option value="ON_LEAVE"
-                                                th:selected="${employee.statusCode() == 'ON_LEAVE' or employee.statusCode() == 'LEAVE'}">휴직</option>
-                                            <option value="RETIRED"
-                                                th:selected="${employee.statusCode() == 'RETIRED'}">퇴사</option>
+                                            <option value="ON_LEAVE" th:if="${!isNew}"
+                                                th:selected="${employee.statusCode() == 'ON_LEAVE' or employee.statusCode() == 'LEAVE'}">
+                                                휴직</option>
+                                            <option value="RETIRED" th:if="${!isNew}"
+                                                th:selected="${employee.statusCode() == 'RETIRED'}">
+                                                퇴사</option>
                                             <option value="PENDING" th:if="${employee.statusCode() == 'PENDING'}"
                                                 th:selected="true">승인 대기</option>
                                         </select>
@@ -171,7 +173,8 @@
                                     class="p-3 bg-dark bg-opacity-25 border border-secondary border-opacity-25 rounded-3">
                                     <div class="form-text text-muted small mb-3">
                                         시스템 접근 권한을 설정합니다. 관리자 권한 부여 시 주의해 주세요.<br>
-                                        <span th:if="${!isNew}" class="text-warning">※ 수정 시 기존 권한은 초기화되고 선택한 권한으로 교체됩니다.</span>
+                                        <span th:if="${!isNew}" class="text-warning">※ 수정 시 기존 권한은 초기화되고 선택한 권한으로
+                                            교체됩니다.</span>
                                         <span th:if="${isNew}">(기본 정보 등록 이후 권한 변경이 가능합니다.)</span>
                                     </div>
                                     <div class="d-flex flex-wrap gap-4">
@@ -208,7 +211,7 @@
 
             <!-- 계정 잠금 상태 패널 (수정 모드 + 잠긴 계정인 경우만 표시) -->
             <div class="col-lg-8 mt-4"
-                 th:if="${!isNew and employee.loginFailCnt() != null and employee.loginFailCnt() >= 5}">
+                th:if="${!isNew and employee.loginFailCnt() != null and employee.loginFailCnt() >= 5}">
                 <div class="glass-card p-4 border border-danger border-opacity-50">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                         <div>
@@ -216,14 +219,14 @@
                                 <i class="bi bi-lock-fill me-2"></i>계정 잠금 상태
                             </h6>
                             <p class="text-muted small mb-0">
-                                로그인 실패가 <strong class="text-danger"
-                                    th:text="${employee.loginFailCnt()}">0</strong>회 누적되어 계정이 잠겼습니다.
+                                로그인 실패가 <strong class="text-danger" th:text="${employee.loginFailCnt()}">0</strong>회
+                                누적되어 계정이 잠겼습니다.
                                 잠금 해제 시 실패 횟수가 초기화됩니다.
                             </p>
                         </div>
                         <form th:action="@{'/employees/' + ${employee.empId()} + '/unlock'}" method="post">
                             <button type="submit" class="btn btn-outline-danger px-4"
-                                    onclick="return confirm('계정 잠금을 해제하시겠습니까?')">
+                                onclick="return confirm('계정 잠금을 해제하시겠습니까?')">
                                 <i class="bi bi-unlock-fill me-2"></i>잠금 해제
                             </button>
                         </form>

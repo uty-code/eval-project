@@ -123,16 +123,28 @@
         from employees_51 e
         left join departments_51 d on e.dept_id = d.dept_id and d.is_deleted = 'n'
         left join positions_51   p on e.position_id = p.position_id and p.is_deleted = 'n'
-        where e.is_deleted = 'n'
-        <if test="searchName != null and searchName != ''">
-            and e.name like '%' + #{searchName} + '%'
-        </if>
-        <if test="searchDeptId != null">
-            and e.dept_id = #{searchDeptId}
-        </if>
-        <if test="searchStatus != null and searchStatus != ''">
-            and e.status_code = #{searchStatus}
-        </if>
+        <where>
+            <if test="searchName != null and searchName != ''">
+                and e.name like '%' + #{searchName} + '%'
+            </if>
+            <if test="searchDeptId != null">
+                and e.dept_id = #{searchDeptId}
+            </if>
+            <choose>
+                <when test="searchStatus == 'RETIRED'">
+                    and (e.status_code = 'RETIRED' or e.is_deleted = 'y')
+                </when>
+                <when test="searchStatus != null and searchStatus != ''">
+                    and e.is_deleted = 'n'
+                    and e.status_code = #{searchStatus}
+                </when>
+                <otherwise>
+                    <!-- 전체 조회 시 논리적 삭제(퇴사)된 인원도 포함해서 보여주기 위해 조건 완화.
+                         만약 순수하게 활성 창에서 삭제된 사람을 빼고 싶다면 여기에 e.is_deleted='n'을 넣을 수 있지만,
+                         퇴사자까지 리스트에 표시하기 위해 조건을 제거합니다. -->
+                </otherwise>
+            </choose>
+        </where>
         order by e.emp_id asc
         offset #{offset} rows fetch next #{pageSize} rows only
     </select>
@@ -141,16 +153,26 @@
     <select id="countSearchEmployees" resultType="long">
         select count(*)
         from employees_51 e
-        where e.is_deleted = 'n'
-        <if test="searchName != null and searchName != ''">
-            and e.name like '%' + #{searchName} + '%'
-        </if>
-        <if test="searchDeptId != null">
-            and e.dept_id = #{searchDeptId}
-        </if>
-        <if test="searchStatus != null and searchStatus != ''">
-            and e.status_code = #{searchStatus}
-        </if>
+        <where>
+            <if test="searchName != null and searchName != ''">
+                and e.name like '%' + #{searchName} + '%'
+            </if>
+            <if test="searchDeptId != null">
+                and e.dept_id = #{searchDeptId}
+            </if>
+            <choose>
+                <when test="searchStatus == 'RETIRED'">
+                    and (e.status_code = 'RETIRED' or e.is_deleted = 'y')
+                </when>
+                <when test="searchStatus != null and searchStatus != ''">
+                    and e.is_deleted = 'n'
+                    and e.status_code = #{searchStatus}
+                </when>
+                <otherwise>
+                    <!-- 전체 조회 -->
+                </otherwise>
+            </choose>
+        </where>
     </select>
 
 
@@ -242,23 +264,19 @@
         )
     </insert>
 
-    <!-- 사원-권한 매핑 삽입 (employee_roles) -->
+    <!-- 사원-권한 매핑 삽입 또는 복구 (employee_roles) -->
     <insert id="insertEmployeeRole">
-        insert into employee_roles_51 (
-            emp_id,
-            role_id,
-            is_deleted,
-            version,
-            created_at,
-            created_by
-        ) values (
-            #{empId},
-            #{roleId},
-            'n',
-            0,
-            #{createdAt},
-            #{createdBy}
-        )
+        MERGE INTO employee_roles_51 WITH (HOLDLOCK) AS target
+        USING (SELECT #{empId} AS emp_id, #{roleId} AS role_id) AS source
+        ON target.emp_id = source.emp_id AND target.role_id = source.role_id
+        WHEN MATCHED THEN
+            UPDATE SET 
+                is_deleted = 'n',
+                updated_at = #{createdAt},
+                updated_by = #{createdBy}
+        WHEN NOT MATCHED THEN
+            INSERT (emp_id, role_id, is_deleted, version, created_at, created_by)
+            VALUES (source.emp_id, source.role_id, 'n', 0, #{createdAt}, #{createdBy});
     </insert>
 
     <!-- 사원의 모든 권한 매핑을 소프트 삭제 처리 (권한 교체용 초기화) -->
@@ -293,6 +311,7 @@
     <update id="softDelete">
         update employees_51
         set is_deleted = 'y',
+            status_code = 'RETIRED',
             updated_at = #{updatedAt},
             updated_by = #{updatedBy}
         where emp_id   = #{empId}
