@@ -308,6 +308,7 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .name(emp.getName())
                 .email(emp.getEmail())
                 .hireDate(emp.getHireDate())
+                .retireDate(emp.getRetireDate())
                 .roleNames(roleNames != null ? roleNames : Collections.emptyList())
                 .isDeleted(emp.getIsDeleted())
                 .version(emp.getVersion())

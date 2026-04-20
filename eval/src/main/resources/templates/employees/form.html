@@ -144,7 +144,7 @@
                                             <option value="ON_LEAVE" th:if="${!isNew}"
                                                 th:selected="${employee.statusCode() == 'ON_LEAVE' or employee.statusCode() == 'LEAVE'}">
                                                 휴직</option>
-                                            <option value="RETIRED" th:if="${!isNew}"
+                                            <option value="RETIRED" th:if="${!isNew and #authorization.expression('hasRole(''ROLE_ADMIN'')')}"
                                                 th:selected="${employee.statusCode() == 'RETIRED'}">
                                                 퇴사</option>
                                             <option value="PENDING" th:if="${employee.statusCode() == 'PENDING'}"

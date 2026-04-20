@@ -102,6 +102,7 @@ create table employees_51
     status_code varchar(20) default 'employed',
     -- 재직/휴직/퇴사 상태 관리
     hire_date date,
+    retire_date date,
     is_deleted char(1) default 'n',
     version int default 0,
     created_at datetime default getdate(),

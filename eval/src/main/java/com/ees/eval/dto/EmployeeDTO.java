@@ -17,6 +17,7 @@ import java.util.List;
  * @param name         사원 성명
  * @param email        이메일 주소
  * @param hireDate     입사일
+ * @param retireDate   퇴사일
  * @param deptName     JOIN으로 가져온 부서 명칭
  * @param positionName JOIN으로 가져온 직급 명칭
  * @param isLocked     계정 잠금 여부 (로그인 로그 기반, 연속 실패 5회 이상 시 true)
@@ -39,6 +40,7 @@ public record EmployeeDTO(
         String phone,
         String statusCode,
         LocalDate hireDate,
+        LocalDate retireDate,
         String deptName,
         String positionName,
         Boolean isLocked,

@@ -177,6 +177,7 @@ public class EmployeeController {
             @RequestParam("deptId") Long deptId,
             @RequestParam("positionId") Long positionId,
             @RequestParam("hireDate") LocalDate hireDate,
+            @RequestParam(value = "retireDate", required = false) LocalDate retireDate,
             @RequestParam("password") String password,
             @RequestParam(value = "roleIds", required = false) List<Long> roleIds,
             RedirectAttributes redirectAttributes) {
@@ -190,6 +191,7 @@ public class EmployeeController {
                     .deptId(deptId)
                     .positionId(positionId)
                     .hireDate(hireDate)
+                    .retireDate(retireDate)
                     .password(password)
                     .build();
 
@@ -247,6 +249,7 @@ public class EmployeeController {
             @RequestParam("positionId") Long positionId,
             @RequestParam("statusCode") String statusCode,
             @RequestParam("hireDate") LocalDate hireDate,
+            @RequestParam(value = "retireDate", required = false) LocalDate retireDate,
             @RequestParam("version") Integer version,
             @RequestParam(value = "roleIds", required = false) List<Long> roleIds,
             RedirectAttributes redirectAttributes) {
@@ -262,6 +265,7 @@ public class EmployeeController {
                     .positionId(positionId)
                     .statusCode(statusCode)
                     .hireDate(hireDate)
+                    .retireDate(retireDate)
                     .version(version)
                     .build();
 
@@ -329,6 +333,7 @@ public class EmployeeController {
                     .positionId(employee.positionId())
                     .statusCode(employee.statusCode())
                     .hireDate(employee.hireDate())
+                    .retireDate(employee.retireDate())
                     .password(String.valueOf(empId)) // 초기 비밀번호: 사번과 동일
                     .version(employee.version())
                     .build();

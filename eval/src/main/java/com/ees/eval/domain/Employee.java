@@ -44,6 +44,9 @@ public class Employee extends BaseEntity {
     /** 입사일 */
     private LocalDate hireDate;
 
+    /** 퇴사일 */
+    private LocalDate retireDate;
+
     /** JOIN 조회 전용 - 부서 명칭 (departments 테이블에서 LEFT JOIN) */
     private String deptName;
 
@@ -61,11 +64,12 @@ public class Employee extends BaseEntity {
      * @param email        이메일
      * @param statusCode   재직 상태
      * @param hireDate     입사일
+     * @param retireDate   퇴사일
      */
     @Builder
     public Employee(Long empId, Long deptId, Long positionId,
             String password, String name, String email, String phone, String statusCode,
-            LocalDate hireDate) {
+            LocalDate hireDate, LocalDate retireDate) {
         this.empId = empId;
         this.deptId = deptId;
         this.positionId = positionId;
@@ -75,5 +79,6 @@ public class Employee extends BaseEntity {
         this.phone = phone;
         this.statusCode = statusCode;
         this.hireDate = hireDate;
+        this.retireDate = retireDate;
     }
 }
