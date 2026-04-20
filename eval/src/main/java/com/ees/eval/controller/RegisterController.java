@@ -66,6 +66,9 @@ public class RegisterController {
             if (phone == null || !phone.matches("^010-\\d{4}-\\d{4}$")) {
                 throw new IllegalArgumentException("전화번호 양식이 올바르지 않습니다. (예: 010-1111-2222)");
             }
+            if (email == null || !email.matches("^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$")) {
+                throw new IllegalArgumentException("이메일 양식이 올바르지 않습니다. (예: example@domain.com)");
+            }
             EmployeeDTO dto = EmployeeDTO.builder()
                     .name(name)
                     .email(email)
