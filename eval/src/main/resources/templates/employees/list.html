@@ -191,7 +191,7 @@
                                 <th class="py-3">직급</th>
                                 <th class="py-3">이메일</th>
                                 <th class="py-3">핸드폰 번호</th>
-                                <th class="py-3">입사일</th>
+                                <th class="py-3">입/퇴사일</th>
                                 <th class="py-3 text-center">권한</th>
                                 <th class="py-3 text-center">재직 상태</th>
                                 <th class="py-3 text-center">관리</th>
@@ -246,10 +246,12 @@
                                 <td class="py-3 text-muted small" th:text="${emp.phone() != null ? emp.phone() : '-'}">
                                     010-0000-0000
                                 </td>
-                                <!-- 입사일 -->
-                                <td class="py-3 text-muted small"
-                                    th:text="${emp.hireDate() != null} ? ${#temporals.format(emp.hireDate(), 'yyyy-MM-dd')} : '-'">
-                                    2024-01-01
+                                <!-- 입/퇴사일 -->
+                                <td class="py-3 text-muted small">
+                                    <div th:text="${emp.hireDate() != null} ? ${#temporals.format(emp.hireDate(), 'yyyy-MM-dd')} : '-'">2024-01-01</div>
+                                    <div th:if="${emp.retireDate() != null}" class="text-danger mt-1" style="font-size: 0.75rem;">
+                                        <i class="bi bi-box-arrow-right me-1"></i><span th:text="${#temporals.format(emp.retireDate(), 'yyyy-MM-dd')}">2024-05-01</span>
+                                    </div>
                                 </td>
                                 <!-- 권한 배지 -->
                                 <td class="py-3 text-center">

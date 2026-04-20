@@ -122,6 +122,13 @@ public class EmployeeServiceImpl implements EmployeeService {
         // 1. DTO를 엔티티로 변환
         Employee employee = convertToEntity(employeeDto);
 
+        // 퇴사 처리 자동화 (신규 등록 시)
+        if ("RETIRED".equalsIgnoreCase(employee.getStatusCode())) {
+            if (employee.getRetireDate() == null) {
+                employee.setRetireDate(LocalDate.now());
+            }
+        }
+
         // 2. 비밀번호를 BCrypt로 암호화 처리
         String encodedPassword = passwordEncoder.encode(employeeDto.password());
         employee.setPassword(encodedPassword);
@@ -154,8 +161,26 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public EmployeeDTO updateEmployee(EmployeeDTO employeeDto) {
-        // 1. 엔티티 변환 및 수정 일시 갱신
+        // 1. 기존 데이터와 비교를 위해 조회
+        Employee existingEmployee = employeeMapper.findById(employeeDto.empId())
+                .orElseThrow(() -> new IllegalArgumentException("사원 정보를 찾을 수 없습니다."));
+
+        // 2. 엔티티 변환
         Employee employee = convertToEntity(employeeDto);
+
+        // 3. 퇴사 처리 자동화 로직
+        if ("RETIRED".equalsIgnoreCase(employee.getStatusCode())) {
+            // 이미 퇴사 정보가 있다면 유지하고, 새로 퇴사 처리되는 사원이면 오늘을 퇴사일로 설정
+            if (existingEmployee.getRetireDate() != null) {
+                employee.setRetireDate(existingEmployee.getRetireDate());
+            } else {
+                employee.setRetireDate(LocalDate.now());
+            }
+        } else {
+            // 퇴사 상태가 아니면 퇴사일 초기화
+            employee.setRetireDate(null);
+        }
+        
         employee.preUpdate();
 
         // 2. MyBatis를 통한 조건부 업데이트 (version 체크로 낙관적 락 적용)
@@ -176,8 +201,24 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public EmployeeDTO updateEmployee(EmployeeDTO employeeDto, List<Long> roleIds) {
-        // 1. 기본 정보 먼저 수정 (낙관적 락 포함)
+        // 1. 기존 데이터와 비교를 위해 조회
+        Employee existingEmployee = employeeMapper.findById(employeeDto.empId())
+                .orElseThrow(() -> new IllegalArgumentException("사원 정보를 찾을 수 없습니다."));
+
+        // 2. 엔티티 변환
         Employee employee = convertToEntity(employeeDto);
+
+        // 3. 퇴사 처리 자동화 로직
+        if ("RETIRED".equalsIgnoreCase(employee.getStatusCode())) {
+            if (existingEmployee.getRetireDate() != null) {
+                employee.setRetireDate(existingEmployee.getRetireDate());
+            } else {
+                employee.setRetireDate(LocalDate.now());
+            }
+        } else {
+            employee.setRetireDate(null);
+        }
+
         employee.preUpdate();
 
         int updatedRows = employeeMapper.update(employee);
@@ -396,6 +437,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .phone(employee.getPhone())
                 .statusCode(employee.getStatusCode())
                 .hireDate(employee.getHireDate())
+                .retireDate(employee.getRetireDate())
                 .deptName(deptName)
                 .positionName(positionName)
                 .isLocked(locked)
@@ -584,6 +626,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .phone(dto.phone())
                 .statusCode(dto.statusCode())
                 .hireDate(dto.hireDate())
+                .retireDate(dto.retireDate())
                 .build();
         employee.setIsDeleted(dto.isDeleted());
         employee.setVersion(dto.version());
