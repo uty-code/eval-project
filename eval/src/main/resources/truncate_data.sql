@@ -1,12 +1,11 @@
 -- ==========================================
--- _51 테이블 데이터 초기화 스크립트
--- 테이블 구조(스키마)는 유지하고 데이터만 삭제
--- FK 참조 역순으로 삭제
+-- _51 테이블 데이터 초기화 스크립트 (교정본)
 -- ==========================================
 
--- 1. 최하위 자식 데이터 (평가 결과물)
+-- 1. 최하위 자식 데이터 (평가 결과물 및 로그)
 delete from evidences_51;
 delete from interviews_51;
+delete from login_logs_51; -- [추가] 사원 삭제 전 로그 먼저 삭제
 
 -- 2. 평가 수행 데이터
 delete from evaluations_51;
@@ -26,12 +25,12 @@ delete from positions_51;
 delete from roles_51;
 delete from common_codes_51;
 
--- identity 시드 초기화 (auto increment를 1부터 다시 시작)
+-- identity 시드 초기화
 dbcc checkident('departments_51', reseed, 0);
 dbcc checkident('positions_51', reseed, 0);
 dbcc checkident('roles_51', reseed, 0);
-dbcc checkident('employees_51', reseed, 999);
--- 다음 emp_id = 1000
+dbcc checkident('login_logs_51', reseed, 0);
+
 dbcc checkident('evaluation_periods_51', reseed, 0);
 dbcc checkident('evaluation_elements_51', reseed, 0);
 dbcc checkident('evaluator_mappings_51', reseed, 0);

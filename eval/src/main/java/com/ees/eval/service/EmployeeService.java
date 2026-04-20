@@ -73,13 +73,6 @@ public interface EmployeeService {
      */
     EmployeeDTO updateEmployee(EmployeeDTO employeeDto, List<Long> roleIds);
 
-    /**
-     * 사원을 논리적으로 삭제(Soft Delete) 처리합니다.
-     *
-     * @param empId 삭제할 사원의 고유 식별자
-     * @throws IllegalArgumentException 대상 사원이 존재하지 않을 경우 발생
-     */
-    void deleteEmployee(Long empId);
 
     /**
      * 로그인 시도 시 비밀번호 일치 여부를 확인합니다.

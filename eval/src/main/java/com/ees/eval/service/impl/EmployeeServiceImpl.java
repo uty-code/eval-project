@@ -240,20 +240,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         return getEmployeeById(employee.getEmpId());
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @Transactional
-    public void deleteEmployee(Long empId) {
-        Long currentUserId = 1L; // 추후 SecurityContext에서 가져올 예정
-
-        // is_deleted = 'y'로 상태 변경하여 논리적 삭제 처리
-        int updatedRows = employeeMapper.softDelete(empId, currentUserId, LocalDateTime.now());
-        if (updatedRows == 0) {
-            throw new IllegalArgumentException("삭제 대상 사원을 찾을 수 없습니다. empId: " + empId);
-        }
-    }
 
     /**
      * {@inheritDoc}

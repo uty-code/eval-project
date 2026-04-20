@@ -285,29 +285,6 @@ public class EmployeeController {
         return "redirect:/employees";
     }
 
-    /**
-     * 사원을 논리적으로 삭제(Soft Delete) 처리합니다.
-     * 실제 데이터를 제거하지 않고 is_deleted 플래그를 'y'로 변경합니다.
-     *
-     * @param empId              삭제할 사원 식별자
-     * @param redirectAttributes 리다이렉트 시 전달할 Flash 메시지
-     * @return 사원 목록 화면으로 리다이렉트
-     */
-    @PostMapping("/{empId}/delete")
-    public String deleteEmployee(
-            @PathVariable Long empId,
-            RedirectAttributes redirectAttributes) {
-        try {
-            employeeService.deleteEmployee(empId);
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "사원이 성공적으로 탈퇴(소프트 삭제) 처리되었습니다.");
-        } catch (Exception e) {
-            log.error("사원 삭제 실패 (empId={}): {}", empId, e.getMessage());
-            redirectAttributes.addFlashAttribute("errorMessage",
-                    "사원 삭제 중 오류가 발생했습니다: " + e.getMessage());
-        }
-        return "redirect:/employees";
-    }
 
     /**
      * 사원 비밀번호를 초기값으로 재설정합니다.

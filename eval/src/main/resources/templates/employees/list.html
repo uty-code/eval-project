@@ -286,17 +286,6 @@
                                             th:id="'btn-edit-' + ${emp.empId()}">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
-                                        <!-- 퇴사 처리(소프트 삭제) 버튼 -->
-                                        <form th:action="@{'/employees/' + ${emp.empId()} + '/delete'}" method="post"
-                                            class="d-inline" th:id="'form-delete-' + ${emp.empId()}">
-                                            <button type="submit" class="btn-action"
-                                                th:classappend="${emp.statusCode() == 'RETIRED'} ? 'disabled' : 'btn-action-danger'"
-                                                th:title="${emp.statusCode() == 'RETIRED'} ? '이미 퇴사 처리됨' : '퇴사 처리'"
-                                                th:data-confirm-msg="|${emp.name()} 사원을 퇴사 처리하시겠습니까?|"
-                                                th:onclick="${emp.statusCode() != 'RETIRED'} ? 'return confirm(this.getAttribute(\'data-confirm-msg\'))' : 'return false'">
-                                                <i class="bi bi-person-x-fill"></i>
-                                            </button>
-                                        </form>
                                     </div>
                                 </td>
                             </tr>
