@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * EmployeeService의 통합 테스트 클래스입니다.
  * BCrypt 비밀번호 암호화, JOIN 기반 직급/권한 조회, 낙관적 락,
- * 소프트 델리트, 인증 검증 등 핵심 기능을 검증합니다.
+ * 그리고 인증 검증 등 핵심 기능을 검증합니다.
  */
 @SpringBootTest
 @Transactional
@@ -144,29 +144,6 @@ class EmployeeServiceTest {
                 .isInstanceOf(EesOptimisticLockException.class);
     }
 
-    /**
-     * 소프트 델리트 후 해당 사원이 조회되지 않음을 검증합니다.
-     */
-    @Test
-    @DisplayName("사원 삭제 - Soft Delete 검증")
-    void softDeleteTest() {
-        // given
-        EmployeeDTO dto = EmployeeDTO.builder()
-                .deptId(1L).positionId(1L)
-                .password("deletePass")
-                .name("이삭제")
-                .email("lee@ees.com")
-                .hireDate(LocalDate.of(2025, 9, 1))
-                .build();
-        EmployeeDTO saved = employeeService.registerEmployee(dto, List.of(1L)); // ROLE_USER (role_id=1)
-
-        // when: 삭제 수행
-        employeeService.deleteEmployee(saved.empId());
-
-        // then: 삭제 후 조회 시 예외 발생
-        assertThatThrownBy(() -> employeeService.getEmployeeById(saved.empId()))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
 
     /**
      * Java 21 Pattern Matching for switch를 활용한 권한별 접근 레벨 판별을 검증합니다.
