@@ -364,7 +364,7 @@ public class EmployeeController {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "계정 잠금 해제 중 오류가 발생했습니다: " + e.getMessage());
         }
-        return "redirect:/employees/" + empId + "/edit";
+        return "redirect:/employees";
     }
 
     private void validateEmail(String email) {
