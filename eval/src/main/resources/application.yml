@@ -5,6 +5,13 @@ spring:
   docker:
     compose:
       enabled: false  # 외부 SKU DB 사용 중 - Docker 로컬 DB 불필요
+  thymeleaf:
+    cache: false
+  devtools:
+    livereload:
+      enabled: true
+    restart:
+      enabled: true
   datasource:
     # SKU 공용 DB 서버 연결
     url: jdbc:sqlserver://211.232.94.161:1533;databaseName=SKUEDU;encrypt=true;trustServerCertificate=true;
