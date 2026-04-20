@@ -197,6 +197,7 @@ public class EmployeeServiceImpl implements EmployeeService {
      * {@inheritDoc}
      * 사원 기본 정보 수정 후 권한도 함께 교체합니다.
      * 기존 권한(employee_roles_51)은 소프트 삭제 처리 후 새 권한을 삽입합니다.
+     * 단, 해당 사원이 부서장인 경우 ROLE_MANAGER 권한은 자동 유지됩니다.
      */
     @Override
     @Transactional
@@ -226,17 +227,31 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new EesOptimisticLockException("사원 정보가 다른 사용자에 의해 변경되었거나 수정 충돌이 발생했습니다.");
         }
 
-        // 2. 권한 교체: 기존 권한 소프트 삭제 후 새 권한 삽입
+        // 4. 권한 교체: 기존 권한 소프트 삭제 후 새 권한 삽입
         if (roleIds != null && !roleIds.isEmpty()) {
             LocalDateTime now = LocalDateTime.now();
             Long adminId = 1L; // TODO: SecurityContext에서 현재 로그인 사용자 ID로 교체
+
+            // 부서장 권한 보호: 해당 사원이 부서장이면 권한 변경 자체를 차단
+            int leaderCount = departmentMapper.countDepartmentsByLeaderId(employee.getEmpId());
+            if (leaderCount > 0) {
+                Long managerRoleId = roleMapper.findByRoleName("ROLE_MANAGER")
+                        .orElseThrow(() -> new IllegalStateException("ROLE_MANAGER 권한 정보를 찾을 수 없습니다."))
+                        .getRoleId();
+                // ROLE_MANAGER가 제외된 경우 예외 발생으로 차단
+                if (!roleIds.contains(managerRoleId)) {
+                    throw new IllegalStateException(
+                            "이 사원은 현재 부서장으로 지정되어 있습니다. 권한을 변경하려면 부서 관리 페이지에서 부서장을 먼저 해제하세요.");
+                }
+            }
+
             employeeMapper.deleteEmployeeRolesByEmpId(employee.getEmpId(), adminId, now);
             for (Long roleId : roleIds) {
                 employeeMapper.insertEmployeeRole(employee.getEmpId(), roleId, adminId, now);
             }
         }
 
-        // 3. 최신 데이터 재조회
+        // 5. 최신 데이터 재조회
         return getEmployeeById(employee.getEmpId());
     }
 
