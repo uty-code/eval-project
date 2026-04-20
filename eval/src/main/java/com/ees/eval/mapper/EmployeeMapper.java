@@ -161,16 +161,6 @@ public interface EmployeeMapper {
                    @Param("updatedAt") LocalDateTime updatedAt);
 
     /**
-     * 로그인 실패 횟수 증가
-     */
-    int incrementLoginFailCnt(Long empId);
-
-    /**
-     * 로그인 실패 횟수 초기화
-     */
-    int resetLoginFailCnt(Long empId);
-
-    /**
      * 승인 대기(PENDING) 상태의 사원 목록을 조회합니다.
      *
      * @return PENDING 상태 사원 리스트
@@ -240,17 +230,26 @@ public interface EmployeeMapper {
                           @Param("phone") String phone);
 
     /**
-     * 계정이 잠긴(login_fail_cnt >= 5) 사원 목록을 조회합니다.
-     * 부서명과 직급명이 JOIN을 통해 함께 반환됩니다.
+     * 계정이 잠긴(로그인 연속 실패 5회 이상) 사원 목록을 조회합니다.
+     * login_logs_51 서브쿼리를 통해 판단하며, 부서명과 직급명이 JOIN으로 함께 반환됩니다.
      *
-     * @return 잠긴 계정 사원 리스트 (실패 횟수 내림차순)
+     * @return 잠긴 계정 사원 리스트
      */
     List<Employee> findLockedEmployees();
 
     /**
-     * 계정이 잠긴(login_fail_cnt >= 5) 사원 수를 조회합니다.
+     * 계정이 잠긴(로그인 연속 실패 5회 이상) 사원 수를 조회합니다.
      *
      * @return 잠긴 계정 사원 수
      */
     long countLockedEmployees();
+
+    /**
+     * 사원의 비밀번호를 초기화합니다. (잠금 해제 시 사번으로 리셋)
+     *
+     * @param empId    대상 사원 ID
+     * @param password BCrypt 암호화된 새 비밀번호
+     * @return 업데이트된 행 수
+     */
+    int resetPassword(@Param("empId") Long empId, @Param("password") String password);
 }

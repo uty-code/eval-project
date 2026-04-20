@@ -1,6 +1,5 @@
 package com.ees.eval.security;
 
-import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.service.LoginLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -13,14 +12,15 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
- * 로그인 성공 이벤트를 감지하여, 로그인 실패 횟수를 0으로 초기화합니다.
+ * 로그인 성공 이벤트를 감지하여, 로그인 성공 이력을 기록합니다.
+ * 계정 잠금 해제는 login_logs_51에 성공 기록(is_failure='n')이 남으므로
+ * 별도의 카운터 초기화가 필요하지 않습니다.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class AuthenticationSuccessEventListener implements ApplicationListener<AuthenticationSuccessEvent> {
 
-    private final EmployeeMapper employeeMapper;
     private final LoginLogService loginLogService;
 
     @Override
@@ -30,9 +30,7 @@ public class AuthenticationSuccessEventListener implements ApplicationListener<A
             String username = userDetails.getUsername();
             try {
                 Long empId = Long.parseLong(username);
-                // 실패 횟수 초기화
-                employeeMapper.resetLoginFailCnt(empId);
-                // 로그인 성공 이력 기록 (비동기)
+                // 로그인 성공 이력 기록 (is_failure='n'으로 저장됨)
                 HttpServletRequest request = getRequest();
                 if (request != null) {
                     loginLogService.recordSuccess(empId, request);

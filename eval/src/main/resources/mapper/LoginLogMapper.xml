@@ -9,32 +9,55 @@
         <result property="empId"      column="emp_id"/>
         <result property="loginInput" column="login_input"/>
         <result property="resultCode" column="result_code"/>
+        <result property="isFailure"  column="is_failure"/>
         <result property="ipAddress"  column="ip_address"/>
         <result property="userAgent"  column="user_agent"/>
         <result property="createdAt"  column="created_at"/>
     </resultMap>
 
-    <!-- 로그인 이력 저장 -->
+    <!-- 로그인 이력 저장 (is_failure 플래그 포함) -->
     <insert id="insert" parameterType="com.ees.eval.domain.LoginLog">
-        INSERT INTO login_logs_51
-            (emp_id, login_input, result_code, ip_address, user_agent, created_at)
-        VALUES
-            (#{empId}, #{loginInput}, #{resultCode}, #{ipAddress}, #{userAgent}, GETDATE())
+        insert into login_logs_51
+            (emp_id, login_input, result_code, is_failure, ip_address, user_agent, created_at)
+        values
+            (#{empId}, #{loginInput}, #{resultCode}, #{isFailure}, #{ipAddress}, #{userAgent}, getdate())
     </insert>
 
     <!-- 특정 사원의 로그인 이력 조회 (최신순) -->
     <select id="findByEmpId" parameterType="long" resultMap="LoginLogResultMap">
-        SELECT log_id, emp_id, login_input, result_code, ip_address, user_agent, created_at
-        FROM login_logs_51
-        WHERE emp_id = #{empId}
-        ORDER BY created_at DESC
+        select log_id, emp_id, login_input, result_code, is_failure, ip_address, user_agent, created_at
+        from login_logs_51
+        where emp_id = #{empId}
+        order by created_at desc
     </select>
 
     <!-- 전체 로그인 이력 조회 (관리자용, 최신순) -->
     <select id="findAll" resultMap="LoginLogResultMap">
-        SELECT log_id, emp_id, login_input, result_code, ip_address, user_agent, created_at
-        FROM login_logs_51
-        ORDER BY created_at DESC
+        select log_id, emp_id, login_input, result_code, is_failure, ip_address, user_agent, created_at
+        from login_logs_51
+        order by created_at desc
     </select>
+
+    <!-- 마지막 성공 이후 연속 실패 횟수 조회 (계정 잠금 판단용) -->
+    <select id="countRecentFailures" resultType="int">
+        select count(*)
+        from login_logs_51
+        where emp_id = #{empId}
+          and is_failure = 'y'
+          and created_at > (
+              select coalesce(max(created_at), '1900-01-01')
+              from login_logs_51
+              where emp_id = #{empId}
+                and is_failure = 'n'
+          )
+    </select>
+
+    <!-- 잠금 해제: 해당 사원의 실패 로그 is_failure를 'n'으로 초기화 (이력 보존) -->
+    <update id="resetFailureLogsByEmpId">
+        update login_logs_51
+        set is_failure = 'n'
+        where emp_id = #{empId}
+          and is_failure = 'y'
+    </update>
 
 </mapper>

@@ -3,6 +3,7 @@ package com.ees.eval.security;
 import com.ees.eval.domain.Employee;
 import com.ees.eval.exception.EmployeeRetiredException;
 import com.ees.eval.mapper.EmployeeMapper;
+import com.ees.eval.mapper.LoginLogMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -18,12 +19,14 @@ import java.util.List;
  * Spring Security의 UserDetailsService 구현체입니다.
  * 데이터베이스에 등록된 사원(employees) 정보를 기반으로 인증 처리를 수행합니다.
  * 사원의 username으로 조회하고, employee_roles를 통해 권한을 로드합니다.
+ * 계정 잠금 여부는 login_logs_51 테이블의 연속 실패 횟수로 판단합니다.
  */
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final EmployeeMapper employeeMapper;
+    private final LoginLogMapper loginLogMapper;
 
     /**
      * Spring Security 인증 시 호출되는 메서드입니다.
@@ -67,8 +70,10 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .map(SimpleGrantedAuthority::new)
                 .toList();
 
-        // 4. Spring Security의 User 객체로 감싸서 반환 (비밀번호 해시 포함)
-        boolean accountNonLocked = employee.getLoginFailCnt() == null || employee.getLoginFailCnt() < 5;
+        // 4. login_logs_51 기반 연속 실패 횟수로 계정 잠금 여부 판단
+        int recentFailures = loginLogMapper.countRecentFailures(empId);
+        boolean accountNonLocked = recentFailures < 5;
+
         return new User(
                 String.valueOf(employee.getEmpId()),
                 employee.getPassword(),

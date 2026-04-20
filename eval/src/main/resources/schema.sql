@@ -13,12 +13,14 @@ EXEC sp_executesql @drop_constraints_sql;
 
 -- 이전 _51 테이블의 외래 키 제약 조건만 삭제 (다른 팀 테이블 보호)
 drop table if exists evidences_51;
-drop table if exists interviews_51;
+drop table if exists login_logs_51;
+drop table if exists final_grades_51;
 drop table if exists evaluations_51;
 drop table if exists evaluator_mappings_51;
 drop table if exists evaluation_elements_51;
 drop table if exists evaluation_periods_51;
 drop table if exists employee_roles_51;
+drop table if exists interviews_51;
 drop table if exists employees_51;
 drop table if exists departments_51;
 drop table if exists roles_51;
@@ -99,8 +101,6 @@ create table employees_51
     phone varchar(50),
     status_code varchar(20) default 'employed',
     -- 재직/휴직/퇴사 상태 관리
-    login_fail_cnt int default 0,
-    -- 5회 오류 시 잠금 로직용
     hire_date date,
     is_deleted char(1) default 'n',
     version int default 0,
@@ -126,6 +126,19 @@ create table employee_roles_51
     primary key (emp_id, role_id),
     foreign key (emp_id) references employees_51(emp_id),
     foreign key (role_id) references roles_51(role_id)
+);
+
+create table login_logs_51
+(
+    log_id bigint identity(1,1) primary key,
+    emp_id bigint,
+    login_input varchar(255) not null,
+    result_code varchar(20) not null,
+    is_failure char(1) default 'n', -- 로그인 실패 여부 (y/n)
+    ip_address varchar(50),
+    user_agent nvarchar(max),
+    created_at datetime default getdate(),
+    foreign key (emp_id) references employees_51(emp_id)
 );
 
 -- ==========================================

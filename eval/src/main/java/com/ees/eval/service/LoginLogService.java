@@ -35,7 +35,7 @@ public class LoginLogService {
     public void recordSuccess(Long empId, HttpServletRequest request) {
         String ip = extractIp(request);
         String ua = truncate(request.getHeader("User-Agent"), 500);
-        saveAsync(empId, String.valueOf(empId), "SUCCESS", ip, ua);
+        saveAsync(empId, String.valueOf(empId), "SUCCESS", ip, ua, "n");
     }
 
     /**
@@ -55,7 +55,7 @@ public class LoginLogService {
         } catch (NumberFormatException ignored) {
             // 숫자가 아닌 입력은 empId를 null로 유지
         }
-        saveAsync(empId, loginInput, resultCode, ip, ua);
+        saveAsync(empId, loginInput, resultCode, ip, ua, "y");
     }
 
     /**
@@ -81,12 +81,14 @@ public class LoginLogService {
      * HttpServletRequest 없이 순수 String 값만 받으므로 Tomcat request recycling에 안전합니다.
      */
     @Async("virtualThreadExecutor")
-    protected void saveAsync(Long empId, String loginInput, String resultCode, String ipAddress, String userAgent) {
+    protected void saveAsync(Long empId, String loginInput, String resultCode,
+                             String ipAddress, String userAgent, String isFailure) {
         try {
             LoginLog loginLog = LoginLog.builder()
                     .empId(empId)
                     .loginInput(loginInput)
                     .resultCode(resultCode)
+                    .isFailure(isFailure)
                     .ipAddress(ipAddress)
                     .userAgent(userAgent)
                     .build();

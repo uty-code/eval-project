@@ -8,6 +8,7 @@ import com.ees.eval.dto.EmployeePageDTO;
 import com.ees.eval.exception.EesOptimisticLockException;
 import com.ees.eval.mapper.DepartmentMapper;
 import com.ees.eval.mapper.EmployeeMapper;
+import com.ees.eval.mapper.LoginLogMapper;
 import com.ees.eval.mapper.PositionMapper;
 import com.ees.eval.mapper.RoleMapper;
 import com.ees.eval.service.EmployeeService;
@@ -41,6 +42,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final PositionMapper positionMapper;
     private final PasswordEncoder passwordEncoder;
     private final RoleMapper roleMapper;
+    private final LoginLogMapper loginLogMapper;
     @Qualifier("virtualThreadExecutor")
     private final Executor virtualThreadExecutor;
 
@@ -129,9 +131,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (employee.getStatusCode() == null || employee.getStatusCode().isBlank()) {
             employee.setStatusCode("EMPLOYED");
         }
-        if (employee.getLoginFailCnt() == null) {
-            employee.setLoginFailCnt(0);
-        }
+
 
         // 4. employees 테이블에 삽입
         employeeMapper.insert(employee);
@@ -233,7 +233,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             if ("RETIRED".equalsIgnoreCase(employee.getStatusCode())) {
                 return false;
             }
-            if (employee.getLoginFailCnt() != null && employee.getLoginFailCnt() >= 5) {
+            if (loginLogMapper.countRecentFailures(empId) >= 5) {
                 return false;
             }
 
@@ -381,6 +381,11 @@ public class EmployeeServiceImpl implements EmployeeService {
      * @return 변환된 EmployeeDTO 레코드
      */
     private EmployeeDTO convertToDto(Employee employee, List<String> roleNames, String deptName, String positionName) {
+        // login_logs 기반 연속 실패 횟수로 잠금 여부 판단
+        boolean locked = false;
+        if (employee.getEmpId() != null) {
+            locked = loginLogMapper.countRecentFailures(employee.getEmpId()) >= 5;
+        }
         return EmployeeDTO.builder()
                 .empId(employee.getEmpId())
                 .deptId(employee.getDeptId())
@@ -393,7 +398,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .hireDate(employee.getHireDate())
                 .deptName(deptName)
                 .positionName(positionName)
-                .loginFailCnt(employee.getLoginFailCnt())
+                .isLocked(locked)
                 .roleNames(roleNames != null ? roleNames : Collections.emptyList())
                 .isDeleted(employee.getIsDeleted())
                 .version(employee.getVersion())
@@ -525,12 +530,18 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     /**
      * {@inheritDoc}
-     * login_fail_cnt를 0으로 초기화하여 잠긴 계정을 해제합니다.
+     * login_logs_51의 실패 기록을 초기화하고,
+     * 비밀번호를 사번(empId)으로 리셋하여 잠긴 계정을 해제합니다.
      */
     @Override
     @Transactional
     public void unlockAccount(Long empId) {
-        int updated = employeeMapper.resetLoginFailCnt(empId);
+        // 1. 실패 로그 초기화 (is_failure를 'n'으로 변경)
+        loginLogMapper.resetFailureLogsByEmpId(empId);
+
+        // 2. 비밀번호를 사번으로 초기화 (BCrypt 암호화)
+        String encodedPassword = passwordEncoder.encode(String.valueOf(empId));
+        int updated = employeeMapper.resetPassword(empId, encodedPassword);
         if (updated == 0) {
             throw new IllegalArgumentException("잠금 해제 대상 사원을 찾을 수 없습니다. empId: " + empId);
         }
@@ -538,7 +549,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     /**
      * {@inheritDoc}
-     * login_fail_cnt >= 5인 사원 목록을 조회하여 DTO로 변환합니다.
+     * login_logs 기반으로 연속 실패 5회 이상인 사원 목록을 조회하여 DTO로 변환합니다.
      */
     @Override
     public List<EmployeeDTO> getLockedEmployees() {
@@ -549,7 +560,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     /**
      * {@inheritDoc}
-     * login_fail_cnt >= 5인 사원 수를 반환합니다.
+     * login_logs 기반으로 연속 실패 5회 이상인 사원 수를 반환합니다.
      */
     @Override
     public long countLockedEmployees() {
