@@ -15,7 +15,8 @@ delete from evaluator_mappings_51;
 delete from evaluation_elements_51;
 delete from evaluation_periods_51;
 
--- 4. 사용자 및 조직 데이터
+-- 4. 사용자 및 조직 데이터 (상호 참조 해결을 위해 leader_id 먼저 null 처리)
+update departments_51 set leader_id = null;
 delete from employee_roles_51;
 delete from employees_51;
 delete from departments_51;
