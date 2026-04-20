@@ -109,4 +109,33 @@ public interface DepartmentMapper {
      */
     int softDelete(@Param("deptId") Long deptId, @Param("updatedBy") Long updatedBy,
                    @Param("updatedAt") LocalDateTime updatedAt);
+
+    /**
+     * 부서의 리더(부서장)를 변경합니다.
+     *
+     * @param deptId    대상 부서 식별자
+     * @param leaderId  새 리더 사원 식별자 (NULL이면 리더 해제)
+     * @param updatedBy 처리자 ID
+     * @param updatedAt 처리 시각
+     * @return 업데이트된 행 수
+     */
+    int updateLeader(@Param("deptId") Long deptId, @Param("leaderId") Long leaderId,
+                     @Param("updatedBy") Long updatedBy, @Param("updatedAt") LocalDateTime updatedAt);
+
+    /**
+     * 부서 리더의 사원명을 JOIN으로 조회합니다.
+     *
+     * @param deptId 대상 부서 식별자
+     * @return 리더 사원명 (리더 미지정 시 null)
+     */
+    String findLeaderName(Long deptId);
+
+    /**
+     * 특정 사원이 리더로 지정된 부서 수를 카운트합니다.
+     * 권한 회수 시 다른 부서 리더 겸임 여부 확인용입니다.
+     *
+     * @param empId 사원 식별자
+     * @return 리더로 등록된 부서의 수
+     */
+    int countDepartmentsByLeaderId(@Param("empId") Long empId);
 }

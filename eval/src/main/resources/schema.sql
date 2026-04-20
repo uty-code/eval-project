@@ -79,6 +79,7 @@ create table departments_51
 (
     dept_id bigint identity(1,1) primary key,
     parent_dept_id bigint,
+    leader_id bigint,
     dept_name nvarchar(100) not null,
     is_active char(1) default 'y' not null,
     is_deleted char(1) default 'n',
@@ -112,6 +113,11 @@ create table employees_51
     foreign key (dept_id) references departments_51(dept_id),
     foreign key (position_id) references positions_51(position_id)
 );
+
+-- departments_51.leader_id FK 추가 (employees_51 생성 이후)
+alter table departments_51
+    add constraint fk_dept_leader
+    foreign key (leader_id) references employees_51(emp_id);
 
 
 create table employee_roles_51
