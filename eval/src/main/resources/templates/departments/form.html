@@ -58,14 +58,27 @@
                     <!-- 상위 부서 선택 -->
                     <div class="col-md-6">
                         <label for="parentDeptId" class="form-label text-muted small">상위 부서</label>
-                        <select class="form-select" id="parentDeptId" name="parentDeptId">
+                        <select class="form-select" id="parentDeptId" name="parentDeptId"
+                            style="font-size: 0.875rem;">
                             <option value="">-- 최상위 부서 (없음) --</option>
-                            <option th:each="dept : ${allDepartments}" th:value="${dept.deptId()}"
-                                th:text="${dept.deptName()}" th:selected="${department.parentDeptId() != null
-                                                  and department.parentDeptId() == dept.deptId()}" th:disabled="${department.deptId() != null
-                                                  and department.deptId() == dept.deptId()}">
-                                부서명
-                            </option>
+                            <th:block th:each="dept : ${allDepartments}">
+                                <!-- 상위부서 (본부): parentDeptId == null -->
+                                <option th:if="${dept.parentDeptId() == null}"
+                                    th:value="${dept.deptId()}"
+                                    th:text="'🏢 ' + ${dept.deptName()}"
+                                    th:selected="${department.parentDeptId() != null and department.parentDeptId() == dept.deptId()}"
+                                    th:disabled="${department.deptId() != null and department.deptId() == dept.deptId()}"
+                                    style="font-weight: 700; color: #a5b4fc;">
+                                </option>
+                                <!-- 하위부서 (팀): parentDeptId != null -->
+                                <option th:unless="${dept.parentDeptId() == null}"
+                                    th:value="${dept.deptId()}"
+                                    th:text="'　└ ' + ${dept.deptName()}"
+                                    th:selected="${department.parentDeptId() != null and department.parentDeptId() == dept.deptId()}"
+                                    th:disabled="${department.deptId() != null and department.deptId() == dept.deptId()}"
+                                    style="color: #94a3b8;">
+                                </option>
+                            </th:block>
                         </select>
                         <div class="form-text text-muted small">선택하지 않으면 최상위 부서로 등록됩니다.</div>
                     </div>
