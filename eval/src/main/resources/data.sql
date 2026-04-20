@@ -277,41 +277,41 @@ delete from employees_51 where emp_id between 1001 and 1006;
 
 -- [DX전략팀 사원]
 insert into employees_51
-    (emp_id, dept_id, position_id, password, name, email, hire_date, status_code, is_deleted, version)
-select 1001, d.dept_id, p.position_id, '$2a$10$3q9D33VLDucrnlOTih.rSeLSxVtR1p3rWwiJofqjtLhUW/GXJ6wde', N'김철수', 'chulsoo@ees.com', '2023-01-10', 'EMPLOYED', 'n', 0
+    (emp_id, dept_id, position_id, password, name, email, phone, hire_date, status_code, is_deleted, version)
+select 1001, d.dept_id, p.position_id, '$2a$10$3q9D33VLDucrnlOTih.rSeLSxVtR1p3rWwiJofqjtLhUW/GXJ6wde', N'김철수', 'chulsoo@ees.com', '010-1234-5671', '2023-01-10', 'EMPLOYED', 'n', 0
 from departments_51 d, positions_51 p
 where d.dept_name = N'DX전략팀' and p.position_name = N'과장';
 
 insert into employees_51
-    (emp_id, dept_id, position_id, password, name, email, hire_date, status_code, is_deleted, version)
-select 1002, d.dept_id, p.position_id, '$2a$10$3q9D33VLDucrnlOTih.rSeLSxVtR1p3rWwiJofqjtLhUW/GXJ6wde', N'이영희', 'younghee@ees.com', '2023-05-15', 'EMPLOYED', 'n', 0
+    (emp_id, dept_id, position_id, password, name, email, phone, hire_date, status_code, is_deleted, version)
+select 1002, d.dept_id, p.position_id, '$2a$10$3q9D33VLDucrnlOTih.rSeLSxVtR1p3rWwiJofqjtLhUW/GXJ6wde', N'이영희', 'younghee@ees.com', '010-1234-5672', '2023-05-15', 'EMPLOYED', 'n', 0
 from departments_51 d, positions_51 p
 where d.dept_name = N'DX전략팀' and p.position_name = N'대리';
 
 -- [DX서비스팀 사원]
 insert into employees_51
-    (emp_id, dept_id, position_id, password, name, email, hire_date, status_code, is_deleted, version)
-select 1003, d.dept_id, p.position_id, '$2a$10$3q9D33VLDucrnlOTih.rSeLSxVtR1p3rWwiJofqjtLhUW/GXJ6wde', N'박준호', 'junho@ees.com', '2022-11-20', 'EMPLOYED', 'n', 0
+    (emp_id, dept_id, position_id, password, name, email, phone, hire_date, status_code, is_deleted, version)
+select 1003, d.dept_id, p.position_id, '$2a$10$3q9D33VLDucrnlOTih.rSeLSxVtR1p3rWwiJofqjtLhUW/GXJ6wde', N'박준호', 'junho@ees.com', '010-1234-5673', '2022-11-20', 'EMPLOYED', 'n', 0
 from departments_51 d, positions_51 p
 where d.dept_name = N'DX서비스팀' and p.position_name = N'부장';
 
 insert into employees_51
-    (emp_id, dept_id, position_id, password, name, email, hire_date, status_code, is_deleted, version)
-select 1004, d.dept_id, p.position_id, '$2a$10$3q9D33VLDucrnlOTih.rSeLSxVtR1p3rWwiJofqjtLhUW/GXJ6wde', N'최미경', 'mikyoung@ees.com', '2024-02-01', 'EMPLOYED', 'n', 0
+    (emp_id, dept_id, position_id, password, name, email, phone, hire_date, status_code, is_deleted, version)
+select 1004, d.dept_id, p.position_id, '$2a$10$3q9D33VLDucrnlOTih.rSeLSxVtR1p3rWwiJofqjtLhUW/GXJ6wde', N'최미경', 'mikyoung@ees.com', '010-1234-5674', '2024-02-01', 'EMPLOYED', 'n', 0
 from departments_51 d, positions_51 p
 where d.dept_name = N'DX서비스팀' and p.position_name = N'사원';
 
 -- [인사팀 사원]
 insert into employees_51
-    (emp_id, dept_id, position_id, password, name, email, hire_date, status_code, is_deleted, version)
-select 1005, d.dept_id, p.position_id, '$2a$10$3q9D33VLDucrnlOTih.rSeLSxVtR1p3rWwiJofqjtLhUW/GXJ6wde', N'정민우', 'minwoo@ees.com', '2021-03-15', 'EMPLOYED', 'n', 0
+    (emp_id, dept_id, position_id, password, name, email, phone, hire_date, status_code, is_deleted, version)
+select 1005, d.dept_id, p.position_id, '$2a$10$3q9D33VLDucrnlOTih.rSeLSxVtR1p3rWwiJofqjtLhUW/GXJ6wde', N'정민우', 'minwoo@ees.com', '010-1234-5675', '2021-03-15', 'EMPLOYED', 'n', 0
 from departments_51 d, positions_51 p
 where d.dept_name = N'인사팀' and p.position_name = N'차장';
 
 -- [재무팀 사원]
 insert into employees_51
-    (emp_id, dept_id, position_id, password, name, email, hire_date, status_code, is_deleted, version)
-select 1006, d.dept_id, p.position_id, '$2a$10$3q9D33VLDucrnlOTih.rSeLSxVtR1p3rWwiJofqjtLhUW/GXJ6wde', N'한소희', 'sohee@ees.com', '2023-08-20', 'EMPLOYED', 'n', 0
+    (emp_id, dept_id, position_id, password, name, email, phone, hire_date, status_code, is_deleted, version)
+select 1006, d.dept_id, p.position_id, '$2a$10$3q9D33VLDucrnlOTih.rSeLSxVtR1p3rWwiJofqjtLhUW/GXJ6wde', N'한소희', 'sohee@ees.com', '010-1234-5676', '2023-08-20', 'EMPLOYED', 'n', 0
 from departments_51 d, positions_51 p
 where d.dept_name = N'재무팀' and p.position_name = N'대리';
 
