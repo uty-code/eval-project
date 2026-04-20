@@ -78,6 +78,43 @@
             </div>
         </div>
 
+        <!-- Search Filter Card -->
+        <div class="glass-card p-4 mb-4">
+            <form th:action="@{/departments}" method="get" id="search-form">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label for="searchKeyword" class="form-label text-muted small fw-semibold">부서명 또는 코드</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-secondary border-opacity-50">
+                                <i class="bi bi-search text-muted"></i>
+                            </span>
+                            <input type="text" id="searchKeyword" name="searchKeyword"
+                                class="form-control bg-transparent border-secondary border-opacity-50 form-control py-1"
+                                placeholder="부서명 또는 코드로 검색..." th:value="${searchKeyword}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="searchStatus" class="form-label text-muted small fw-semibold">사용 여부</label>
+                        <select id="searchStatus" name="searchStatus"
+                            class="form-select bg-transparent border-secondary border-opacity-50">
+                            <option value="">전체 조회</option>
+                            <option value="y" th:selected="${searchStatus == 'y'}">사용중</option>
+                            <option value="n" th:selected="${searchStatus == 'n'}">미사용</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1" id="btn-search">
+                            <i class="bi bi-search me-1"></i>검색
+                        </button>
+                        <a th:href="@{/departments}" class="btn btn-outline-secondary" id="btn-reset-search"
+                            title="초기화">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
         <!-- Department Table -->
         <div class="glass-card p-4">
             <div class="table-responsive">
@@ -147,15 +184,16 @@
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
                                     <!-- 사용 여부 토글 버튼 -->
-                                    <form th:action="@{'/departments/' + ${dept.deptId()} + '/toggle-status'}" method="post"
-                                        class="d-inline">
+                                    <form th:action="@{'/departments/' + ${dept.deptId()} + '/toggle-status'}"
+                                        method="post" class="d-inline">
                                         <button type="submit" class="btn-action"
                                             th:classappend="${dept.isActive() == 'y'} ? 'btn-action-warning' : 'btn-action-success'"
                                             th:id="'btn-toggle-' + ${dept.deptId()}"
                                             th:title="${dept.isActive() == 'y'} ? '미사용으로 변경' : '사용중으로 변경'"
                                             th:onclick="return confirm(this.getAttribute('data-confirm-msg'))"
                                             th:attr="data-confirm-msg=${dept.isActive() == 'y'} ? '이 부서를 미사용으로 변경하시겠습니까?' : '이 부서를 사용중으로 변경하시겠습니까?'">
-                                            <i th:class="${dept.isActive() == 'y'} ? 'bi bi-toggle-on' : 'bi bi-toggle-off'"></i>
+                                            <i
+                                                th:class="${dept.isActive() == 'y'} ? 'bi bi-toggle-on' : 'bi bi-toggle-off'"></i>
                                         </button>
                                     </form>
                                     <!-- 삭제 버튼 (소속 인원 0명인 경우만 활성화) -->

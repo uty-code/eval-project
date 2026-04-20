@@ -31,6 +31,15 @@ public interface DepartmentMapper {
     List<Department> findAll();
 
     /**
+     * 검색 조건(부서명/코드 및 사용 여부)에 따라 부서 목록을 조회합니다.
+     *
+     * @param searchKeyword 부서명 또는 코드
+     * @param searchStatus 사용 여부 ('y' 또는 'n')
+     * @return 검색된 부서 리스트
+     */
+    List<Department> findAllWithConditions(@Param("searchKeyword") String searchKeyword, @Param("searchStatus") String searchStatus);
+
+    /**
      * 최상위 부서(parent_dept_id IS NULL) 목록을 조회합니다.
      *
      * @return 루트 부서 리스트

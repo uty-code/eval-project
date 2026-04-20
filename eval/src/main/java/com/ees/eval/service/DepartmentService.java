@@ -29,6 +29,15 @@ public interface DepartmentService {
     List<DepartmentDTO> getAllDepartments();
 
     /**
+     * 검색 조건에 따라 부서 목록을 조회합니다.
+     *
+     * @param searchKeyword 부서명 또는 코드
+     * @param searchStatus  사용 여부 (y/n)
+     * @return 검색된 부서 DTO 리스트
+     */
+    List<DepartmentDTO> searchDepartments(String searchKeyword, String searchStatus);
+
+    /**
      * 최상위 부서(루트 노드) 목록만 조회합니다.
      *
      * @return 최상위 부서 DTO 리스트

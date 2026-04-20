@@ -86,6 +86,30 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<DepartmentDTO> searchDepartments(String searchKeyword, String searchStatus) {
+        boolean isSearch = (searchKeyword != null && !searchKeyword.trim().isEmpty())
+                || (searchStatus != null && !searchStatus.trim().isEmpty());
+
+        // 검색 조건이 없다면 기존 트리형의 전체 목록으로 반환합니다.
+        if (!isSearch) {
+            return getAllDepartments();
+        }
+
+        // 검색 조건이 있는 경우, 필터링하여 일차원 리스트로 반환 (depth = 0)
+        return departmentMapper.findAllWithConditions(searchKeyword, searchStatus).stream()
+                .map(dept -> {
+                    String parentName = departmentMapper.findParentDeptName(dept.getDeptId());
+                    int count = departmentMapper.countEmployeesByDeptId(dept.getDeptId());
+                    return convertToDto(dept, parentName, count).toBuilder().treeDepth(0).build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
      * DFS 방식으로 부서를 재귀 순회하여 리스트에 순차적으로 담습니다.
      * depth 파라미터를 통해 트리의 깊이를 재계산합니다.
      */
