@@ -97,7 +97,9 @@
                             <span class="input-group-text bg-surface-light border-0 text-muted"><i
                                     class="bi bi-envelope"></i></span>
                             <input type="email" class="form-control" id="email" name="email"
-                                placeholder="example@company.com" required maxlength="255">
+                                placeholder="example@company.com" required maxlength="255"
+                                pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
+                                title="올바른 이메일 형식을 입력하세요. (예: example@domain.com)">
                         </div>
                     </div>
 

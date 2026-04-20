@@ -52,6 +52,9 @@ public class SettingsController {
             Authentication authentication,
             RedirectAttributes redirectAttributes) {
         try {
+            if (email == null || !email.matches("^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$")) {
+                throw new IllegalArgumentException("이메일 양식이 올바르지 않습니다. (예: example@domain.com)");
+            }
             Long empId = Long.parseLong(authentication.getName());
             employeeService.updateContactInfo(empId, email, phone != null ? phone : "");
             redirectAttributes.addFlashAttribute("successMessage", "연락처가 성공적으로 수정되었습니다.");

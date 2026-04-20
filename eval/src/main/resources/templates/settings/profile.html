@@ -193,6 +193,8 @@
                                     <input type="email" id="email" name="email"
                                         class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
                                         th:value="${employee.email()}" required
+                                        pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
+                                        title="올바른 이메일 형식을 입력하세요. (예: example@domain.com)"
                                         placeholder="이메일 주소">
                                 </div>
                             </div>

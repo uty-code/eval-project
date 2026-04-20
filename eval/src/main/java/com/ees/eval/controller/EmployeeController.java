@@ -181,6 +181,7 @@ public class EmployeeController {
             @RequestParam(value = "roleIds", required = false) List<Long> roleIds,
             RedirectAttributes redirectAttributes) {
         try {
+            validateEmail(email);
             // DTO 빌드 후 서비스 계층 호출 (비밀번호 암호화는 ServiceImpl에서 처리)
             EmployeeDTO dto = EmployeeDTO.builder()
                     .name(name)
@@ -250,6 +251,7 @@ public class EmployeeController {
             @RequestParam(value = "roleIds", required = false) List<Long> roleIds,
             RedirectAttributes redirectAttributes) {
         try {
+            validateEmail(email);
             // DTO 빌드 후 서비스 계층 호출 (낙관적 락 version 포함)
             EmployeeDTO dto = EmployeeDTO.builder()
                     .empId(empId)
@@ -362,7 +364,13 @@ public class EmployeeController {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "계정 잠금 해제 중 오류가 발생했습니다: " + e.getMessage());
         }
-        return "redirect:/employees/" + empId + "/edit";
+        return "redirect:/employees";
+    }
+
+    private void validateEmail(String email) {
+        if (email == null || !email.matches("^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$")) {
+            throw new IllegalArgumentException("이메일 양식이 올바르지 않습니다. (예: example@domain.com)");
+        }
     }
 
     /**
