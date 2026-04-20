@@ -120,11 +120,23 @@
                     <div class="col-md-6">
                         <label for="deptId" class="form-label text-muted small px-1">부서 <span
                                 class="text-danger">*</span></label>
-                        <select class="form-select" id="deptId" name="deptId" required>
+                        <select class="form-select" id="deptId" name="deptId" required
+                            style="font-size: 0.875rem;">
                             <option value="">부서 선택</option>
-                            <option th:each="dept : ${departments}" th:value="${dept.deptId()}"
-                                th:text="${dept.deptName()}">
-                            </option>
+                            <th:block th:each="dept : ${departments}">
+                                <!-- 상위부서 (본부): parentDeptId == null -->
+                                <option th:if="${dept.parentDeptId() == null}"
+                                    th:value="${dept.deptId()}"
+                                    th:text="'🏢 ' + ${dept.deptName()}"
+                                    style="font-weight: 700; color: #a5b4fc;">
+                                </option>
+                                <!-- 하위부서 (팀): parentDeptId != null -->
+                                <option th:unless="${dept.parentDeptId() == null}"
+                                    th:value="${dept.deptId()}"
+                                    th:text="'　└ ' + ${dept.deptName()}"
+                                    style="color: #94a3b8;">
+                                </option>
+                            </th:block>
                         </select>
                     </div>
                     <div class="col-md-6">
