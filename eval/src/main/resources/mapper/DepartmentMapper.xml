@@ -8,6 +8,7 @@
         select
             d.dept_id        as DEPT_ID,
             d.parent_dept_id as PARENT_DEPT_ID,
+            d.leader_id      as LEADER_ID,
             d.dept_name      as DEPT_NAME,
             d.is_active      as IS_ACTIVE,
             d.is_deleted     as IS_DELETED,
@@ -26,6 +27,7 @@
         select
             d.dept_id        as DEPT_ID,
             d.parent_dept_id as PARENT_DEPT_ID,
+            d.leader_id      as LEADER_ID,
             d.dept_name      as DEPT_NAME,
             d.is_active      as IS_ACTIVE,
             d.is_deleted     as IS_DELETED,
@@ -44,6 +46,7 @@
         select
             d.dept_id        as DEPT_ID,
             d.parent_dept_id as PARENT_DEPT_ID,
+            d.leader_id      as LEADER_ID,
             d.dept_name      as DEPT_NAME,
             d.is_active      as IS_ACTIVE,
             d.is_deleted     as IS_DELETED,
@@ -71,6 +74,7 @@
         select
             d.dept_id        as DEPT_ID,
             d.parent_dept_id as PARENT_DEPT_ID,
+            d.leader_id      as LEADER_ID,
             d.dept_name      as DEPT_NAME,
             d.is_active      as IS_ACTIVE,
             d.is_deleted     as IS_DELETED,
@@ -90,6 +94,7 @@
         select
             d.dept_id        as DEPT_ID,
             d.parent_dept_id as PARENT_DEPT_ID,
+            d.leader_id      as LEADER_ID,
             d.dept_name      as DEPT_NAME,
             d.is_active      as IS_ACTIVE,
             d.is_deleted     as IS_DELETED,
@@ -115,6 +120,17 @@
           and p.is_deleted = 'n'
     </select>
 
+    <!-- 부서 리더(부서장) 사원명 JOIN 조회 -->
+    <select id="findLeaderName" resultType="java.lang.String">
+        select
+            e.name as LEADER_NAME
+        from departments_51 d
+        inner join employees_51 e on d.leader_id = e.emp_id
+        where d.dept_id = #{deptId}
+          and d.is_deleted = 'n'
+          and e.is_deleted = 'n'
+    </select>
+
     <!-- 해당 부서 소속 활성 사원 인원수 카운트 (평가 통계용) -->
     <select id="countEmployeesByDeptId" resultType="int">
         select
@@ -124,10 +140,20 @@
           and e.is_deleted = 'n'
     </select>
 
-    <!-- 부서 정보 삽입 (is_active 포함) -->
+    <!-- 특정 사원이 리더로 등록된 부서 수 카운트 (권한 회수 판단용) -->
+    <select id="countDepartmentsByLeaderId" resultType="int">
+        select
+            count(*) as CNT
+        from departments_51 d
+        where d.leader_id = #{empId}
+          and d.is_deleted = 'n'
+    </select>
+
+    <!-- 부서 정보 삽입 (leader_id 포함) -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="deptId">
         insert into departments_51 (
             parent_dept_id,
+            leader_id,
             dept_name,
             is_active,
             is_deleted,
@@ -136,6 +162,7 @@
             created_by
         ) values (
             #{parentDeptId},
+            #{leaderId},
             #{deptName},
             #{isActive},
             #{isDeleted},
@@ -145,10 +172,11 @@
         )
     </insert>
 
-    <!-- 부서 정보 수정 (낙관적 락 버전 체크 포함, is_active 포함) -->
+    <!-- 부서 정보 수정 (낙관적 락 버전 체크 포함, leader_id 포함) -->
     <update id="update">
         update departments_51
         set parent_dept_id = #{parentDeptId},
+            leader_id      = #{leaderId},
             dept_name      = #{deptName},
             is_active      = #{isActive},
             version        = #{version} + 1,
@@ -157,6 +185,16 @@
         where dept_id      = #{deptId}
           and version      = #{version}
           and is_deleted   = 'n'
+    </update>
+
+    <!-- 부서 리더(부서장) 변경 -->
+    <update id="updateLeader">
+        update departments_51
+        set leader_id  = #{leaderId},
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        where dept_id  = #{deptId}
+          and is_deleted = 'n'
     </update>
 
     <!-- 부서 사용 여부(is_active) 전환 (y -> n, n -> y) -->

@@ -96,4 +96,23 @@ public interface DepartmentService {
      * @throws IllegalArgumentException 대상 부서가 존재하지 않을 경우 발생
      */
     void toggleDepartmentStatus(Long deptId);
+
+    /**
+     * 부서에 리더(부서장)를 지정하고 ROLE_MANAGER 권한을 자동 부여합니다.
+     * 기존 리더가 있으면 기존 리더의 권한을 회수한 후 새 리더를 지정합니다.
+     *
+     * @param deptId 대상 부서 식별자
+     * @param empId  리더로 지정할 사원 식별자 (NULL이면 리더 해제)
+     * @throws IllegalArgumentException 부서 또는 사원이 존재하지 않을 경우 발생
+     */
+    void assignLeader(Long deptId, Long empId);
+
+    /**
+     * 부서의 리더를 해제하고 해당 사원의 ROLE_MANAGER 권한을 회수합니다.
+     * 다른 부서의 리더를 겸임하고 있는 경우 권한은 유지됩니다.
+     *
+     * @param deptId 대상 부서 식별자
+     * @throws IllegalArgumentException 대상 부서가 존재하지 않을 경우 발생
+     */
+    void removeLeader(Long deptId);
 }

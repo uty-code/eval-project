@@ -10,8 +10,10 @@ import java.time.LocalDateTime;
  *
  * @param deptId 부서 고유 식별자
  * @param parentDeptId 상위 부서 ID (최상위 부서일 경우 null)
+ * @param leaderId 부서 리더(부서장) 사원 ID (NULL이면 리더 미지정)
  * @param deptName 부서 명칭
  * @param parentDeptName 셀프 JOIN으로 조회한 상위 부서 명칭
+ * @param leaderName JOIN으로 조회한 부서 리더 사원 이름
  * @param employeeCount 해당 부서 소속 활성 사원 수
  * @param treeDepth 트리 깊이 (UI 들여쓰기 표현용)
  * @param isActive 사용 여부 (y: 사용중, n: 미사용중)
@@ -26,8 +28,10 @@ import java.time.LocalDateTime;
 public record DepartmentDTO(
     Long deptId,
     Long parentDeptId,
+    Long leaderId,
     String deptName,
     String parentDeptName,
+    String leaderName,
     Integer employeeCount,
     Integer treeDepth,
     String isActive,
