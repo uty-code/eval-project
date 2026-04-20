@@ -232,17 +232,16 @@ public class EmployeeServiceImpl implements EmployeeService {
             LocalDateTime now = LocalDateTime.now();
             Long adminId = 1L; // TODO: SecurityContext에서 현재 로그인 사용자 ID로 교체
 
-            // 부서장 권한 보호: 해당 사원이 부서장이면 ROLE_MANAGER를 강제 유지
+            // 부서장 권한 보호: 해당 사원이 부서장이면 권한 변경 자체를 차단
             int leaderCount = departmentMapper.countDepartmentsByLeaderId(employee.getEmpId());
             if (leaderCount > 0) {
-                // ROLE_MANAGER의 roleId 조회
                 Long managerRoleId = roleMapper.findByRoleName("ROLE_MANAGER")
                         .orElseThrow(() -> new IllegalStateException("ROLE_MANAGER 권한 정보를 찾을 수 없습니다."))
                         .getRoleId();
-                // 사용자가 선택한 roleIds에 ROLE_MANAGER가 없으면 강제 추가
+                // ROLE_MANAGER가 제외된 경우 예외 발생으로 차단
                 if (!roleIds.contains(managerRoleId)) {
-                    roleIds = new java.util.ArrayList<>(roleIds);
-                    roleIds.add(managerRoleId);
+                    throw new IllegalStateException(
+                            "이 사원은 현재 부서장으로 지정되어 있습니다. 권한을 변경하려면 부서 관리 페이지에서 부서장을 먼저 해제하세요.");
                 }
             }
 
