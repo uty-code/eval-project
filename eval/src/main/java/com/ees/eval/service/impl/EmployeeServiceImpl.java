@@ -119,6 +119,17 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public EmployeeDTO registerEmployee(EmployeeDTO employeeDto, List<Long> roleIds) {
+        // 필수 값 검증
+        if (employeeDto.name() == null || employeeDto.name().isBlank()) {
+            throw new IllegalArgumentException("성명은 필수 입력 항목입니다.");
+        }
+        if (employeeDto.hireDate() == null) {
+            throw new IllegalArgumentException("입사일은 필수 입력 항목입니다.");
+        }
+        if (employeeDto.deptId() == null) {
+            throw new IllegalArgumentException("소속 부서는 필수 입력 항목입니다.");
+        }
+
         // 1. DTO를 엔티티로 변환
         Employee employee = convertToEntity(employeeDto);
 
@@ -161,12 +172,31 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public EmployeeDTO updateEmployee(EmployeeDTO employeeDto) {
+        // 필수 값 검증
+        if (employeeDto.name() == null || employeeDto.name().isBlank()) {
+            throw new IllegalArgumentException("성명은 필수 입력 항목입니다.");
+        }
+        if (employeeDto.hireDate() == null) {
+            throw new IllegalArgumentException("입사일은 필수 입력 항목입니다.");
+        }
+        if (employeeDto.deptId() == null) {
+            throw new IllegalArgumentException("소속 부서는 필수 입력 항목입니다.");
+        }
+
         // 1. 기존 데이터와 비교를 위해 조회
         Employee existingEmployee = employeeMapper.findById(employeeDto.empId())
                 .orElseThrow(() -> new IllegalArgumentException("사원 정보를 찾을 수 없습니다."));
 
         // 2. 엔티티 변환
         Employee employee = convertToEntity(employeeDto);
+
+        // 부서 이동 가능 여부 검증: 부서장인 경우 소속 부서 이탈을 방지
+        if (!existingEmployee.getDeptId().equals(employee.getDeptId())) {
+            int leaderCount = departmentMapper.countDepartmentsByLeaderId(employee.getEmpId());
+            if (leaderCount > 0) {
+                throw new IllegalStateException("이 사원은 현재 부서장으로 지정되어 있습니다. 부서를 이동하려면 부서 관리 페이지에서 기존 부서의 부서장을 먼저 해제하세요.");
+            }
+        }
 
         // 3. 퇴사 처리 자동화 로직
         if ("RETIRED".equalsIgnoreCase(employee.getStatusCode())) {
@@ -202,12 +232,31 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public EmployeeDTO updateEmployee(EmployeeDTO employeeDto, List<Long> roleIds) {
+        // 필수 값 검증
+        if (employeeDto.name() == null || employeeDto.name().isBlank()) {
+            throw new IllegalArgumentException("성명은 필수 입력 항목입니다.");
+        }
+        if (employeeDto.hireDate() == null) {
+            throw new IllegalArgumentException("입사일은 필수 입력 항목입니다.");
+        }
+        if (employeeDto.deptId() == null) {
+            throw new IllegalArgumentException("소속 부서는 필수 입력 항목입니다.");
+        }
+
         // 1. 기존 데이터와 비교를 위해 조회
         Employee existingEmployee = employeeMapper.findById(employeeDto.empId())
                 .orElseThrow(() -> new IllegalArgumentException("사원 정보를 찾을 수 없습니다."));
 
         // 2. 엔티티 변환
         Employee employee = convertToEntity(employeeDto);
+
+        // 부서 이동 가능 여부 검증: 부서장인 경우 소속 부서 이탈을 방지
+        if (!existingEmployee.getDeptId().equals(employee.getDeptId())) {
+            int leaderCount = departmentMapper.countDepartmentsByLeaderId(employee.getEmpId());
+            if (leaderCount > 0) {
+                throw new IllegalStateException("이 사원은 현재 부서장으로 지정되어 있습니다. 부서를 이동하려면 부서 관리 페이지에서 기존 부서의 부서장을 먼저 해제하세요.");
+            }
+        }
 
         // 3. 퇴사 처리 자동화 로직
         if ("RETIRED".equalsIgnoreCase(employee.getStatusCode())) {

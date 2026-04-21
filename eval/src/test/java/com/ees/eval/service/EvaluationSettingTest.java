@@ -31,6 +31,17 @@ class EvaluationSettingTest extends com.ees.eval.support.AbstractMssqlTest {
     private EvaluationElementService elementService;
 
     /**
+     * 테스트 시작 전 기존 데이터로 인한 충돌을 방지하기 위해
+     * '진행 중' 상태인 모든 차수를 '완료' 상태로 전환합니다.
+     */
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        periodService.getAllPeriods().stream()
+                .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
+                .forEach(p -> periodService.transitionStatus(p.periodId(), "COMPLETED"));
+    }
+
+    /**
      * 차수 생성 후 상태 전이(PLANNED → IN_PROGRESS → COMPLETED → CLOSED)를 검증합니다.
      */
     @Test
