@@ -20,9 +20,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * BCrypt 비밀번호 암호화, JOIN 기반 직급/권한 조회, 낙관적 락,
  * 그리고 인증 검증 등 핵심 기능을 검증합니다.
  */
+import com.ees.eval.support.AbstractMssqlTest;
+
 @SpringBootTest
 @Transactional
-class EmployeeServiceTest {
+class EmployeeServiceTest extends AbstractMssqlTest {
 
     @Autowired
     private EmployeeService employeeService;

@@ -20,9 +20,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * 계층형 부서 관리, 부서별 사원 조회(EmployeeService 연동),
  * 낙관적 락, 소프트 삭제 및 삭제 안전장치를 검증합니다.
  */
+import com.ees.eval.support.AbstractMssqlTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
+
 @SpringBootTest
 @Transactional
-class DepartmentServiceTest {
+class DepartmentServiceTest extends AbstractMssqlTest {
 
     @Autowired
     private DepartmentService departmentService;

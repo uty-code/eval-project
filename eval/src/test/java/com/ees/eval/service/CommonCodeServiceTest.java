@@ -13,9 +13,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.ees.eval.support.AbstractMssqlTest;
+
 @SpringBootTest
 @Transactional
-class CommonCodeServiceTest {
+class CommonCodeServiceTest extends AbstractMssqlTest {
 
     @Autowired
     private CommonCodeService commonCodeService;

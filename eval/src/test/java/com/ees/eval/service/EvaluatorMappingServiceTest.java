@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @SpringBootTest
 @Transactional
-class EvaluatorMappingServiceTest {
+class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest {
 
     @Autowired
     private EvaluatorMappingService mappingService;

@@ -2,6 +2,7 @@ package com.ees.eval.service;
 
 import com.ees.eval.dto.EvaluationElementDTO;
 import com.ees.eval.dto.EvaluationPeriodDTO;
+import com.ees.eval.support.AbstractMssqlTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @SpringBootTest
 @Transactional
-class EvaluationSettingTest {
+class EvaluationSettingTest extends com.ees.eval.support.AbstractMssqlTest {
 
     @Autowired
     private EvaluationPeriodService periodService;

@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Transactional
-class RoleServiceTest {
+class RoleServiceTest extends com.ees.eval.support.AbstractMssqlTest {
 
     @Autowired
     private RoleService roleService;
