@@ -24,12 +24,13 @@ public interface EvaluatorMappingMapper {
     Optional<EvaluatorMapping> findById(Long mappingId);
 
     /**
-     * 특정 차수의 전체 매핑 목록을 조회합니다.
+     * 특정 차수 및 부서의 매핑 목록을 조회합니다.
      *
      * @param periodId 차수 식별자
+     * @param deptId   부서 식별자
      * @return 매핑 리스트
      */
-    List<EvaluatorMapping> findByPeriodId(Long periodId);
+    List<EvaluatorMapping> findByPeriodIdAndDeptId(@Param("periodId") Long periodId, @Param("deptId") Long deptId);
 
     /**
      * 특정 차수에서 '내가 평가해야 할 목록'을 조회합니다.
@@ -91,4 +92,9 @@ public interface EvaluatorMappingMapper {
      */
     int softDelete(@Param("mappingId") Long mappingId, @Param("updatedBy") Long updatedBy,
                    @Param("updatedAt") LocalDateTime updatedAt);
+
+    /**
+     * 특정 차수의 모든 SELF 매핑을 논리 삭제 처리합니다.
+     */
+    int deleteSelfMappingsByPeriod(@Param("periodId") Long periodId);
 }

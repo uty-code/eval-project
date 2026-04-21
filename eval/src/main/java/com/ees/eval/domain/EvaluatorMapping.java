@@ -30,6 +30,12 @@ public class EvaluatorMapping extends BaseEntity {
     /** 평가 관계 유형 코드 (SELF, SUPERIOR, PEER, SUBORDINATE) */
     private String relationTypeCode;
 
+    /** 피평가자 성명 (MyBatis JOIN용) */
+    private String evaluateeName;
+
+    /** 평가자 성명 (MyBatis JOIN용) */
+    private String evaluatorName;
+
     /**
      * 평가자 매핑 엔티티를 생성하는 빌더 메서드입니다.
      *
@@ -41,11 +47,13 @@ public class EvaluatorMapping extends BaseEntity {
      */
     @Builder
     public EvaluatorMapping(Long mappingId, Long periodId, Long evaluateeId,
-            Long evaluatorId, String relationTypeCode) {
+            Long evaluatorId, String relationTypeCode, String evaluateeName, String evaluatorName) {
         this.mappingId = mappingId;
         this.periodId = periodId;
         this.evaluateeId = evaluateeId;
         this.evaluatorId = evaluatorId;
         this.relationTypeCode = relationTypeCode;
+        this.evaluateeName = evaluateeName;
+        this.evaluatorName = evaluatorName;
     }
 }

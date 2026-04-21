@@ -20,12 +20,14 @@ public interface EvaluatorMappingService {
     EvaluatorMappingDTO getMappingById(Long mappingId);
 
     /**
-     * 특정 차수의 전체 매핑 목록을 조회합니다.
+     * 특정 차수의 매핑 목록을 부서별로 필터링하고 특정 사원을 제외하여 조회합니다.
      *
-     * @param periodId 차수 식별자
+     * @param periodId     차수 식별자
+     * @param deptId       부서 식별자 (null이면 전체 조회)
+     * @param excludeEmpId 제외할 사원 식별자 (null이면 제외 없음)
      * @return 매핑 DTO 리스트
      */
-    List<EvaluatorMappingDTO> getMappingsByPeriodId(Long periodId);
+    List<EvaluatorMappingDTO> getMappingsByPeriodIdAndDeptId(Long periodId, Long deptId, Long excludeEmpId);
 
     /**
      * 특정 차수에서 '내가 수행해야 할 평가 목록'을 조회합니다.
@@ -70,9 +72,24 @@ public interface EvaluatorMappingService {
                                                   List<Long> evaluatorIds, String relationTypeCode);
 
     /**
+     * 특정 차수의 평가자 매핑을 자동 생성합니다. (본인 및 부서장 매핑)
+     *
+     * @param periodId     차수 식별자
+     * @param deptId       부서 식별자 (null이면 전체 사원 대상)
+     * @param excludeEmpId 제외할 사원 식별자 (null이면 제외 없음)
+     * @return 생성된 매핑 수
+     */
+    int autoGenerateMappings(Long periodId, Long deptId, Long excludeEmpId);
+
+    /**
      * 매핑을 논리적으로 삭제합니다.
      *
      * @param mappingId 삭제할 매핑 ID
      */
     void deleteMapping(Long mappingId);
+
+    /**
+     * 현재 정책(예: 본인 평가 금지)에 어긋나는 기존 매핑들을 청소합니다.
+     */
+    void cleanUpInvalidMappings(Long periodId);
 }
