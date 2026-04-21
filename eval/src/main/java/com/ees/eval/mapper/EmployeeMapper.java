@@ -252,4 +252,12 @@ public interface EmployeeMapper {
      * @return 업데이트된 행 수
      */
     int resetPassword(@Param("empId") Long empId, @Param("password") String password);
+
+    /**
+     * 특정 부서의 리더(부서장) 사번을 조회합니다.
+     *
+     * @param deptId 대상 부서 ID
+     * @return 부서장의 사번을 담은 Optional 객체
+     */
+    Optional<Long> findDeptLeaderByDeptId(Long deptId);
 }

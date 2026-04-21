@@ -498,4 +498,13 @@
           ) >= 5
     </select>
 
+    <!-- 특정 부서의 리더(부서장) 사번 조회 -->
+    <select id="findDeptLeaderByDeptId" resultType="java.lang.Long">
+        select leader_id
+        from departments_51
+        where dept_id = #{deptId}
+          and is_deleted = 'n'
+          and leader_id is not null
+    </select>
+
 </mapper>

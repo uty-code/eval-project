@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'elements', ~{}, ~{})}">
+<head>
+    <title>평가 요소 관리 - EES</title>
+</head>
+<body>
+<div id="page-content" class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row align-items-center mb-4">
+        <div class="col-md-7">
+            <h1 class="fw-bold fs-3 mb-1">평가 요소 및 가중치 관리</h1>
+            <p class="text-muted">각 평가 차수별 평가 항목과 점수 비중을 설정합니다.</p>
+        </div>
+        <div class="col-md-5 text-md-end">
+            <form th:action="@{/eval/elements}" method="get" class="d-inline-flex gap-2 align-items-center">
+                <label class="text-muted small text-nowrap">차수 선택:</label>
+                <select name="periodId" class="form-select form-select-sm bg-dark text-white border-secondary" 
+                        onchange="this.form.submit()" style="width: 250px;">
+                    <option th:each="p : ${periods}" th:value="${p.periodId()}" 
+                            th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
+                            th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수</option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <div th:if="${selectedPeriod == null}" class="alert alert-info glass-card border-0">
+        <i class="bi bi-info-circle me-2"></i>등록된 평가 차수가 없습니다. 먼저 차수를 생성해 주세요.
+    </div>
+
+    <div th:if="${selectedPeriod != null}" class="row g-4">
+        <!-- Weights Overview -->
+        <div class="col-lg-4">
+            <div class="glass-card p-4 h-100">
+                <h5 class="fw-bold mb-4">설정 현황</h5>
+                
+                <div class="mb-4 text-center">
+                    <div class="d-inline-block p-4 rounded-circle border border-3 mb-2" 
+                         th:classappend="${isValid ? 'border-primary shadow-lg' : 'border-warning'}"
+                         style="width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                        <span class="fs-1 fw-bold" th:text="${totalWeight + '%'}">0%</span>
+                        <span class="small text-muted">Total Weight</span>
+                    </div>
+                    <div th:if="${!isValid}" class="text-warning small mt-2">
+                        <i class="bi bi-exclamation-triangle-fill"></i> 가중치 합계가 100%여야 합니다.
+                    </div>
+                    <div th:if="${isValid}" class="text-primary small mt-2">
+                        <i class="bi bi-check-circle-fill"></i> 설정이 완료되었습니다.
+                    </div>
+                </div>
+
+                <div class="list-group list-group-flush bg-transparent">
+                    <div class="list-group-item bg-transparent border-secondary border-opacity-25 px-0 py-3">
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span>선택된 차수</span>
+                            <span class="text-white fw-bold" th:text="${selectedPeriod.periodName()}">-</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item bg-transparent border-secondary border-opacity-25 px-0 py-3 text-center">
+                        <button class="btn btn-primary w-100 py-2" data-bs-toggle="modal" data-bs-target="#addElementModal">
+                            <i class="bi bi-plus-lg me-2"></i>항목 추가
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Elements Table -->
+        <div class="col-lg-8">
+            <div class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">평가 항목 리스트</h5>
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary" 
+                          th:text="${elements.size() + '개 항목'}">0개 항목</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-dark-custom align-middle">
+                        <thead>
+                            <tr class="text-muted small border-bottom border-secondary opacity-50">
+                                <th class="py-3">유형</th>
+                                <th class="py-3">항목명</th>
+                                <th class="py-3 text-center">최대 점수</th>
+                                <th class="py-3 text-center">가중치</th>
+                                <th class="py-3 text-end">관리</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="el : ${elements}">
+                                <td>
+                                    <span th:if="${el.elementTypeCode() == 'PERFORMANCE'}" class="badge bg-primary bg-opacity-10 text-primary fw-normal">성과</span>
+                                    <span th:if="${el.elementTypeCode() == 'COMPETENCY'}" class="badge bg-info bg-opacity-10 text-info fw-normal">역량</span>
+                                    <span th:if="${el.elementTypeCode() == 'MULTI_DIMENSIONAL'}" class="badge bg-purple bg-opacity-10 text-purple fw-normal">다면</span>
+                                    <span th:if="${el.elementTypeCode() == 'INTERVIEW'}" class="badge bg-warning bg-opacity-10 text-warning fw-normal">면담</span>
+                                </td>
+                                <td class="fw-medium text-white" th:text="${el.elementName()}">항목명</td>
+                                <td class="text-center" th:text="${el.maxScore()}">100</td>
+                                <td class="text-center">
+                                    <span class="fw-bold text-primary" th:text="${el.weight() + '%'}">10%</span>
+                                </td>
+                                <td class="text-end">
+                                    <form th:action="@{/eval/elements/{id}/delete(id=${el.elementId()})}" method="post" 
+                                          onsubmit="return confirm('이 항목을 삭제하시겠습니까?')">
+                                        <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm border-0">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(elements)}">
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="bi bi-clipboard-x fs-2 d-block mb-2"></i>
+                                    등록된 평가 항목이 없습니다. 항목을 추가해 주세요.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Modal -->
+    <div class="modal fade" id="addElementModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold">평가 항목 추가</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/eval/elements}" method="post">
+                    <input type="hidden" name="periodId" th:value="${selectedPeriod?.periodId()}">
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">평가 유형</label>
+                            <select name="elementTypeCode" class="form-select bg-dark text-white border-secondary" required>
+                                <option value="PERFORMANCE">성과 평가</option>
+                                <option value="COMPETENCY">역량 평가</option>
+                                <option value="MULTI_DIMENSIONAL">다면 평가</option>
+                                <option value="INTERVIEW">면담 평가</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">항목 명칭</label>
+                            <input type="text" name="elementName" class="form-control bg-dark text-white border-secondary" 
+                                   placeholder="예: 핵심 지표 기반 목표 달성도" required>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="form-label small text-muted">최대 점수</label>
+                                <input type="number" name="maxScore" class="form-control bg-dark text-white border-secondary" 
+                                       value="100" step="0.01" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-muted">가중치 (%)</label>
+                                <input type="number" name="weight" class="form-control bg-dark text-white border-secondary" 
+                                       placeholder="1 ~ 100" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">취소</button>
+                        <button type="submit" class="btn btn-primary px-4">추가하기</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
