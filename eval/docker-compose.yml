@@ -1,26 +1,42 @@
-# ============================================================
-# [현재 비활성화] SKU 공용 DB(211.232.94.161:1533) 사용 중
-# 로컬 DB로 돌아가려면 application.yml의 docker.compose.enabled를 true로 변경
-# ============================================================
+# ==========================================================================
+# [현재 설정]
+# - Spring Boot는 호스트(mvnw)에서 직접 실행
+# - spring.docker.compose.enabled=true 설정 시 앱 시작과 함께 ngrok 자동 기동
+# - ngrok이 호스트 8080 포트를 외부로 터널링
+# ==========================================================================
 version: '3.8'
 
 services:
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: ees_mssql
-    hostname: mssql
-    ports:
-      - "1433:1433"
+  # [기존 MSSQL 서비스 - 현재 비활성화, 공용 SKU DB 사용 중]
+  # sqlserver:
+  #   image: mcr.microsoft.com/mssql/server:2022-latest
+  #   container_name: ees_mssql
+  #   hostname: mssql
+  #   ports:
+  #     - "1433:1433"
+  #   environment:
+  #     - ACCEPT_EULA=Y
+  #     - MSSQL_SA_PASSWORD=EesAdmin!2026
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'EesAdmin!2026' -C -Q 'SELECT 1' || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   volumes:
+  #     - ees_mssql_data:/var/opt/mssql
+
+  # ngrok 터널링 서비스
+  # host.docker.internal = Docker Desktop(Windows/Mac)에서 호스트 PC를 가리키는 주소
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ees_ngrok
+    restart: unless-stopped
     environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=EesAdmin!2026
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'EesAdmin!2026' -C -Q 'SELECT 1' || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - ees_mssql_data:/var/opt/mssql
+      - NGROK_AUTHTOKEN=3Bh9g49Mkxf99eiJV7E1wuIGCg3_4NiHHxTwyB6GASX2HqBn1
+    command:
+      - "http"
+      - "host.docker.internal:8080"
+      - "--domain=unostensively-demographical-hanna.ngrok-free.dev"
 
 volumes:
   ees_mssql_data:
