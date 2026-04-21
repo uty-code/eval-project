@@ -15,6 +15,17 @@
     --warning: #f59e0b;
     --glass: rgba(30, 41, 59, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);
+
+    /* Sidebar Variables */
+    --sidebar-width: 280px;
+    --sidebar-collapsed-width: 80px;
+    --sidebar-current-width: var(--sidebar-width);
+    --transition-speed: 0.3s;
+}
+
+/* Sidebar Collapsed State Context */
+.sidebar-collapsed {
+    --sidebar-current-width: var(--sidebar-collapsed-width);
 }
 
 body {
@@ -48,6 +59,8 @@ h4,
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--glass-border);
     padding: 1rem 1.5rem;
+    margin-left: var(--sidebar-current-width);
+    transition: margin-left var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .navbar-brand {
@@ -58,15 +71,54 @@ h4,
 
 /* Sidebar */
 .sidebar {
-    width: 280px;
-    /* Use min-height so it at least fills the screen, but lets it stretch in the flex container */
-    min-height: 100vh;
+    width: var(--sidebar-current-width);
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
     background: var(--surface);
     border-right: 1px solid var(--border);
-    /* Remove position: sticky/fixed to allow scrolling with the page */
     padding-top: 5rem;
     padding-bottom: 2rem;
-    transition: all 0.3s ease;
+    transition: width var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1040;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Sidebar Toggle Button Container */
+.sidebar-toggle-container {
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: flex-start;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+}
+
+.sidebar-toggle-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sidebar-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.sidebar-collapsed .sidebar-toggle-container {
+    justify-content: center;
+    padding: 1rem 0;
 }
 
 /* Sidebar scrollbar styling */
@@ -96,27 +148,45 @@ h4,
     transition: all 0.2s;
     border-radius: 0.5rem;
     margin: 0.2rem 1rem;
-}
-
-.nav-link:hover,
-.nav-link.active {
-    background: var(--primary);
-    color: white;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .nav-link i {
     font-size: 1.25rem;
+    min-width: 1.5rem;
+    display: flex;
+    justify-content: center;
+}
+
+.nav-link span {
+    transition: opacity var(--transition-speed);
+    opacity: 1;
+}
+
+/* Collapsed nav link adjustments */
+.sidebar-collapsed .nav-link {
+    padding: 0.8rem 0;
+    justify-content: center;
+    margin: 0.2rem 0.5rem;
+}
+
+.sidebar-collapsed .nav-link span,
+.sidebar-collapsed .sidebar h6,
+.sidebar-collapsed .nav-link .badge {
+    display: none;
+    opacity: 0;
 }
 
 /* Main Content Area */
 .main-wrapper {
-    /* Sticky sidebar naturally occupies space in a flex layout, so no margin-left is needed */
+    margin-left: var(--sidebar-current-width);
     padding: 6.5rem 2rem 2rem;
     min-height: 100vh;
-    width: calc(100% - 280px);
-    /* Prevent growing beyond screen */
+    transition: margin-left var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
+    width: auto;
 }
 
 /* Login Page Specific */

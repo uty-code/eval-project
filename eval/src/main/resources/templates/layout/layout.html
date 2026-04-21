@@ -142,19 +142,46 @@
     <!-- Page Specific Scripts -->
     <th:block th:replace="${extraScripts} ?: ~{}"></th:block>
 
-    <!-- HTMX Sidebar Active State Manager -->
+    <!-- HTMX Sidebar Active State Manager & Sidebar Toggle Logic -->
     <script>
-        document.addEventListener('htmx:pushedIntoHistory', function (evt) {
-            const newPath = evt.detail.path;
-            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-                link.classList.remove('active');
-                const href = link.getAttribute('href');
-                if (href !== '#' && href !== '/' && newPath.startsWith(href)) {
-                    link.classList.add('active');
-                } else if (href === '/' && newPath === '/') {
-                    link.classList.add('active');
-                }
+        // 사이드바 상태 초기화 (페이지 로드 시 즉시 실행)
+        (function() {
+            const sidebarStatus = localStorage.getItem('sidebarStatus');
+            if (sidebarStatus === 'collapsed') {
+                document.body.classList.add('sidebar-collapsed');
+            }
+        })();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 사이드바 토글 기능
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    document.body.classList.toggle('sidebar-collapsed');
+                    
+                    // 상태 저장
+                    const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+                    localStorage.setItem('sidebarStatus', isCollapsed ? 'collapsed' : 'expanded');
+                });
+            }
+
+            // HTMX 페이지 전환 시 내비게이션 활성화 상태 관리
+            document.addEventListener('htmx:pushedIntoHistory', function (evt) {
+                const newPath = evt.detail.path;
+                updateActiveLink(newPath);
             });
+
+            function updateActiveLink(path) {
+                document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    const href = link.getAttribute('href');
+                    if (href !== '#' && href !== '/' && path.startsWith(href)) {
+                        link.classList.add('active');
+                    } else if (href === '/' && path === '/') {
+                        link.classList.add('active');
+                    }
+                });
+            }
         });
     </script>
 </body>
