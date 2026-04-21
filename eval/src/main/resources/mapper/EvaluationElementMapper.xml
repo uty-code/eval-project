@@ -47,7 +47,7 @@
     <!-- 차수별 가중치 합계 조회 (특정 항목 제외 가능) -->
     <select id="sumWeightByPeriodId" resultType="java.math.BigDecimal">
         select
-            coalesce(sum(weight), 0) as TOTAL_WEIGHT
+            isnull(sum(weight), 0) as TOTAL_WEIGHT
         from evaluation_elements_51
         where period_id = #{periodId}
           and is_deleted = 'n'

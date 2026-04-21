@@ -45,7 +45,7 @@
         where emp_id = #{empId}
           and is_failure = 'y'
           and created_at > (
-              select coalesce(max(created_at), '1900-01-01')
+              select isnull(max(created_at), '1900-01-01')
               from login_logs_51
               where emp_id = #{empId}
                 and is_failure = 'n'

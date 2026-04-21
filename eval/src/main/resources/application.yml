@@ -20,9 +20,9 @@ spring:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   sql:
     init:
-      mode: never  # 신규 데이터 반영을 위해 always로 설정
-      schema-locations: classpath:schema.sql
-      data-locations: classpath:data.sql
+      mode: never  # 최초 1회 실행 후 never로 되돌릴 것
+      schema-locations: classpath:eval-schema.sql
+      data-locations: classpath:eval-data.sql
       encoding: UTF-8
 
 mybatis:
