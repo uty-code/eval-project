@@ -5,6 +5,13 @@ spring:
   docker:
     compose:
       enabled: false  # 외부 SKU DB 사용 중 - Docker 로컬 DB 불필요
+  thymeleaf:
+    cache: true
+  devtools:
+    livereload:
+      enabled: true
+    restart:
+      enabled: true
   datasource:
     # SKU 공용 DB 서버 연결
     url: jdbc:sqlserver://211.232.94.161:1533;databaseName=SKUEDU;encrypt=true;trustServerCertificate=true;
@@ -13,7 +20,7 @@ spring:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   sql:
     init:
-      mode: never  # 최초 1회 실행 후 never로 되돌릴 것
+      mode: never  # 신규 데이터 반영을 위해 always로 설정
       schema-locations: classpath:schema.sql
       data-locations: classpath:data.sql
       encoding: UTF-8
@@ -28,4 +35,4 @@ mybatis:
 logging:
   level:
     root: INFO
-    com.ees.eval: DEBUG
+    com.ees.eval: INFO

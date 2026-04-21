@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'evaluators', ~{}, ~{})}">
+<head>
+    <title>평가자 관리 - EES</title>
+</head>
+<body>
+<div id="page-content" class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row align-items-center mb-4">
+        <div class="col-md-7">
+            <h1 class="fw-bold fs-3 mb-1">평가자 매핑 관리</h1>
+            <p class="text-muted">평가 대상자별 평가자를 설정하고 조직 구조에 따라 자동 생성합니다.</p>
+        </div>
+        <div class="col-md-5 text-md-end">
+            <form th:action="@{/eval/evaluators}" method="get" class="d-inline-flex gap-2 align-items-center">
+                <label class="text-muted small text-nowrap">차수 선택:</label>
+                <select name="periodId" class="form-select form-select-sm bg-dark text-white border-secondary" 
+                        onchange="this.form.submit()" style="width: 250px;">
+                    <option th:each="p : ${periods}" th:value="${p.periodId()}" 
+                            th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
+                            th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수</option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <!-- 필터링 안내 (부서장/임원 전용) -->
+    <div th:if="${isFiltered}" class="alert border-0 shadow-sm d-flex align-items-center mb-4 bg-primary bg-opacity-10 text-primary">
+        <i class="bi bi-info-circle-fill fs-5 me-3"></i>
+        <div>
+            <strong>부서 필터링 적용 중:</strong> 현재 소속 부서 사원들에 대한 평가 매핑만 조회 및 관리(자동 생성 포함)할 수 있습니다.
+        </div>
+    </div>
+
+    <!-- Stats & Actions -->
+    <div th:if="${selectedPeriod != null}" class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="glass-card p-4 text-center">
+                <div class="text-muted small mb-1">총 매핑 수</div>
+                <div class="fs-2 fw-bold text-primary" th:text="${mappings.size()}">0</div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="glass-card p-4 h-100 d-flex align-items-center justify-content-end gap-3">
+                <div class="me-auto">
+                    <h6 class="fw-bold mb-1">매핑 자동 생성</h6>
+                    <p class="small text-muted mb-0">조직도 정보를 기반으로 본인평가 및 부서장평가를 자동 구성합니다.</p>
+                </div>
+                <form th:action="@{/eval/evaluators/auto-generate}" method="post" 
+                      onsubmit="return confirm('현재 차수의 조직 정보를 기반으로 평가자를 자동 매핑하시겠습니까? (이미 존재하는 매핑은 유지됩니다.)')">
+                    <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
+                    <button type="submit" class="btn btn-primary px-4 py-2">
+                        <i class="bi bi-magic me-2"></i>자동 생성 실행
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mappings Table -->
+    <div th:if="${selectedPeriod != null}" class="glass-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="fw-bold mb-0">평가 대상 및 평가자 리스트</h5>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-dark-custom align-middle">
+                <thead>
+                    <tr class="text-muted small border-bottom border-secondary opacity-50">
+                        <th class="py-3">피평가자 (대상)</th>
+                        <th class="py-3">평가자</th>
+                        <th class="py-3">관계</th>
+                        <th class="py-3">생성일</th>
+                        <th class="py-3 text-end">관리</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="m : ${mappings}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm me-3 bg-secondary bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-person text-secondary"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-white" th:text="${m.evaluateeName()}">피평가자</div>
+                                    <div class="small text-muted" th:text="${'사번: ' + m.evaluateeId()}">사번</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm me-3 bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-person-check text-primary"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-white" th:text="${m.evaluatorName()}">평가자</div>
+                                    <div class="small text-muted" th:text="${'사번: ' + m.evaluatorId()}">사번</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span th:if="${m.relationTypeCode() == 'SELF'}" class="badge bg-secondary bg-opacity-10 text-secondary fw-normal">본인</span>
+                            <span th:if="${m.relationTypeCode() == 'MANAGER'}" class="badge bg-primary bg-opacity-10 text-primary fw-normal">부서장</span>
+                            <span th:if="${m.relationTypeCode() == 'PEER'}" class="badge bg-info bg-opacity-10 text-info fw-normal">동료</span>
+                            <span th:if="${m.relationTypeCode() == 'EXECUTIVE'}" class="badge bg-warning bg-opacity-10 text-warning fw-normal">임원</span>
+                        </td>
+                        <td class="small text-muted" th:text="${#temporals.format(m.createdAt(), 'yyyy-MM-dd HH:mm')}">2026-01-01</td>
+                        <td class="text-end">
+                            <form th:action="@{/eval/evaluators/{id}/delete(id=${m.mappingId()})}" method="post" 
+                                  onsubmit="return confirm('이 평가 관계를 해제하시겠습니까?')">
+                                <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm border-0">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(mappings)}">
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-people fs-2 d-block mb-2"></i>
+                            등록된 평가 매핑이 없습니다. 자동 생성을 실행하거나 수동으로 추가해 주세요.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>
