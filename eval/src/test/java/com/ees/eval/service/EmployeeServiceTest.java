@@ -163,4 +163,39 @@ class EmployeeServiceTest extends AbstractMssqlTest {
         assertThat(employeeService.checkAccessPrivilege("ROLE_UNKNOWN"))
                 .contains("알 수 없는 권한");
     }
+
+    @Autowired
+    private DepartmentService departmentService;
+
+    @Test
+    @DisplayName("사원 부서 이동 - 부서장인 경우 이동 차단 검증")
+    void updateEmployee_DepartmentTransfer_LeaderBlocked() {
+        // given: 사원 등록 (부서 1)
+        EmployeeDTO dto = EmployeeDTO.builder()
+                .deptId(1L).positionId(1L)
+                .password("testpass123")
+                .name("리더사원")
+                .email("leader@ees.com")
+                .hireDate(LocalDate.of(2026, 1, 1))
+                .build();
+        EmployeeDTO savedEmp = employeeService.registerEmployee(dto, List.of(1L));
+
+        // when: 해당 사원을 1번 부서의 부서장으로 지정
+        departmentService.assignLeader(1L, savedEmp.empId());
+
+        // then: 해당 사원의 부서를 2번으로 변경하려고 시도하면 예외 발생
+        EmployeeDTO updateReq = EmployeeDTO.builder()
+                .empId(savedEmp.empId())
+                .deptId(2L) // 부서 이동 시도
+                .positionId(savedEmp.positionId())
+                .name(savedEmp.name())
+                .hireDate(savedEmp.hireDate())
+                .statusCode(savedEmp.statusCode())
+                .version(savedEmp.version())
+                .build();
+
+        assertThatThrownBy(() -> employeeService.updateEmployee(updateReq))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("부서장으로 지정되어 있습니다");
+    }
 }

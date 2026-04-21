@@ -125,7 +125,7 @@
         left join positions_51   p on e.position_id = p.position_id and p.is_deleted = 'n'
         <where>
             <if test="searchName != null and searchName != ''">
-                and e.name like '%' + #{searchName} + '%'
+                and (e.name like '%' + #{searchName} + '%' or cast(e.emp_id as varchar(50)) like '%' + #{searchName} + '%')
             </if>
             <if test="searchDeptId != null">
                 and e.dept_id = #{searchDeptId}
@@ -155,7 +155,7 @@
         from employees_51 e
         <where>
             <if test="searchName != null and searchName != ''">
-                and e.name like '%' + #{searchName} + '%'
+                and (e.name like '%' + #{searchName} + '%' or cast(e.emp_id as varchar(50)) like '%' + #{searchName} + '%')
             </if>
             <if test="searchDeptId != null">
                 and e.dept_id = #{searchDeptId}

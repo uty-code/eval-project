@@ -79,7 +79,9 @@
                 <div class="glass-card p-4 h-100">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h5 class="fw-bold mb-0">인사 현황 (최근 등록)</h5>
-                        <a href="/employees" class="btn btn-link text-primary text-decoration-none p-0 small">전체 보기</a>
+                        <a href="/employees" hx-get="/employees" hx-target="#page-content" hx-select="#page-content"
+                            hx-swap="outerHTML" hx-push-url="true"
+                            class="btn btn-link text-primary text-decoration-none p-0 small">전체 보기</a>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover table-dark-custom align-middle">
@@ -108,16 +110,18 @@
                                     <td>
                                         <!-- 재직 상태 코드에 따라 배지 색상 분기 -->
                                         <span th:if="${emp.statusCode == 'EMPLOYED'}"
-                                              class="badge bg-success bg-opacity-10 text-success fw-normal px-2">재직</span>
+                                            class="badge bg-success bg-opacity-10 text-success fw-normal px-2">재직</span>
                                         <span th:if="${emp.statusCode == 'ON_LEAVE' or emp.statusCode == 'LEAVE'}"
-                                              class="badge bg-warning bg-opacity-10 text-warning fw-normal px-2">휴직</span>
+                                            class="badge bg-warning bg-opacity-10 text-warning fw-normal px-2">휴직</span>
                                         <span th:if="${emp.statusCode == 'RETIRED'}"
-                                              class="badge bg-danger bg-opacity-10 text-danger fw-normal px-2">퇴사</span>
+                                            class="badge bg-danger bg-opacity-10 text-danger fw-normal px-2">퇴사</span>
                                         <span th:if="${emp.statusCode == 'PENDING'}"
-                                              class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2">승인 대기</span>
-                                        <span th:if="${emp.statusCode != 'EMPLOYED' and emp.statusCode != 'ON_LEAVE' and emp.statusCode != 'LEAVE' and emp.statusCode != 'RETIRED' and emp.statusCode != 'PENDING'}"
-                                              class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2"
-                                              th:text="${emp.statusCode}">-</span>
+                                            class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2">승인
+                                            대기</span>
+                                        <span
+                                            th:if="${emp.statusCode != 'EMPLOYED' and emp.statusCode != 'ON_LEAVE' and emp.statusCode != 'LEAVE' and emp.statusCode != 'RETIRED' and emp.statusCode != 'PENDING'}"
+                                            class="badge bg-secondary bg-opacity-10 text-secondary fw-normal px-2"
+                                            th:text="${emp.statusCode}">-</span>
                                     </td>
                                 </tr>
                                 <!-- 데이터가 없을 경우 안내 행 표시 -->
@@ -137,12 +141,14 @@
                 <div class="glass-card p-4 mb-4">
                     <h5 class="fw-bold mb-3">주요 기능</h5>
                     <div class="d-grid gap-2">
-                        <a th:href="@{/eval/periods}"
+                        <a th:href="@{/eval/periods}" hx-get="/eval/periods" hx-target="#page-content"
+                            hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
                             class="btn btn-outline-light text-start py-3 d-flex justify-content-between align-items-center">
                             <span>평가 차수 설정</span>
                             <i class="bi bi-calendar-event"></i>
                         </a>
-                        <a th:href="@{/employees}"
+                        <a th:href="@{/employees}" hx-get="/employees" hx-target="#page-content"
+                            hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
                             class="btn btn-outline-light text-start py-3 d-flex justify-content-between align-items-center">
                             <span>사원 명부 관리</span>
                             <i class="bi bi-people"></i>

@@ -84,7 +84,7 @@ class EmployeeControllerIntegrationTest extends AbstractMssqlTest {
 
         // 2. 관리자 권한으로 사원 목록 조회
         mockMvc.perform(get("/employees")
-                        .param("name", "통합테스트"))
+                        .param("searchName", "통합테스트"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("통합테스트")))

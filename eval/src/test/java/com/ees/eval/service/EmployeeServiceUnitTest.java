@@ -62,6 +62,7 @@ class EmployeeServiceUnitTest {
                 .password("plainPassword")
                 .deptId(1L)
                 .positionId(1L)
+                .hireDate(java.time.LocalDate.of(2026, 1, 1))
                 .build();
 
         given(passwordEncoder.encode("plainPassword")).willReturn("encryptedPassword");

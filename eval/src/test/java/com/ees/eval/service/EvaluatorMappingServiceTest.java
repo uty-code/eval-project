@@ -40,6 +40,9 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
     private Long empIdA;
     private Long empIdB;
     private Long empIdC;
+    private String nameA;
+    private String nameB;
+    private String nameC;
 
     /**
      * 각 테스트 전에 차수 1건 + 사원 3명을 미리 등록합니다.
@@ -56,31 +59,37 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
         testPeriodId = period.periodId();
 
         // 사원 A (팀장)
-        empIdA = employeeService.registerEmployee(
+        EmployeeDTO empA = employeeService.registerEmployee(
                 EmployeeDTO.builder()
                         .deptId(1L).positionId(3L) // 과장
                         .password("passA!")
                         .name("김팀장").email("managerA@ees.com")
                         .hireDate(LocalDate.of(2020, 3, 1)).build(),
-                List.of(2L)).empId(); // ROLE_MANAGER
+                List.of(2L)); // ROLE_MANAGER
+        empIdA = empA.empId();
+        nameA = empA.name();
 
         // 사원 B
-        empIdB = employeeService.registerEmployee(
+        EmployeeDTO empB = employeeService.registerEmployee(
                 EmployeeDTO.builder()
                         .deptId(1L).positionId(1L) // 사원
                         .password("passB!")
                         .name("이사원").email("memberB@ees.com")
                         .hireDate(LocalDate.of(2024, 5, 1)).build(),
-                List.of(3L)).empId(); // ROLE_USER
+                List.of(3L)); // ROLE_USER
+        empIdB = empB.empId();
+        nameB = empB.name();
 
         // 사원 C
-        empIdC = employeeService.registerEmployee(
+        EmployeeDTO empC = employeeService.registerEmployee(
                 EmployeeDTO.builder()
                         .deptId(1L).positionId(1L)
                         .password("passC!")
                         .name("박사원").email("memberC@ees.com")
                         .hireDate(LocalDate.of(2025, 1, 1)).build(),
-                List.of(3L)).empId();
+                List.of(3L));
+        empIdC = empC.empId();
+        nameC = empC.name();
     }
 
     /**
@@ -90,7 +99,7 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
     @DisplayName("단건 매핑 생성 - 상급자 평가 매핑")
     void createSingleMappingTest() {
         // when: A(팀장)가 B(사원)의 상급자 평가자로 매핑
-        EvaluatorMappingDTO mapping = mappingService.createMapping(
+        EvaluatorMappingDTO created = mappingService.createMapping(
                 EvaluatorMappingDTO.builder()
                         .periodId(testPeriodId)
                         .evaluateeId(empIdB)
@@ -98,10 +107,14 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
                         .relationTypeCode("SUPERIOR")
                         .build());
 
-        // then
+        // then: 생성 직후 반환된 DTO가 아닌, ID로 재조회하여 JOIN된 정보(이름) 검증
+        EvaluatorMappingDTO mapping = mappingService.getMappingById(created.mappingId());
+        
         assertThat(mapping.mappingId()).isNotNull();
-        assertThat(mapping.evaluateeName()).isEqualTo("이사원");
-        assertThat(mapping.evaluatorName()).isEqualTo("김팀장");
+        assertThat(mapping.evaluateeId()).isEqualTo(empIdB);
+        assertThat(mapping.evaluateeName()).isEqualTo(nameB);
+        assertThat(mapping.evaluatorId()).isEqualTo(empIdA);
+        assertThat(mapping.evaluatorName()).isEqualTo(nameA);
         assertThat(mapping.relationTypeCode()).isEqualTo("SUPERIOR");
     }
 
@@ -129,14 +142,15 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
      * SELF는 허용되는지 검증합니다.
      */
     @Test
-    @DisplayName("자기평가 검증 - SELF 허용, SUPERIOR/PEER 차단")
+    @DisplayName("자기평가 검증 - 모든 유형에 대해 본인 매핑 차단")
     void selfMappingValidationTest() {
-        // SELF → 허용
-        EvaluatorMappingDTO selfMapping = mappingService.createMapping(
+        // SELF 포함 모든 유형 → 차단
+        assertThatThrownBy(() -> mappingService.createMapping(
                 EvaluatorMappingDTO.builder()
                         .periodId(testPeriodId).evaluateeId(empIdB)
-                        .evaluatorId(empIdB).relationTypeCode("SELF").build());
-        assertThat(selfMapping.relationTypeCode()).isEqualTo("SELF");
+                        .evaluatorId(empIdB).relationTypeCode("SELF").build()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("자기 자신을 평가자로 지정할 수 없습니다");
 
         // SUPERIOR → 차단
         assertThatThrownBy(() -> mappingService.createMapping(
@@ -144,15 +158,7 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
                         .periodId(testPeriodId).evaluateeId(empIdB)
                         .evaluatorId(empIdB).relationTypeCode("SUPERIOR").build()))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("상급자");
-
-        // PEER → 차단
-        assertThatThrownBy(() -> mappingService.createMapping(
-                EvaluatorMappingDTO.builder()
-                        .periodId(testPeriodId).evaluateeId(empIdB)
-                        .evaluatorId(empIdB).relationTypeCode("PEER").build()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("동료");
+                .hasMessageContaining("자기 자신을 평가자로 지정할 수 없습니다");
     }
 
     /**
@@ -167,8 +173,13 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
 
         // then
         assertThat(results).hasSize(2);
-        assertThat(results.getFirst().evaluatorName()).isEqualTo("김팀장");
-        assertThat(results.getLast().evaluatorName()).isEqualTo("박사원");
+        
+        // 각각 재조회하여 이름 검증 (서비스 삽입 직후 반환 DTO 보강)
+        EvaluatorMappingDTO first = mappingService.getMappingById(results.getFirst().mappingId());
+        EvaluatorMappingDTO last = mappingService.getMappingById(results.getLast().mappingId());
+
+        assertThat(first.evaluatorName()).isEqualTo(nameA);
+        assertThat(last.evaluatorName()).isEqualTo(nameC);
     }
 
     /**
@@ -193,22 +204,17 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
                 .periodId(testPeriodId).evaluateeId(empIdB)
                 .evaluatorId(empIdC).relationTypeCode("PEER").build());
 
-        // B 자기 평가
-        mappingService.createMapping(EvaluatorMappingDTO.builder()
-                .periodId(testPeriodId).evaluateeId(empIdB)
-                .evaluatorId(empIdB).relationTypeCode("SELF").build());
-
         // when: A의 '내가 해야 할 평가 목록' → 2건 (B상급자, C상급자)
         List<EvaluatorMappingDTO> aTasks = mappingService.getMyEvaluationTasks(testPeriodId, empIdA);
         assertThat(aTasks).hasSize(2);
 
-        // when: B의 '나를 평가하는 사람 목록' → 3건 (A상급자, C동료, B자기)
+        // when: B의 '나를 평가하는 사람 목록' → 2건 (A상급자, C동료)
         List<EvaluatorMappingDTO> bEvaluators = mappingService.getMyEvaluators(testPeriodId, empIdB);
-        assertThat(bEvaluators).hasSize(3);
+        assertThat(bEvaluators).hasSize(2);
 
-        // then: B의 평가자에 자기평가(SELF), 상급자(SUPERIOR), 동료(PEER)가 모두 포함
+        // then: B의 평가자에 상급자(SUPERIOR), 동료(PEER)가 포함
         List<String> bRelationTypes = bEvaluators.stream()
                 .map(EvaluatorMappingDTO::relationTypeCode).toList();
-        assertThat(bRelationTypes).containsExactlyInAnyOrder("SELF", "SUPERIOR", "PEER");
+        assertThat(bRelationTypes).containsExactlyInAnyOrder("SUPERIOR", "PEER");
     }
 }
