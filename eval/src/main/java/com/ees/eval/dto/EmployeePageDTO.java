@@ -44,4 +44,34 @@ public record EmployeePageDTO(
 
         return new EmployeePageDTO(employees, pageNum, pageSize, totalCount, totalPages, startPage, endPage);
     }
+
+    /** 이전 페이지 존재 여부 */
+    public boolean hasPrevious() {
+        return pageNum > 1;
+    }
+
+    /** 다음 페이지 존재 여부 */
+    public boolean hasNext() {
+        return pageNum < totalPages;
+    }
+
+    /** 이전 그룹 존재 여부 */
+    public boolean hasPreviousGroup() {
+        return startPage > 1;
+    }
+
+    /** 다음 그룹 존재 여부 */
+    public boolean hasNextGroup() {
+        return endPage < totalPages;
+    }
+
+    /** 첫 페이지 여부 */
+    public boolean isFirst() {
+        return pageNum == 1;
+    }
+
+    /** 마지막 페이지 여부 */
+    public boolean isLast() {
+        return pageNum == totalPages;
+    }
 }

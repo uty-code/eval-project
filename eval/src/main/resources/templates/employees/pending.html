@@ -190,23 +190,21 @@
                                 <td class="py-3 text-center">
                                     <div class="d-flex gap-1 justify-content-center">
                                         <!-- 승인 버튼 -->
-                                        <form th:action="@{'/employees/' + ${emp.empId()} + '/approve'}" method="post"
-                                            class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-outline-success px-3"
-                                                th:id="'btn-approve-' + ${emp.empId()}"
-                                                onclick="return confirm('이 사원의 등록 신청을 승인하시겠습니까?\n승인 즉시 로그인이 가능해집니다.')">
-                                                <i class="bi bi-check-lg me-1"></i>승인
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-outline-success me-1"
+                                            th:attr="hx-post=@{/employees/pending/approve/{id}(id=${emp.empId()})}"
+                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                            hx-indicator="#global-loader"
+                                            hx-confirm="이 사원을 승인하시겠습니까?">
+                                            <i class="bi bi-check-lg"></i> 승인
+                                        </button>
                                         <!-- 거절 버튼 -->
-                                        <form th:action="@{'/employees/' + ${emp.empId()} + '/reject'}" method="post"
-                                            class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger px-3"
-                                                th:id="'btn-reject-' + ${emp.empId()}"
-                                                onclick="return confirm('이 사원의 등록 신청을 거절하시겠습니까?\n거절된 신청은 복구할 수 없습니다.')">
-                                                <i class="bi bi-x-lg me-1"></i>거절
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                            th:attr="hx-post=@{/employees/pending/reject/{id}(id=${emp.empId()})}"
+                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                            hx-indicator="#global-loader"
+                                            hx-confirm="이 사원 등록을 거절하시겠습니까?">
+                                            <i class="bi bi-x-lg"></i> 거절
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -227,6 +225,11 @@
                 </ul>
             </div>
         </div> <!-- End of #employee-list-container -->
+        
+        <!-- Sidebar Badge OOB Update -->
+        <span id="sidebar-pending-badge" hx-swap-oob="true" 
+              class="badge bg-warning text-dark ms-1" th:if="${pendingCount > 0}" 
+              th:text="${pendingCount}"></span>
     </div>
 
     <!-- Page Scripts -->

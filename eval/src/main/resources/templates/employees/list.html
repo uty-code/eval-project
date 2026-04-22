@@ -126,7 +126,10 @@
 
             <!-- Search Filter Card -->
             <div class="glass-card p-4 mb-4">
-                <form th:action="@{/employees}" method="get" id="search-form">
+                <form th:action="@{/employees}" method="get" id="search-form"
+                      hx-get="/employees" hx-target="#page-content" hx-select="#page-content" 
+                      hx-swap="outerHTML" hx-push-url="true" hx-indicator="#global-loader"
+                      hx-trigger="change, submit">
                     <div class="row g-3 align-items-end">
                         <div class="col-md-4">
                             <label for="searchName" class="form-label text-muted small fw-semibold">사원 성명</label>
@@ -178,7 +181,8 @@
                                 <i class="bi bi-search me-1"></i>검색
                             </button>
                             <a th:href="@{/employees}" class="btn btn-outline-secondary" id="btn-reset-search"
-                                title="초기화">
+                                hx-get="/employees" hx-target="#page-content" hx-select="#page-content" 
+                                hx-push-url="true" hx-indicator="#global-loader" title="초기화">
                                 <i class="bi bi-arrow-counterclockwise"></i>
                             </a>
                         </div>
@@ -306,35 +310,9 @@
                 </div>
             </div>
 
-            <!-- 페이지네이션 UI -->
-            <div th:if="${page.totalPages() > 1}" class="d-flex justify-content-center mt-3 mb-2">
-                <nav aria-label="사원 목록 페이지 탐색">
-                    <ul class="pagination pagination-sm mb-0 gap-1">
-                        <!-- 이전 그룹 이동 -->
-                        <li class="page-item" th:classappend="${page.startPage() == 1} ? 'disabled'">
-                            <a class="page-link rounded-2"
-                                th:href="@{/employees(page=${page.startPage()-1},searchName=${searchName},searchDeptId=${searchDeptId},searchStatus=${searchStatus})}"
-                                aria-label="이전">
-                                <i class="bi bi-chevron-left"></i>
-                            </a>
-                        </li>
-                        <!-- 페이지 번호 버튼 -->
-                        <li class="page-item" th:each="i : ${#numbers.sequence(page.startPage(), page.endPage())}"
-                            th:classappend="${i == page.pageNum()} ? 'active'">
-                            <a class="page-link rounded-2"
-                                th:href="@{/employees(page=${i},searchName=${searchName},searchDeptId=${searchDeptId},searchStatus=${searchStatus})}"
-                                th:text="${i}">1</a>
-                        </li>
-                        <!-- 다음 그룹 이동 -->
-                        <li class="page-item" th:classappend="${page.endPage() == page.totalPages()} ? 'disabled'">
-                            <a class="page-link rounded-2"
-                                th:href="@{/employees(page=${page.endPage()+1},searchName=${searchName},searchDeptId=${searchDeptId},searchStatus=${searchStatus})}"
-                                aria-label="다음">
-                                <i class="bi bi-chevron-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
+            <!-- 페이지네이션 UI (v2 제네릭 프래그먼트 사용) -->
+            <div class="d-flex justify-content-center mt-3 mb-2">
+                <div th:replace="~{fragments/pagination :: pagination(${page}, '/employees', '#page-content', '#search-form')}"></div>
             </div>
             <div class="glass-card p-4 mt-4 bg-primary bg-opacity-10 border-primary border-opacity-25">
                 <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-info-circle me-2"></i>사원 관리 규칙</h6>
@@ -346,6 +324,11 @@
                     <li>부서장으로 지정된 사원의 부서 변경 시 부서장 권한이 자동으로 해제됩니다.</li>
                 </ul>
             </div> <!-- End of #employee-list-container -->
+
+            <!-- Sidebar Badge OOB Update -->
+            <span id="sidebar-pending-badge" hx-swap-oob="true" 
+                  class="badge bg-warning text-dark ms-1" th:if="${pendingCount > 0}" 
+                  th:text="${pendingCount}"></span>
         </div>
 
         <!-- Page Scripts -->

@@ -1,0 +1,75 @@
+<!--
+    EES 표준 페이지네이션 프래그먼트 (v2)
+    - 제네릭 설계: 특정 검색 필드에 의존하지 않고 hx-include를 통해 가변 필터 조건을 처리합니다.
+    - 버그 수정: <<, >> 화살표 로직을 startPage/endPage 대신 절대적 처음/마지막(pageNum) 기준으로 변경했습니다.
+    - HTMX 최적화: th:attr을 사용하여 속성 렌더링 호환성을 확보했습니다.
+-->
+<nav th:fragment="pagination(page, baseUrl, target, include)" 
+     aria-label="Page navigation" th:if="${page.totalPages > 0}">
+    <ul class="pagination justify-content-center mb-0">
+        
+        <!-- 처음으로 (<<) -->
+        <li class="page-item" th:classappend="${page.isFirst()} ? 'disabled'">
+            <a class="page-link rounded-2 mx-1" href="javascript:void(0)"
+               th:attr="hx-get=@{${baseUrl}(page=1)}"
+               th:hx-target="${target}" 
+               th:hx-include="${include}"
+               hx-swap="outerHTML"
+               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader"
+               aria-label="First">
+                <i class="bi bi-chevron-double-left"></i>
+            </a>
+        </li>
+
+        <!-- 이전 페이지 (<) -->
+        <li class="page-item" th:classappend="${!page.hasPrevious()} ? 'disabled'">
+            <a class="page-link rounded-2 mx-1" href="javascript:void(0)"
+               th:attr="hx-get=@{${baseUrl}(page=${page.pageNum - 1})}"
+               th:hx-target="${target}" 
+               th:hx-include="${include}"
+               hx-swap="outerHTML"
+               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader"
+               aria-label="Previous">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+
+        <!-- 페이지 번호 -->
+        <li class="page-item mx-1" th:each="p : ${#numbers.sequence(page.startPage, page.endPage)}"
+            th:classappend="${p == page.pageNum} ? 'active'">
+            <a class="page-link rounded-2" href="javascript:void(0)"
+               th:attr="hx-get=@{${baseUrl}(page=${p})}"
+               th:hx-target="${target}" 
+               th:hx-include="${include}"
+               hx-swap="outerHTML"
+               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader"
+               th:text="${p}">1</a>
+        </li>
+
+        <!-- 다음 페이지 (>) -->
+        <li class="page-item" th:classappend="${!page.hasNext()} ? 'disabled'">
+            <a class="page-link rounded-2 mx-1" href="javascript:void(0)"
+               th:attr="hx-get=@{${baseUrl}(page=${page.pageNum + 1})}"
+               th:hx-target="${target}" 
+               th:hx-include="${include}"
+               hx-swap="outerHTML"
+               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader"
+               aria-label="Next">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+
+        <!-- 마지막으로 (>>) -->
+        <li class="page-item" th:classappend="${page.isLast()} ? 'disabled'">
+            <a class="page-link rounded-2 mx-1" href="javascript:void(0)"
+               th:attr="hx-get=@{${baseUrl}(page=${page.totalPages})}"
+               th:hx-target="${target}" 
+               th:hx-include="${include}"
+               hx-swap="outerHTML"
+               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader"
+               aria-label="Last">
+                <i class="bi bi-chevron-double-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
