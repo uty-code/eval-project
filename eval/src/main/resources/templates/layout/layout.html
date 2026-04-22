@@ -186,6 +186,13 @@
                 updateActiveLink(newPath);
             });
 
+            // HTMX 요청 직시 스크롤 최상단 이동 (바닥 찍는 현상 방지)
+            document.addEventListener('htmx:beforeRequest', function(evt) {
+                if (evt.detail.target && evt.detail.target.id === 'page-content') {
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                }
+            });
+
             function updateActiveLink(path) {
                 document.querySelectorAll('.sidebar .nav-link').forEach(link => {
                     link.classList.remove('active');
