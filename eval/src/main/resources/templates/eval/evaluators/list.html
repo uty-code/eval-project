@@ -25,6 +25,22 @@
         </div>
     </div>
 
+    <!-- Flash Messages -->
+    <div th:if="${successMessage}"
+        class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show mb-4"
+        role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div th:if="${errorMessage}"
+        class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show mb-4"
+        role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
     <!-- 필터링 안내 (부서장/임원 전용) -->
     <div th:if="${isFiltered}" class="alert border-0 shadow-sm d-flex align-items-center mb-4 bg-primary bg-opacity-10 text-primary">
         <i class="bi bi-info-circle-fill fs-5 me-3"></i>

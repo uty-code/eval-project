@@ -3,6 +3,7 @@ package com.ees.eval.service.impl;
 import com.ees.eval.domain.Employee;
 import com.ees.eval.domain.EvaluatorMapping;
 import com.ees.eval.dto.EvaluatorMappingDTO;
+import com.ees.eval.mapper.DepartmentMapper;
 import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.EvaluatorMappingMapper;
 import com.ees.eval.service.EvaluatorMappingService;
@@ -28,6 +29,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
 
     private final EvaluatorMappingMapper mappingMapper;
     private final EmployeeMapper employeeMapper;
+    private final DepartmentMapper departmentMapper;
 
     /** 자기 자신을 매핑할 수 없는 관계 유형 목록 */
     private static final String RELATION_SUPERIOR = "SUPERIOR";
@@ -97,6 +99,10 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         validateSelfMapping(mappingDto.evaluateeId(), mappingDto.evaluatorId(), mappingDto.relationTypeCode());
         validateDuplicate(mappingDto.periodId(), mappingDto.evaluateeId(),
                 mappingDto.evaluatorId(), mappingDto.relationTypeCode());
+        
+        if ("EXECUTIVE".equals(mappingDto.relationTypeCode())) {
+            validateExecutiveMapping(mappingDto.evaluatorId());
+        }
 
         EvaluatorMapping mapping = convertToEntity(mappingDto);
         mapping.prePersist();
@@ -116,6 +122,10 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         for (Long evaluatorId : evaluatorIds) {
             validateSelfMapping(evaluateeId, evaluatorId, relationTypeCode);
             validateDuplicate(periodId, evaluateeId, evaluatorId, relationTypeCode);
+
+            if ("EXECUTIVE".equals(relationTypeCode)) {
+                validateExecutiveMapping(evaluatorId);
+            }
 
             EvaluatorMapping mapping = EvaluatorMapping.builder()
                     .periodId(periodId)
@@ -214,6 +224,18 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         int count = mappingMapper.countDuplicate(periodId, evaluateeId, evaluatorId, relationTypeCode);
         if (count > 0) {
             throw new IllegalStateException("동일한 평가 관계가 이미 존재합니다.");
+        }
+    }
+
+    private void validateExecutiveMapping(Long evaluatorId) {
+        Employee evaluator = employeeMapper.findById(evaluatorId)
+                .orElseThrow(() -> new IllegalArgumentException("평가자를 찾을 수 없습니다."));
+        
+        com.ees.eval.domain.Department dept = departmentMapper.findById(evaluator.getDeptId())
+                .orElseThrow(() -> new IllegalArgumentException("평가자의 부서를 찾을 수 없습니다."));
+                
+        if (dept.getParentDeptId() != null) {
+            throw new IllegalArgumentException("최상위 부서에 소속된 사원만 임원(EXECUTIVE)으로 지정할 수 있습니다.");
         }
     }
 
