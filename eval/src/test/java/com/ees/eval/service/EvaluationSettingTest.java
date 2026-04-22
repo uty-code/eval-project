@@ -154,7 +154,7 @@ class EvaluationSettingTest extends com.ees.eval.support.AbstractMssqlTest {
                 .elementName("의사소통").maxScore(new BigDecimal("100.00"))
                 .weight(new BigDecimal("10.00")).build());
 
-        assertThat(elementService.validateWeightSum(period.periodId())).isTrue();
+        assertThat(elementService.validateWeightSum(period.periodId(), null)).isTrue();
     }
 
     /**
@@ -183,7 +183,7 @@ class EvaluationSettingTest extends com.ees.eval.support.AbstractMssqlTest {
                 .weight(new BigDecimal("60.00")).build());
 
         // when: 차수별 항목 조회
-        List<EvaluationElementDTO> elements = elementService.getElementsByPeriodId(period.periodId());
+        List<EvaluationElementDTO> elements = elementService.getElementsByPeriodId(period.periodId(), null);
 
         // then: Sequenced Collections 활용한 검증 (element_type_code ASC 정렬)
         assertThat(elements).hasSize(2);
@@ -191,6 +191,6 @@ class EvaluationSettingTest extends com.ees.eval.support.AbstractMssqlTest {
         assertThat(elements.getLast().elementTypeCode()).isEqualTo("PERFORMANCE");
 
         // then: 가중치 합 정확히 100 검증
-        assertThat(elementService.validateWeightSum(period.periodId())).isTrue();
+        assertThat(elementService.validateWeightSum(period.periodId(), null)).isTrue();
     }
 }

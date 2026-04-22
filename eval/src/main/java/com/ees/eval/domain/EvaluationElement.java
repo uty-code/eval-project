@@ -23,6 +23,9 @@ public class EvaluationElement extends BaseEntity {
     /** 소속 평가 차수 식별자 (FK -> evaluation_periods) */
     private Long periodId;
 
+    /** 소속 부서 식별자 (FK -> departments, NULL이면 전사 공통) */
+    private Long deptId;
+
     /** 항목 유형 코드 (PERFORMANCE: 성과, COMPETENCY: 역량) */
     private String elementTypeCode;
 
@@ -40,16 +43,18 @@ public class EvaluationElement extends BaseEntity {
      *
      * @param elementId       항목 ID
      * @param periodId        차수 ID
+     * @param deptId          부서 ID
      * @param elementTypeCode 항목 유형 코드
      * @param elementName     항목 명칭
      * @param maxScore        최대 점수
      * @param weight          가중치
      */
     @Builder
-    public EvaluationElement(Long elementId, Long periodId, String elementTypeCode,
+    public EvaluationElement(Long elementId, Long periodId, Long deptId, String elementTypeCode,
             String elementName, BigDecimal maxScore, BigDecimal weight) {
         this.elementId = elementId;
         this.periodId = periodId;
+        this.deptId = deptId;
         this.elementTypeCode = elementTypeCode;
         this.elementName = elementName;
         this.maxScore = maxScore;

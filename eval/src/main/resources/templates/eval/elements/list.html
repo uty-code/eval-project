@@ -1,6 +1,5 @@
-<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'elements', ~{}, ~{})}">
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'elements', ~{}, ~{::#page-scripts})}">
 
 <head>
     <title>평가 요소 관리 - EES</title>
@@ -16,12 +15,19 @@
             </div>
             <div class="col-md-5 text-md-end">
                 <form th:action="@{/eval/elements}" method="get" class="d-inline-flex gap-2 align-items-center">
-                    <label class="text-muted small text-nowrap">차수 선택:</label>
+                    <label class="text-muted small text-nowrap">설정 그룹:</label>
                     <select name="periodId" class="form-select form-select-sm bg-dark text-white border-secondary"
-                        onchange="this.form.submit()" style="width: 250px;">
+                        onchange="this.form.submit()" style="width: 200px;">
                         <option th:each="p : ${periods}" th:value="${p.periodId()}"
                             th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
                             th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수</option>
+                    </select>
+                    <select name="deptId" class="form-select form-select-sm bg-dark text-white border-secondary"
+                        onchange="this.form.submit()" style="width: 180px;">
+                        <option value="">전사 공통</option>
+                        <option th:each="d : ${departments}" th:value="${d.deptId()}"
+                            th:text="${d.deptName()}"
+                            th:selected="${selectedDeptId == d.deptId()}">부서</option>
                     </select>
                 </form>
             </div>
@@ -41,7 +47,7 @@
                         <div class="d-inline-block p-4 rounded-circle border border-3 mb-2"
                             th:classappend="${isValid ? 'border-primary shadow-lg' : 'border-warning'}"
                             style="width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                            <span class="fs-1 fw-bold" th:text="${totalWeight + '%'}">0%</span>
+                            <span class="fs-1 fw-bold" th:text="${#numbers.formatDecimal(totalWeight, 1, 0) + '%'}">0%</span>
                             <span class="small text-muted">Total Weight</span>
                         </div>
                         <div th:if="${!isValid}" class="text-warning small mt-2">
@@ -58,12 +64,20 @@
                                 <span>선택된 차수</span>
                                 <span class="text-white fw-bold" th:text="${selectedPeriod.periodName()}">-</span>
                             </div>
+                            <div class="d-flex justify-content-between small text-muted mt-2">
+                                <span>대상 부서</span>
+                                <span class="text-primary fw-bold" th:text="${selectedDeptId == null ? '전사 공통' : (departments.?[deptId() == __${selectedDeptId}__].isEmpty() ? '알 수 없는 부서' : departments.?[deptId() == __${selectedDeptId}__][0].deptName())}">전사 공통</span>
+                            </div>
                         </div>
                         <div
                             class="list-group-item bg-transparent border-secondary border-opacity-25 px-0 py-3 text-center">
-                            <button class="btn btn-primary w-100 py-2" data-bs-toggle="modal"
+                            <button class="btn w-100 py-2" 
+                                th:classappend="${isValid ? 'btn-outline-secondary disabled' : 'btn-primary'}"
+                                th:disabled="${isValid}"
+                                data-bs-toggle="modal"
                                 data-bs-target="#addElementModal">
-                                <i class="bi bi-plus-lg me-2"></i>항목 추가
+                                <i class="bi" th:classappend="${isValid ? 'bi-check-all' : 'bi-plus-lg'}"></i>
+                                <span th:text="${isValid ? ' 설정 완료 (100%)' : ' 항목 추가'}">항목 추가</span>
                             </button>
                         </div>
                     </div>
@@ -74,9 +88,24 @@
             <div class="col-lg-8">
                 <div class="glass-card p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="fw-bold mb-0">평가 항목 리스트</h5>
-                        <span class="badge bg-secondary bg-opacity-10 text-secondary"
-                            th:text="${elements.size() + '개 항목'}">0개 항목</span>
+                        <div class="d-flex align-items-center gap-3">
+                            <h5 class="fw-bold mb-0">평가 항목 리스트</h5>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary"
+                                th:text="${elements.size() + '개 항목'}">0개 항목</span>
+                        </div>
+                        <div th:if="${!#lists.isEmpty(elements)}">
+                            <form hx-post="/eval/elements/reset" 
+                                  hx-target="#page-content" 
+                                  hx-select="#page-content" 
+                                  hx-swap="outerHTML"
+                                  hx-confirm="모든 항목을 초기화하시겠습니까? (이 작업은 되돌릴 수 없습니다.)">
+                                <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
+                                <input type="hidden" name="deptId" th:value="${selectedDeptId}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm px-3">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i>전체 초기화
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                     <div class="table-responsive">
@@ -87,7 +116,7 @@
                                     <th class="py-3">항목명</th>
                                     <th class="py-3 text-center">최대 점수</th>
                                     <th class="py-3 text-center">가중치</th>
-                                    <th class="py-3 text-end">관리</th>
+                                    <th class="py-3 text-center">관리</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -105,23 +134,42 @@
                                     <td class="fw-medium text-white" th:text="${el.elementName()}">항목명</td>
                                     <td class="text-center" th:text="${el.maxScore()}">100</td>
                                     <td class="text-center">
-                                        <span class="fw-bold text-primary" th:text="${el.weight() + '%'}">10%</span>
+                                        <span class="fw-bold text-primary" th:text="${#numbers.formatDecimal(el.weight(), 1, 0) + '%'}">10%</span>
                                     </td>
-                                    <td class="text-end">
-                                        <form th:action="@{/eval/elements/{id}/delete(id=${el.elementId()})}"
-                                            method="post" onsubmit="return confirm('이 항목을 삭제하시겠습니까?')">
-                                            <input type="hidden" name="periodId"
-                                                th:value="${selectedPeriod.periodId()}">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm border-0">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center gap-1">
+                                            <form th:hx-post="@{/eval/elements/{id}/delete(id=${el.elementId()})}"
+                                                  hx-target="#page-content"
+                                                  hx-select="#page-content"
+                                                  hx-swap="outerHTML"
+                                                  hx-confirm="이 항목을 삭제하시겠습니까?">
+                                                <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
+                                                <input type="hidden" name="deptId" th:value="${selectedDeptId}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger border-0">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(elements)}">
                                     <td colspan="5" class="text-center py-5 text-muted">
                                         <i class="bi bi-clipboard-x fs-2 d-block mb-2"></i>
-                                        등록된 평가 항목이 없습니다. 항목을 추가해 주세요.
+                                        <p class="mb-4">등록된 평가 항목이 없습니다.</p>
+                                        
+                                        <div th:if="${selectedDeptId != null}" class="mt-3">
+                                            <p class="small mb-3">전사 공통 설정을 이 부서의 템플릿으로 불러오시겠습니까?</p>
+                                            <form th:action="@{/eval/elements/copy-common}" method="post">
+                                                <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
+                                                <input type="hidden" name="deptId" th:value="${selectedDeptId}">
+                                                <button type="submit" class="btn btn-outline-primary px-4">
+                                                    <i class="bi bi-download me-2"></i>전사 공통 항목 불러오기
+                                                </button>
+                                            </form>
+                                        </div>
+                                        <div th:unless="${selectedDeptId != null}">
+                                            <p class="small">항목 추가 버튼을 눌러 평가 기준을 설정해 주세요.</p>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -141,15 +189,16 @@
                     </div>
                     <form th:action="@{/eval/elements}" method="post">
                         <input type="hidden" name="periodId" th:value="${selectedPeriod?.periodId()}">
+                        <input type="hidden" name="deptId" th:value="${selectedDeptId}">
                         <div class="modal-body p-4">
                             <div class="mb-3">
                                 <label class="form-label small text-muted">평가 유형</label>
                                 <select name="elementTypeCode" class="form-select bg-dark text-white border-secondary"
                                     required>
-                                    <option value="PERFORMANCE">성과 평가</option>
-                                    <option value="COMPETENCY">역량 평가</option>
-                                    <option value="MULTI_DIMENSIONAL">다면 평가</option>
-                                    <option value="INTERVIEW">면담 평가</option>
+                                    <option value="PERFORMANCE" th:disabled="${elements != null && #lists.toList(elements).?[elementTypeCode() == 'PERFORMANCE'].size() > 0}">성과 평가 (기존 존재 시 선택 불가)</option>
+                                    <option value="COMPETENCY" th:disabled="${elements != null && #lists.toList(elements).?[elementTypeCode() == 'COMPETENCY'].size() > 0}">역량 평가 (기존 존재 시 선택 불가)</option>
+                                    <option value="MULTI_DIMENSIONAL" th:disabled="${elements != null && #lists.toList(elements).?[elementTypeCode() == 'MULTI_DIMENSIONAL'].size() > 0}">다면 평가 (기존 존재 시 선택 불가)</option>
+                                    <option value="INTERVIEW" th:disabled="${elements != null && #lists.toList(elements).?[elementTypeCode() == 'INTERVIEW'].size() > 0}">면담 평가 (기존 존재 시 선택 불가)</option>
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -181,7 +230,14 @@
                 </div>
             </div>
         </div>
+
+
+
+
     </div>
+    
+    <!-- layout용 placeholder (내용은 위에서 이미 포함됨) -->
+    <div id="page-scripts"></div>
 </body>
 
 </html>

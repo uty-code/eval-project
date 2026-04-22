@@ -8,6 +8,7 @@
         select
             element_id        as ELEMENT_ID,
             period_id         as PERIOD_ID,
+            dept_id           as DEPT_ID,
             element_type_code as ELEMENT_TYPE_CODE,
             element_name      as ELEMENT_NAME,
             max_score         as MAX_SCORE,
@@ -28,6 +29,7 @@
         select
             element_id        as ELEMENT_ID,
             period_id         as PERIOD_ID,
+            dept_id           as DEPT_ID,
             element_type_code as ELEMENT_TYPE_CODE,
             element_name      as ELEMENT_NAME,
             max_score         as MAX_SCORE,
@@ -40,6 +42,14 @@
             updated_by        as UPDATED_BY
         from evaluation_elements_51
         where period_id = #{periodId}
+          <choose>
+              <when test="deptId != null">
+                  and dept_id = #{deptId}
+              </when>
+              <otherwise>
+                  and dept_id is null
+              </otherwise>
+          </choose>
           and is_deleted = 'n'
         order by element_type_code asc, element_id asc
     </select>
@@ -50,6 +60,14 @@
             isnull(sum(weight), 0) as TOTAL_WEIGHT
         from evaluation_elements_51
         where period_id = #{periodId}
+          <choose>
+              <when test="deptId != null">
+                  and dept_id = #{deptId}
+              </when>
+              <otherwise>
+                  and dept_id is null
+              </otherwise>
+          </choose>
           and is_deleted = 'n'
           <if test="excludeElementId != null">
             and element_id != #{excludeElementId}
@@ -59,11 +77,11 @@
     <!-- 평가 항목 삽입 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="elementId">
         insert into evaluation_elements_51 (
-            period_id, element_type_code, element_name,
+            period_id, dept_id, element_type_code, element_name,
             max_score, weight,
             is_deleted, version, created_at, created_by
         ) values (
-            #{periodId}, #{elementTypeCode}, #{elementName},
+            #{periodId}, #{deptId}, #{elementTypeCode}, #{elementName},
             #{maxScore}, #{weight},
             #{isDeleted}, #{version}, #{createdAt}, #{createdBy}
         )
@@ -72,7 +90,8 @@
     <!-- 평가 항목 수정 (낙관적 락 포함) -->
     <update id="update">
         update evaluation_elements_51
-        set element_type_code = #{elementTypeCode},
+        set dept_id           = #{deptId},
+            element_type_code = #{elementTypeCode},
             element_name      = #{elementName},
             max_score         = #{maxScore},
             weight            = #{weight},
@@ -91,6 +110,24 @@
             updated_at = #{updatedAt},
             updated_by = #{updatedBy}
         where element_id = #{elementId}
+          and is_deleted = 'n'
+    </update>
+
+    <!-- 특정 차수 및 부서의 모든 항목 초기화 -->
+    <update id="resetByPeriodAndDept">
+        update evaluation_elements_51
+        set is_deleted = 'y',
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        where period_id = #{periodId}
+          <choose>
+              <when test="deptId != null">
+                  and dept_id = #{deptId}
+              </when>
+              <otherwise>
+                  and dept_id is null
+              </otherwise>
+          </choose>
           and is_deleted = 'n'
     </update>
 

@@ -43,8 +43,11 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<EvaluationElementDTO> getElementsByPeriodId(Long periodId) {
-        return elementMapper.findByPeriodId(periodId).stream()
+    public List<EvaluationElementDTO> getElementsByPeriodId(Long periodId, Long deptId) {
+        // 해당 부서(또는 deptId가 null인 경우 전사 공통) 전용 설정만 조회합니다.
+        List<EvaluationElement> elements = elementMapper.findByPeriodId(periodId, deptId);
+
+        return elements.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
@@ -55,8 +58,16 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
     @Override
     @Transactional
     public EvaluationElementDTO createElement(EvaluationElementDTO elementDto) {
-        // 1. 가중치 초과 여부 사전 검증 (기존 합 + 신규 항목 가중치)
-        BigDecimal currentSum = elementMapper.sumWeightByPeriodId(elementDto.periodId(), null);
+        // 1. 유형당 하나만 존재하도록 검증
+        List<EvaluationElement> existing = elementMapper.findByPeriodId(elementDto.periodId(), elementDto.deptId());
+        boolean typeExists = existing.stream()
+                .anyMatch(e -> e.getElementTypeCode().equals(elementDto.elementTypeCode()));
+        if (typeExists) {
+            throw new IllegalStateException("해당 차수 및 부서에 이미 동일한 유형의 평가 항목이 존재합니다.");
+        }
+
+        // 2. 가중치 초과 여부 사전 검증 (기존 합 + 신규 항목 가중치)
+        BigDecimal currentSum = elementMapper.sumWeightByPeriodId(elementDto.periodId(), elementDto.deptId(), null);
         BigDecimal newTotal = currentSum.add(elementDto.weight());
         if (newTotal.compareTo(WEIGHT_LIMIT) > 0) {
             throw new IllegalStateException(
@@ -65,11 +76,11 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
                             ", 합산: " + newTotal);
         }
 
-        // 2. 엔티티 변환 및 감사 필드 초기화
+        // 3. 엔티티 변환 및 감사 필드 초기화
         EvaluationElement element = convertToEntity(elementDto);
         element.prePersist();
 
-        // 3. 데이터베이스에 삽입
+        // 4. 데이터베이스에 삽입
         elementMapper.insert(element);
 
         return getElementById(element.getElementId());
@@ -81,8 +92,17 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
     @Override
     @Transactional
     public EvaluationElementDTO updateElement(EvaluationElementDTO elementDto) {
-        // 1. 자신을 제외한 가중치 합 + 수정될 가중치가 100을 초과하는지 검증
-        BigDecimal otherSum = elementMapper.sumWeightByPeriodId(elementDto.periodId(), elementDto.elementId());
+        // 1. 유형 중복 검증 (자신을 제외한 다른 항목 중 동일 유형 존재 여부)
+        List<EvaluationElement> existing = elementMapper.findByPeriodId(elementDto.periodId(), elementDto.deptId());
+        boolean typeExists = existing.stream()
+                .anyMatch(e -> !e.getElementId().equals(elementDto.elementId()) && 
+                               e.getElementTypeCode().equals(elementDto.elementTypeCode()));
+        if (typeExists) {
+            throw new IllegalStateException("해당 차수 및 부서에 이미 동일한 유형의 다른 평가 항목이 존재합니다.");
+        }
+
+        // 2. 자신을 제외한 가중치 합 + 수정될 가중치가 100을 초과하는지 검증
+        BigDecimal otherSum = elementMapper.sumWeightByPeriodId(elementDto.periodId(), elementDto.deptId(), elementDto.elementId());
         BigDecimal newTotal = otherSum.add(elementDto.weight());
         if (newTotal.compareTo(WEIGHT_LIMIT) > 0) {
             throw new IllegalStateException(
@@ -91,7 +111,7 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
                             ", 합산: " + newTotal);
         }
 
-        // 2. 엔티티 변환 및 업데이트
+        // 3. 엔티티 변환 및 업데이트
         EvaluationElement element = convertToEntity(elementDto);
         element.preUpdate();
 
@@ -120,10 +140,50 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
      */
     @Override
     @Transactional(readOnly = true)
-    public boolean validateWeightSum(Long periodId) {
-        // 해당 차수의 전체 가중치 합이 정확히 100인지 확인
-        BigDecimal totalWeight = elementMapper.sumWeightByPeriodId(periodId, null);
+    public boolean validateWeightSum(Long periodId, Long deptId) {
+        // 해당 부서(또는 전사 공통)의 가중치 합계만 확인합니다.
+        BigDecimal totalWeight = elementMapper.sumWeightByPeriodId(periodId, deptId, null);
+        
         return totalWeight.compareTo(WEIGHT_LIMIT) == 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public void resetElements(Long periodId, Long deptId) {
+        Long currentUserId = 1L; // TODO: SecurityContext에서 실제 사용자 ID 추출
+        elementMapper.resetByPeriodAndDept(periodId, deptId, currentUserId, LocalDateTime.now());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public void copyCommonElementsToDept(Long periodId, Long deptId) {
+        if (deptId == null) return;
+
+        // 1. 기존 부서 전용 설정 초기화
+        resetElements(periodId, deptId);
+
+        // 2. 전사 공통 설정 조회
+        List<EvaluationElement> commonElements = elementMapper.findByPeriodId(periodId, null);
+
+        // 3. 공통 설정을 부서 전용으로 복사하여 저장
+        for (EvaluationElement common : commonElements) {
+            EvaluationElement deptElement = EvaluationElement.builder()
+                    .periodId(periodId)
+                    .deptId(deptId)
+                    .elementTypeCode(common.getElementTypeCode())
+                    .elementName(common.getElementName())
+                    .maxScore(common.getMaxScore())
+                    .weight(common.getWeight())
+                    .build();
+            deptElement.prePersist();
+            elementMapper.insert(deptElement);
+        }
     }
 
     /**
@@ -133,6 +193,7 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
         return EvaluationElementDTO.builder()
                 .elementId(element.getElementId())
                 .periodId(element.getPeriodId())
+                .deptId(element.getDeptId())
                 .elementTypeCode(element.getElementTypeCode())
                 .elementName(element.getElementName())
                 .maxScore(element.getMaxScore())
@@ -153,6 +214,7 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
         EvaluationElement element = EvaluationElement.builder()
                 .elementId(dto.elementId())
                 .periodId(dto.periodId())
+                .deptId(dto.deptId())
                 .elementTypeCode(dto.elementTypeCode())
                 .elementName(dto.elementName())
                 .maxScore(dto.maxScore())

@@ -20,12 +20,13 @@ public interface EvaluationElementService {
     EvaluationElementDTO getElementById(Long elementId);
 
     /**
-     * 특정 차수에 귀속된 평가 항목 목록을 조회합니다.
+     * 특정 차수 및 부서에 귀속된 평가 항목 목록을 조회합니다.
      *
      * @param periodId 대상 차수 식별자
+     * @param deptId   대상 부서 식별자
      * @return 항목 DTO 리스트
      */
-    List<EvaluationElementDTO> getElementsByPeriodId(Long periodId);
+    List<EvaluationElementDTO> getElementsByPeriodId(Long periodId, Long deptId);
 
     /**
      * 신규 평가 항목을 생성합니다.
@@ -43,7 +44,7 @@ public interface EvaluationElementService {
      * @param elementDto 수정할 데이터
      * @return 수정 완료된 항목 DTO
      * @throws com.ees.eval.exception.EesOptimisticLockException 데이터 충돌 시
-     * @throws IllegalStateException 가중치 합이 100을 초과할 경우
+     * @throws IllegalStateException                             가중치 합이 100을 초과할 경우
      */
     EvaluationElementDTO updateElement(EvaluationElementDTO elementDto);
 
@@ -55,10 +56,27 @@ public interface EvaluationElementService {
     void deleteElement(Long elementId);
 
     /**
-     * 특정 차수의 가중치 합이 정확히 100인지 검증합니다.
+     * 특정 차수 및 부서의 가중치 합이 정확히 100인지 검증합니다.
      *
      * @param periodId 대상 차수 식별자
+     * @param deptId   대상 부서 식별자
      * @return 가중치 합이 100이면 true
      */
-    boolean validateWeightSum(Long periodId);
+    boolean validateWeightSum(Long periodId, Long deptId);
+
+    /**
+     * 특정 차수 및 부서의 모든 평가 항목을 초기화(삭제)합니다.
+     *
+     * @param periodId 대상 차수 식별자
+     * @param deptId   대상 부서 식별자
+     */
+    void resetElements(Long periodId, Long deptId);
+
+    /**
+     * 특정 차수의 '전사 공통' 항목들을 지정된 부서의 설정으로 복사해 옵니다.
+     *
+     * @param periodId 대상 차수 식별자
+     * @param deptId   대상 부서 식별자
+     */
+    void copyCommonElementsToDept(Long periodId, Long deptId);
 }
