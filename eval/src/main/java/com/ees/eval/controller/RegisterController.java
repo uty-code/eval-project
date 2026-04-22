@@ -135,14 +135,27 @@ public class RegisterController {
     public String approveEmployee(
             @PathVariable Long empId,
             @AuthenticationPrincipal User user,
+            @RequestHeader(value = "HX-Request", required = false) boolean htmxRequest,
+            Model model,
             RedirectAttributes redirectAttributes) {
         try {
             Long adminId = Long.parseLong(user.getUsername());
             employeeService.approveEmployee(empId, adminId);
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "사원 등록 신청이 승인되었습니다. (사번: " + empId + ")");
+            
+            String msg = "사원 등록 신청이 승인되었습니다. (사번: " + empId + ")";
+            if (htmxRequest) {
+                model.addAttribute("successMessage", msg);
+                // CUD 작업 후 업데이트된 통계 수치를 모델에 반영하여 HTMX OOB 업데이트 정합성 확보
+                refreshStats(model);
+                return pendingList(model);
+            }
+            redirectAttributes.addFlashAttribute("successMessage", msg);
         } catch (Exception e) {
             log.error("사원 승인 실패 (empId={}): {}", empId, e.getMessage());
+            if (htmxRequest) {
+                model.addAttribute("errorMessage", "승인 처리 중 오류가 발생했습니다: " + e.getMessage());
+                return pendingList(model);
+            }
             redirectAttributes.addFlashAttribute("errorMessage",
                     "승인 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
@@ -157,17 +170,55 @@ public class RegisterController {
     public String rejectEmployee(
             @PathVariable Long empId,
             @AuthenticationPrincipal User user,
+            @RequestHeader(value = "HX-Request", required = false) boolean htmxRequest,
+            Model model,
             RedirectAttributes redirectAttributes) {
         try {
             Long adminId = Long.parseLong(user.getUsername());
             employeeService.rejectEmployee(empId, adminId);
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "사원 등록 신청이 거절되었습니다. (사번: " + empId + ")");
+            
+            String msg = "사원 등록 신청이 거절되었습니다. (사번: " + empId + ")";
+            if (htmxRequest) {
+                model.addAttribute("successMessage", msg);
+                refreshStats(model);
+                return pendingList(model);
+            }
+            redirectAttributes.addFlashAttribute("successMessage", msg);
         } catch (Exception e) {
             log.error("사원 거절 실패 (empId={}): {}", empId, e.getMessage());
+            if (htmxRequest) {
+                model.addAttribute("errorMessage", "거절 처리 중 오류가 발생했습니다: " + e.getMessage());
+                return pendingList(model);
+            }
             redirectAttributes.addFlashAttribute("errorMessage",
                     "거절 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
         return "redirect:/employees/pending";
+    }
+
+    /**
+     * HTMX 요청 시 최신 통계 데이터를 모델에 주입하여
+     * 화면 상단 통계 카드 및 사이드바 배지의 실시간 업데이트를 보장합니다.
+     */
+    private void refreshStats(Model model) {
+        CompletableFuture<Long> pendingCountFuture = CompletableFuture.supplyAsync(
+                employeeService::countPendingEmployees, virtualThreadExecutor);
+        CompletableFuture<Long> activeCountFuture = CompletableFuture.supplyAsync(
+                employeeService::countActiveEmployees, virtualThreadExecutor);
+        CompletableFuture<Long> thisYearHiredFuture = CompletableFuture.supplyAsync(
+                employeeService::countThisYearHired, virtualThreadExecutor);
+        CompletableFuture<Long> totalCountFuture = CompletableFuture.supplyAsync(
+                () -> employeeService.searchEmployeesPage(null, null, null, 1, 1).totalCount(),
+                virtualThreadExecutor);
+        CompletableFuture<Long> lockedCountFuture = CompletableFuture.supplyAsync(
+                employeeService::countLockedEmployees, virtualThreadExecutor);
+
+        CompletableFuture.allOf(pendingCountFuture, activeCountFuture, thisYearHiredFuture, totalCountFuture, lockedCountFuture).join();
+
+        model.addAttribute("pendingCount", pendingCountFuture.join());
+        model.addAttribute("activeCount", activeCountFuture.join());
+        model.addAttribute("thisYearHired", thisYearHiredFuture.join());
+        model.addAttribute("totalEmployeeCount", totalCountFuture.join());
+        model.addAttribute("lockedCount", lockedCountFuture.join());
     }
 }

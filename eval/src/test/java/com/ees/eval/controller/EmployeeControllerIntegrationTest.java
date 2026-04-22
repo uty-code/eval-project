@@ -101,4 +101,31 @@ class EmployeeControllerIntegrationTest extends AbstractMssqlTest {
                 .andExpect(status().isOk()) // GlobalExceptionHandler가 200 + error 뷰 반환
                 .andExpect(view().name("error/custom-error"));
     }
+
+    @Test
+    @DisplayName("통합 테스트 - 페이지네이션 파라미터가 서비스 및 뷰까지 정상 전달되는지 확인한다")
+    @WithMockUser(roles = "ADMIN")
+    void listEmployees_Pagination_Integration() throws Exception {
+        mockMvc.perform(get("/employees")
+                        .param("page", "1")
+                        .param("searchDeptId", "1"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("page"))
+                .andExpect(model().attribute("searchDeptId", 1L))
+                .andExpect(view().name("employees/list"));
+    }
+
+    @Test
+    @DisplayName("통합 테스트 - 승인 대기 목록에서 HTMX 요청 시 리다이렉트 없이 프래그먼트를 반환한다")
+    @WithMockUser(username = "1000", roles = "ADMIN")
+    void approveEmployee_Htmx_ShouldNotRedirect() throws Exception {
+        // 실제 데이터가 없더라도 컨트롤러의 HTMX 분기 로직이 작동하는지 확인
+        // (존재하지 않는 empId인 경우 예외가 발생하더라도 HTMX 요청이면 에러 메시지와 함께 목록 뷰를 반환하도록 설계됨)
+        mockMvc.perform(post("/employees/99999/approve")
+                        .header("HX-Request", "true")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("errorMessage"))
+                .andExpect(view().name("employees/pending"));
+    }
 }
