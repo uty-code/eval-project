@@ -82,8 +82,32 @@
                         </select>
                         <div class="form-text text-muted small">선택하지 않으면 최상위 부서로 등록됩니다.</div>
                     </div>
-                </div>
 
+                    <!-- 부서장 선택 (수정 시에만 표시) -->
+                    <div th:unless="${isNew}" class="col-md-12">
+                        <label for="leaderId" class="form-label text-muted small">부서장 지정</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary border-opacity-50">
+                                <i class="bi bi-person-check text-primary"></i>
+                            </span>
+                            <select class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                id="leaderId" name="leaderId" style="font-size: 0.875rem;">
+                                <option value="">-- 부서장 미지정 --</option>
+                                <option th:each="emp : ${deptEmployees}"
+                                    th:value="${emp.empId()}"
+                                    th:text="${emp.name()} + ' (사번: ' + ${emp.empId()} + ')'"
+                                    th:selected="${department.leaderId() != null and department.leaderId() == emp.empId()}">
+                                </option>
+                            </select>
+                            <div th:if="${department.leaderName() != null}" class="input-group-text bg-dark border-secondary border-opacity-50 small text-info">
+                                <i class="bi bi-info-circle me-1"></i> 현재: <span th:text="${department.leaderName()}" class="ms-1 fw-bold">홍길동</span>
+                            </div>
+                        </div>
+                        <div class="form-text text-muted small mt-2">
+                            부서장 지정 시 <strong class="text-warning">ROLE_MANAGER 권한이 자동 부여</strong>되며, 이전 부서장의 권한은 회수됩니다.
+                        </div>
+                    </div>
+                </div>
                 <!-- 수정 시 현재 정보 표시 -->
                 <div th:unless="${isNew}" class="mt-4 p-3 rounded-3" style="background: rgba(255,255,255,0.05);">
                     <div class="row g-3 text-muted small">
@@ -114,46 +138,6 @@
                 </div>
             </form>
         </div>
-
-        <!-- 리더(부서장) 지정 섹션 (수정 모드 전용) -->
-        <div th:unless="${isNew}" class="glass-card p-4 mt-4">
-            <h5 class="fw-bold text-primary mb-3">
-                <i class="bi bi-person-check me-2"></i>부서장 지정
-            </h5>
-            <div class="form-text text-muted small mb-3">
-                이 부서의 부서장(리더)을 지정합니다. 부서장으로 지정되면 <strong class="text-warning">부서장(ROLE_MANAGER) 권한이 자동 부여</strong>됩니다.<br>
-                부서장을 변경하면 기존 부서장의 권한은 자동으로 회수됩니다.
-            </div>
-            <form th:action="@{'/departments/' + ${department.deptId()} + '/assign-leader'}" method="post"
-                id="leader-form">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-6">
-                        <label for="leaderId" class="form-label text-muted small">부서장 선택</label>
-                        <select class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
-                            id="leaderId" name="leaderId" style="font-size: 0.875rem;">
-                            <option value="">-- 부서장 미지정 --</option>
-                            <option th:each="emp : ${deptEmployees}"
-                                th:value="${emp.empId()}"
-                                th:text="${emp.name()} + ' (사번: ' + ${emp.empId()} + ')'"
-                                th:selected="${department.leaderId() != null and department.leaderId() == emp.empId()}">
-                            </option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-outline-info px-4">
-                            <i class="bi bi-person-check-fill me-1"></i>부서장 저장
-                        </button>
-                    </div>
-                    <div class="col-md-3 text-end" th:if="${department.leaderName() != null}">
-                        <span class="badge bg-info bg-opacity-10 text-info fw-normal px-3 py-2">
-                            <i class="bi bi-person-check-fill me-1"></i>
-                            현재: <span th:text="${department.leaderName()}">홍길동</span>
-                        </span>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
 </body>
 
 </html>

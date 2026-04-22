@@ -214,11 +214,44 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional
     public DepartmentDTO updateDepartment(DepartmentDTO departmentDto) {
-        // 엔티티 변환 및 수정 일시 갱신
+        // 1. 기존 부서 정보 조회 (리더 변경 확인 및 검증용)
+        Department existingDept = departmentMapper.findById(departmentDto.deptId())
+                .orElseThrow(() -> new IllegalArgumentException("수정 대상 부서를 찾을 수 없습니다. deptId: " + departmentDto.deptId()));
+
+        Long oldLeaderId = existingDept.getLeaderId();
+        Long newLeaderId = departmentDto.leaderId();
+
+        // 2. 리더가 변경되었다면 권한 동기화 로직 수행
+        if (newLeaderId == null ? oldLeaderId != null : !newLeaderId.equals(oldLeaderId)) {
+            log.info("부서 {}의 리더 변경 감지: {} -> {}", existingDept.getDeptId(), oldLeaderId, newLeaderId);
+
+            // 기존 리더 권한 회수 (다른 부서 리더가 아닌 경우에만)
+            if (oldLeaderId != null) {
+                revokeManagerRoleIfNotLeaderElsewhere(oldLeaderId, existingDept.getDeptId());
+            }
+
+            // 새 리더 지정 시 검증 및 권한 부여
+            if (newLeaderId != null) {
+                // 부서 소속 및 상태 검증 (assignLeader 로직 재사용)
+                Employee emp = employeeMapper.findById(newLeaderId)
+                        .orElseThrow(() -> new IllegalArgumentException("사원을 찾을 수 없습니다. empId: " + newLeaderId));
+                if (!emp.getDeptId().equals(existingDept.getDeptId())) {
+                    throw new IllegalArgumentException("해당 부서 소속이 아닌 사원은 리더로 지정할 수 없습니다.");
+                }
+                if (!"EMPLOYED".equals(emp.getStatusCode())) {
+                    throw new IllegalArgumentException("재직 중인 사원만 리더로 지정할 수 있습니다.");
+                }
+                
+                // 새 리더 권한 부여
+                grantManagerRole(newLeaderId);
+            }
+        }
+
+        // 3. 엔티티 변환 및 수정 일시 갱신
         Department dept = convertToEntity(departmentDto);
         dept.preUpdate();
 
-        // 낙관적 락 체크를 포함한 업데이트 수행
+        // 4. 낙관적 락 체크를 포함한 업데이트 수행
         int updatedRows = departmentMapper.update(dept);
         if (updatedRows == 0) {
             throw new EesOptimisticLockException("부서 정보가 다른 사용자에 의해 변경되었거나 수정 충돌이 발생했습니다.");
