@@ -507,4 +507,33 @@
           and leader_id is not null
     </select>
 
+    <!-- 특정 부서에서 특정 권한(roleName)을 가진 사원 목록 조회 -->
+    <select id="findByDeptIdAndRoleName" resultType="com.ees.eval.domain.Employee">
+        select
+            e.emp_id       as EMP_ID,
+            e.dept_id      as DEPT_ID,
+            e.position_id  as POSITION_ID,
+            e.password     as PASSWORD,
+            e.name         as NAME,
+            e.email        as EMAIL,
+            e.phone        as PHONE,
+            e.status_code  as STATUS_CODE,
+            e.hire_date    as HIRE_DATE,
+            e.retire_date  as RETIRE_DATE,
+            e.is_deleted   as IS_DELETED,
+            e.version      as VERSION,
+            e.created_at   as CREATED_AT,
+            e.created_by   as CREATED_BY,
+            e.updated_at   as UPDATED_AT,
+            e.updated_by   as UPDATED_BY
+        from employees_51 e
+        inner join employee_roles_51 er on e.emp_id = er.emp_id
+        inner join roles_51 r on er.role_id = r.role_id
+        where e.dept_id = #{deptId}
+          and r.role_name = #{roleName}
+          and e.is_deleted = 'n'
+          and e.status_code = 'EMPLOYED'
+          and er.is_deleted = 'n'
+    </select>
+
 </mapper>

@@ -53,17 +53,9 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<EvaluatorMappingDTO> getMappingsByPeriodIdAndDeptId(Long periodId, Long deptId, Long excludeEmpId) {
-        List<EvaluatorMapping> mappings;
-        if (deptId == null) {
-            // EvaluatorMappingMapper에 findByPeriodId가 원래 있었으므로 이를 활용하거나
-            // findByPeriodIdAndDeptId(id, null) 처리
-            mappings = mappingMapper.findByPeriodIdAndDeptId(periodId, null);
-        } else {
-            mappings = mappingMapper.findByPeriodIdAndDeptId(periodId, deptId);
-        }
+    public List<EvaluatorMappingDTO> getMappingsByPeriodIdAndDeptId(Long periodId, Long deptId, String searchName) {
+        List<EvaluatorMapping> mappings = mappingMapper.findByPeriodIdAndDeptId(periodId, deptId, searchName);
         return mappings.stream()
-                .filter(m -> excludeEmpId == null || !m.getEvaluateeId().equals(excludeEmpId))
                 .map(this::enrichDto)
                 .collect(Collectors.toList());
     }
@@ -146,49 +138,98 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     @Override
     @Transactional
     public int autoGenerateMappings(Long periodId, Long deptId, Long excludeEmpId) {
-        // 정책 변경에 따른 기존 SELF 매핑 선제적 정리
-        cleanUpInvalidMappings(periodId);
-
         int count = 0;
         List<Employee> targetEmployees;
         if (deptId == null) {
             targetEmployees = employeeMapper.findAll();
         } else {
-            // 부서별 사원 조회 메서드가 필요할 수 있음. 일단 EmployeeMapper.findByDeptId 활용
             targetEmployees = employeeMapper.findByDeptId(deptId);
         }
 
+        // 최상위 부서장(임원진) 목록 확보
+        // 부서 계층 구조 파악을 위한 전체 부서 맵 캐싱
+        List<com.ees.eval.domain.Department> allDepts = departmentMapper.findAll();
+        java.util.Map<Long, com.ees.eval.domain.Department> deptMap = new java.util.HashMap<>();
+        for (com.ees.eval.domain.Department d : allDepts) {
+            deptMap.put(d.getDeptId(), d);
+        }
+
         for (Employee emp : targetEmployees) {
-            // 본인 제외 필터링 (관리자가 부서장인 경우 본인 매핑은 상급자가 수행)
+            // 퇴사/휴직자 제외
+            if (!"EMPLOYED".equals(emp.getStatusCode())) {
+                continue;
+            }
             if (excludeEmpId != null && emp.getEmpId().equals(excludeEmpId)) {
                 continue;
             }
 
-            // B. 부서장 평가(MANAGER) 매핑 생성
+            Long evaluateeId = emp.getEmpId();
+
+            // 1. 본인 평가(SELF) 매핑 생성 제외 (요구사항 변경으로 제외)
+            
+
+            boolean isLeader = false;
             if (emp.getDeptId() != null) {
                 java.util.Optional<Long> leaderIdOpt = employeeMapper.findDeptLeaderByDeptId(emp.getDeptId());
-                if (leaderIdOpt.isPresent()) {
-                    Long leaderId = leaderIdOpt.get();
-                    if (!emp.getEmpId().equals(leaderId)) {
-                        try {
-                            validateDuplicate(periodId, emp.getEmpId(), leaderId, "MANAGER");
-                            EvaluatorMapping managerMapping = EvaluatorMapping.builder()
-                                    .periodId(periodId)
-                                    .evaluateeId(emp.getEmpId())
-                                    .evaluatorId(leaderId)
-                                    .relationTypeCode("MANAGER")
-                                    .build();
-                            managerMapping.prePersist();
-                            mappingMapper.insert(managerMapping);
-                            count++;
-                        } catch (IllegalStateException e) {
-                            log.debug("중복된 MANAGER 매핑 스킵: empId={}, leaderId={}", emp.getEmpId(), leaderId);
+                if (leaderIdOpt.isPresent() && leaderIdOpt.get().equals(evaluateeId)) {
+                    isLeader = true;
+                }
+
+                if (isLeader) {
+                    // 2. 부서장인 경우 -> 소속 부서원 전원(SUBORDINATE) 다면 평가
+                    List<Employee> subordinates = employeeMapper.findByDeptId(emp.getDeptId());
+                    for (Employee sub : subordinates) {
+                        if ("EMPLOYED".equals(sub.getStatusCode()) && !sub.getEmpId().equals(evaluateeId)) {
+                            count += safeInsertMapping(periodId, evaluateeId, sub.getEmpId(), "SUBORDINATE");
+                        }
+                    }
+                } else if (leaderIdOpt.isPresent()) {
+                    // 3. 일반 사원인 경우 -> 부서장(MANAGER) 매핑
+                    count += safeInsertMapping(periodId, evaluateeId, leaderIdOpt.get(), "MANAGER");
+                }
+                
+                // 4. 최종 평가자(EXECUTIVE) 매핑 생성
+                // 사원이 속한 부서의 최상위 부서(임원급 부서)를 찾아서 해당 부서의 '임원(ROLE_EXECUTIVE)'을 최종 평가자로 지정
+                com.ees.eval.domain.Department currentDept = deptMap.get(emp.getDeptId());
+                Long rootDeptId = null;
+                while (currentDept != null) {
+                    if (currentDept.getParentDeptId() == null) {
+                        rootDeptId = currentDept.getDeptId();
+                        break;
+                    }
+                    currentDept = deptMap.get(currentDept.getParentDeptId());
+                }
+
+                if (rootDeptId != null) {
+                    List<Employee> executives = employeeMapper.findByDeptIdAndRoleName(rootDeptId, "ROLE_EXECUTIVE");
+                    for (Employee exec : executives) {
+                        if (!exec.getEmpId().equals(evaluateeId)) {
+                            count += safeInsertMapping(periodId, evaluateeId, exec.getEmpId(), "EXECUTIVE");
                         }
                     }
                 }
             }
         }
         return count;
+    }
+
+    private int safeInsertMapping(Long periodId, Long evaluateeId, Long evaluatorId, String relationTypeCode) {
+        if (evaluateeId.equals(evaluatorId)) {
+            return 0; // 본인 평가 불가
+        }
+        int count = mappingMapper.countDuplicate(periodId, evaluateeId, evaluatorId, relationTypeCode);
+        if (count == 0) {
+            EvaluatorMapping mapping = EvaluatorMapping.builder()
+                    .periodId(periodId)
+                    .evaluateeId(evaluateeId)
+                    .evaluatorId(evaluatorId)
+                    .relationTypeCode(relationTypeCode)
+                    .build();
+            mapping.prePersist();
+            mappingMapper.insert(mapping);
+            return 1;
+        }
+        return 0;
     }
 
     /**
@@ -206,12 +247,33 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
 
     @Override
     @Transactional
-    public void cleanUpInvalidMappings(Long periodId) {
-        log.info("차수 {} 내 부적절한 매핑(자기 평가 등) 정리 시작", periodId);
-        int deleted = mappingMapper.deleteSelfMappingsByPeriod(periodId);
-        if (deleted > 0) {
-            log.info("차수 {} 내 {}건의 자기 평가 매핑이 정책에 따라 삭제되었습니다.", periodId, deleted);
+    public EvaluatorMappingDTO updateMapping(Long mappingId, Long evaluatorId) {
+        EvaluatorMapping mapping = mappingMapper.findById(mappingId)
+                .orElseThrow(() -> new IllegalArgumentException("매핑을 찾을 수 없습니다. mappingId: " + mappingId));
+        
+        validateSelfMapping(mapping.getEvaluateeId(), evaluatorId, mapping.getRelationTypeCode());
+        validateDuplicate(mapping.getPeriodId(), mapping.getEvaluateeId(), evaluatorId, mapping.getRelationTypeCode());
+        
+        if ("EXECUTIVE".equals(mapping.getRelationTypeCode())) {
+            validateExecutiveMapping(evaluatorId);
         }
+
+        mapping.setEvaluatorId(evaluatorId);
+        mapping.setUpdatedBy(1L); // TODO: 현재 로그인한 사용자로 변경
+        mapping.setUpdatedAt(LocalDateTime.now());
+        
+        int updated = mappingMapper.update(mapping);
+        if (updated == 0) {
+            throw new IllegalStateException("업데이트 중 동시성 충돌이 발생했습니다.");
+        }
+        
+        return enrichDto(mappingMapper.findById(mappingId).get());
+    }
+
+    @Override
+    @Transactional
+    public void initializeMappingsByDept(Long periodId, Long deptId) {
+        mappingMapper.deleteByPeriodAndDept(periodId, deptId, 1L, LocalDateTime.now());
     }
 
     private void validateSelfMapping(Long evaluateeId, Long evaluatorId, String relationTypeCode) {

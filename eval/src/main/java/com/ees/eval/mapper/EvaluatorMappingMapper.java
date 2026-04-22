@@ -30,7 +30,9 @@ public interface EvaluatorMappingMapper {
      * @param deptId   부서 식별자
      * @return 매핑 리스트
      */
-    List<EvaluatorMapping> findByPeriodIdAndDeptId(@Param("periodId") Long periodId, @Param("deptId") Long deptId);
+    List<EvaluatorMapping> findByPeriodIdAndDeptId(@Param("periodId") Long periodId, 
+                                                   @Param("deptId") Long deptId, 
+                                                   @Param("empName") String empName);
 
     /**
      * 특정 차수에서 '내가 평가해야 할 목록'을 조회합니다.
@@ -97,4 +99,11 @@ public interface EvaluatorMappingMapper {
      * 특정 차수의 모든 SELF 매핑을 논리 삭제 처리합니다.
      */
     int deleteSelfMappingsByPeriod(@Param("periodId") Long periodId);
+
+    /**
+     * 특정 차수 및 부서의 매핑을 일괄 논리 삭제합니다.
+     * deptId가 null이면 해당 차수의 전체 매핑을 삭제합니다.
+     */
+    int deleteByPeriodAndDept(@Param("periodId") Long periodId, @Param("deptId") Long deptId,
+                              @Param("updatedBy") Long updatedBy, @Param("updatedAt") LocalDateTime updatedAt);
 }

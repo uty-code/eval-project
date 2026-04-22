@@ -1,3 +1,6 @@
+server:
+  forward-headers-strategy: framework
+
 spring:
   threads:
     virtual:
@@ -20,7 +23,7 @@ spring:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   sql:
     init:
-      mode: never  # 최초 1회 실행 후 never로 되돌릴 것
+      mode: always  # 강제 초기화를 위해 always로 변경
       schema-locations: classpath:eval-schema.sql
       data-locations: classpath:eval-data.sql
       encoding: UTF-8
