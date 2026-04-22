@@ -51,6 +51,9 @@
           and e1.dept_id = #{deptId}
           and e1.is_deleted = 'n'
           </if>
+          <if test="empName != null and empName != ''">
+          and (e1.name like '%' + #{empName} + '%' or e2.name like '%' + #{empName} + '%')
+          </if>
         order by m.evaluatee_id asc, m.relation_type_code asc
     </select>
 
@@ -159,5 +162,18 @@
           and relation_type_code = 'SELF'
           and is_deleted = 'n'
     </delete>
+
+    <!-- 특정 차수 및 부서 매핑 일괄 삭제 -->
+    <update id="deleteByPeriodAndDept">
+        update evaluator_mappings_51
+        set is_deleted = 'y',
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        where period_id = #{periodId}
+          and is_deleted = 'n'
+          <if test="deptId != null">
+          and evaluatee_id in (select emp_id from employees_51 where dept_id = #{deptId})
+          </if>
+    </update>
 
 </mapper>

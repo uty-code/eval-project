@@ -260,4 +260,13 @@ public interface EmployeeMapper {
      * @return 부서장의 사번을 담은 Optional 객체
      */
     Optional<Long> findDeptLeaderByDeptId(Long deptId);
+
+    /**
+     * 특정 부서에서 특정 권한(roleName)을 가진 활성 사원 목록을 조회합니다.
+     *
+     * @param deptId 대상 부서 ID
+     * @param roleName 권한 이름 (예: ROLE_EXECUTIVE)
+     * @return 해당 권한을 가진 사원 리스트
+     */
+    List<Employee> findByDeptIdAndRoleName(@Param("deptId") Long deptId, @Param("roleName") String roleName);
 }
