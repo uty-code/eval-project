@@ -25,6 +25,7 @@ import java.time.LocalDateTime;
 public record EvaluationElementDTO(
         Long elementId,
         Long periodId,
+        Long deptId,
         String elementTypeCode,
         String elementName,
         BigDecimal maxScore,

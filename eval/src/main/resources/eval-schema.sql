@@ -171,6 +171,7 @@ create table evaluation_elements_51
 (
     element_id bigint identity(1,1) primary key,
     period_id bigint not null,
+    dept_id bigint,
     element_type_code varchar(50) not null,
     element_name nvarchar(255) not null,
     max_score decimal(5,2) not null,
@@ -181,7 +182,8 @@ create table evaluation_elements_51
     created_by bigint,
     updated_at datetime,
     updated_by bigint,
-    foreign key (period_id) references evaluation_periods_51(period_id)
+    foreign key (period_id) references evaluation_periods_51(period_id),
+    foreign key (dept_id) references departments_51(dept_id)
 );
 
 create table evaluator_mappings_51

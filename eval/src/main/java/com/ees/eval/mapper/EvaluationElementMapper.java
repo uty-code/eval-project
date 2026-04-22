@@ -25,22 +25,25 @@ public interface EvaluationElementMapper {
     Optional<EvaluationElement> findById(Long elementId);
 
     /**
-     * 특정 차수에 귀속된 평가 항목 목록을 조회합니다.
+     * 특정 차수 및 부서에 귀속된 평가 항목 목록을 조회합니다.
      *
      * @param periodId 대상 차수 식별자
-     * @return 해당 차수의 항목 리스트
+     * @param deptId   대상 부서 식별자 (NULL이면 부서와 무관하게 조회하거나 전사 공통 조회)
+     * @return 해당 조건의 항목 리스트
      */
-    List<EvaluationElement> findByPeriodId(Long periodId);
+    List<EvaluationElement> findByPeriodId(@Param("periodId") Long periodId, @Param("deptId") Long deptId);
 
     /**
-     * 특정 차수에 등록된 모든 항목의 가중치 합계를 조회합니다.
+     * 특정 차수 및 부서에 등록된 모든 항목의 가중치 합계를 조회합니다.
      * 특정 항목을 제외한 합계를 구할 수 있도록 excludeElementId 파라미터를 지원합니다.
      *
-     * @param periodId 대상 차수 식별자
+     * @param periodId         대상 차수 식별자
+     * @param deptId           대상 부서 식별자
      * @param excludeElementId 합계에서 제외할 항목 ID (없으면 null)
      * @return 가중치 합계
      */
     BigDecimal sumWeightByPeriodId(@Param("periodId") Long periodId,
+                                   @Param("deptId") Long deptId,
                                    @Param("excludeElementId") Long excludeElementId);
 
     /**
@@ -69,4 +72,10 @@ public interface EvaluationElementMapper {
      */
     int softDelete(@Param("elementId") Long elementId, @Param("updatedBy") Long updatedBy,
                    @Param("updatedAt") LocalDateTime updatedAt);
+
+    /**
+     * 특정 차수 및 부서의 모든 평가 항목을 논리적으로 삭제(초기화)합니다.
+     */
+    int resetByPeriodAndDept(@Param("periodId") Long periodId, @Param("deptId") Long deptId,
+                             @Param("updatedBy") Long updatedBy, @Param("updatedAt") LocalDateTime updatedAt);
 }

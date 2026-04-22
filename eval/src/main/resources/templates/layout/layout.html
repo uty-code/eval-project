@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <meta th:if="${_csrf}" name="_csrf" th:content="${_csrf.token}"/>
+    <meta th:if="${_csrf}" name="_csrf_header" th:content="${_csrf.headerName}"/>
     <!-- Custom CSS -->
     <link rel="stylesheet" th:href="@{/css/index.css}">
     <!-- Page Specific CSS -->
@@ -153,6 +155,19 @@
         })();
 
         document.addEventListener('DOMContentLoaded', function() {
+            // CSRF 토큰 설정 (HTMX용)
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+            const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+            
+            if (csrfHeader && csrfToken) {
+                document.body.addEventListener('htmx:configRequest', (evt) => {
+                    evt.detail.headers[csrfHeader] = csrfToken;
+                });
+            }
+
+            // HTMX 디버깅 (필요 시 주석 해제)
+            // htmx.logAll();
+
             // 사이드바 토글 기능
             const sidebarToggle = document.getElementById('sidebar-toggle');
             if (sidebarToggle) {
