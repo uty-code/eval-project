@@ -157,6 +157,19 @@ public class EmployeeServiceImpl implements EmployeeService {
         // 5. employee_roles 매핑 테이블에 권한 정보 삽입
         if (roleIds != null && !roleIds.isEmpty()) {
             LocalDateTime now = LocalDateTime.now();
+            
+            // 임원(ROLE_EXECUTIVE) 지정 시 최상위 부서 소속 여부 검증
+            Long executiveRoleId = roleMapper.findByRoleName("ROLE_EXECUTIVE")
+                    .orElseThrow(() -> new IllegalStateException("ROLE_EXECUTIVE 권한 정보를 찾을 수 없습니다."))
+                    .getRoleId();
+            if (roleIds.contains(executiveRoleId)) {
+                Department dept = departmentMapper.findById(employee.getDeptId())
+                        .orElseThrow(() -> new IllegalArgumentException("사원의 부서를 찾을 수 없습니다."));
+                if (dept.getParentDeptId() != null) {
+                    throw new IllegalArgumentException("최상위 부서에 소속된 사원만 임원(EXECUTIVE) 권한을 부여받을 수 있습니다.");
+                }
+            }
+
             for (Long roleId : roleIds) {
                 employeeMapper.insertEmployeeRole(employee.getEmpId(), roleId, 1L, now);
             }
@@ -280,6 +293,18 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (roleIds != null && !roleIds.isEmpty()) {
             LocalDateTime now = LocalDateTime.now();
             Long adminId = 1L; // TODO: SecurityContext에서 현재 로그인 사용자 ID로 교체
+
+            // 임원(ROLE_EXECUTIVE) 지정 시 최상위 부서 소속 여부 검증
+            Long executiveRoleId = roleMapper.findByRoleName("ROLE_EXECUTIVE")
+                    .orElseThrow(() -> new IllegalStateException("ROLE_EXECUTIVE 권한 정보를 찾을 수 없습니다."))
+                    .getRoleId();
+            if (roleIds.contains(executiveRoleId)) {
+                Department dept = departmentMapper.findById(employee.getDeptId())
+                        .orElseThrow(() -> new IllegalArgumentException("사원의 부서를 찾을 수 없습니다."));
+                if (dept.getParentDeptId() != null) {
+                    throw new IllegalArgumentException("최상위 부서에 소속된 사원만 임원(EXECUTIVE) 권한을 부여받을 수 있습니다.");
+                }
+            }
 
             // 부서장 권한 보호: 해당 사원이 부서장이면 권한 변경 자체를 차단
             int leaderCount = departmentMapper.countDepartmentsByLeaderId(employee.getEmpId());
