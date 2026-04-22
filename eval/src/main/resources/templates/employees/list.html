@@ -126,10 +126,9 @@
 
             <!-- Search Filter Card -->
             <div class="glass-card p-4 mb-4">
-                <form th:action="@{/employees}" method="get" id="search-form"
-                      hx-get="/employees" hx-target="#page-content" hx-select="#page-content" 
-                      hx-swap="outerHTML" hx-push-url="true" hx-indicator="#global-loader"
-                      hx-trigger="change, submit">
+                <form th:action="@{/employees}" method="get" id="search-form" hx-get="/employees"
+                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                    hx-indicator="#global-loader" hx-trigger="submit">
                     <div class="row g-3 align-items-end">
                         <div class="col-md-4">
                             <label for="searchName" class="form-label text-muted small fw-semibold">사원 성명</label>
@@ -150,15 +149,13 @@
                                 <option value="">전체 부서</option>
                                 <th:block th:each="dept : ${departments}">
                                     <!-- 상위부서 (본부): parentDeptId == null 또는 treeDepth == 0 -->
-                                    <option th:if="${dept.parentDeptId() == null}"
-                                        th:value="${dept.deptId()}"
+                                    <option th:if="${dept.parentDeptId() == null}" th:value="${dept.deptId()}"
                                         th:text="'🏢 ' + ${dept.deptName()}"
                                         th:selected="${searchDeptId != null && searchDeptId == dept.deptId()}"
                                         style="font-weight: 700; color: #a5b4fc;">
                                     </option>
                                     <!-- 하위부서 (팀): parentDeptId != null -->
-                                    <option th:unless="${dept.parentDeptId() == null}"
-                                        th:value="${dept.deptId()}"
+                                    <option th:unless="${dept.parentDeptId() == null}" th:value="${dept.deptId()}"
                                         th:text="'　└ ' + ${dept.deptName()}"
                                         th:selected="${searchDeptId != null && searchDeptId == dept.deptId()}"
                                         style="color: #94a3b8; padding-left: 1.5rem;">
@@ -181,7 +178,7 @@
                                 <i class="bi bi-search me-1"></i>검색
                             </button>
                             <a th:href="@{/employees}" class="btn btn-outline-secondary" id="btn-reset-search"
-                                hx-get="/employees" hx-target="#page-content" hx-select="#page-content" 
+                                hx-get="/employees" hx-target="#page-content" hx-select="#page-content"
                                 hx-push-url="true" hx-indicator="#global-loader" title="초기화">
                                 <i class="bi bi-arrow-counterclockwise"></i>
                             </a>
@@ -264,9 +261,13 @@
                                 </td>
                                 <!-- 입/퇴사일 -->
                                 <td class="py-3 text-muted small">
-                                    <div th:text="${emp.hireDate() != null} ? ${#temporals.format(emp.hireDate(), 'yyyy-MM-dd')} : '-'">2024-01-01</div>
-                                    <div th:if="${emp.retireDate() != null}" class="text-danger mt-1" style="font-size: 0.75rem;">
-                                        <i class="bi bi-box-arrow-right me-1"></i><span th:text="${#temporals.format(emp.retireDate(), 'yyyy-MM-dd')}">2024-05-01</span>
+                                    <div
+                                        th:text="${emp.hireDate() != null} ? ${#temporals.format(emp.hireDate(), 'yyyy-MM-dd')} : '-'">
+                                        2024-01-01</div>
+                                    <div th:if="${emp.retireDate() != null}" class="text-danger mt-1"
+                                        style="font-size: 0.75rem;">
+                                        <i class="bi bi-box-arrow-right me-1"></i><span
+                                            th:text="${#temporals.format(emp.retireDate(), 'yyyy-MM-dd')}">2024-05-01</span>
                                     </div>
                                 </td>
                                 <!-- 권한 배지 -->
@@ -312,7 +313,9 @@
 
             <!-- 페이지네이션 UI (v2 제네릭 프래그먼트 사용) -->
             <div class="d-flex justify-content-center mt-3 mb-2">
-                <div th:replace="~{fragments/pagination :: pagination(${page}, '/employees', '#page-content', '#search-form')}"></div>
+                <div
+                    th:replace="~{fragments/pagination :: pagination(${page}, '/employees', '#page-content', '#search-form')}">
+                </div>
             </div>
             <div class="glass-card p-4 mt-4 bg-primary bg-opacity-10 border-primary border-opacity-25">
                 <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-info-circle me-2"></i>사원 관리 규칙</h6>
@@ -326,9 +329,8 @@
             </div> <!-- End of #employee-list-container -->
 
             <!-- Sidebar Badge OOB Update -->
-            <span id="sidebar-pending-badge" hx-swap-oob="true" 
-                  class="badge bg-warning text-dark ms-1" th:if="${pendingCount > 0}" 
-                  th:text="${pendingCount}"></span>
+            <span id="sidebar-pending-badge" hx-swap-oob="true" class="badge bg-warning text-dark ms-1"
+                th:if="${pendingCount > 0}" th:text="${pendingCount}"></span>
         </div>
 
         <!-- Page Scripts -->
