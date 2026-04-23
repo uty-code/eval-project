@@ -123,7 +123,7 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
     @Override
     @Transactional
     public void deleteElement(Long elementId) {
-        Long currentUserId = 1L;
+        Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         int updatedRows = elementMapper.softDelete(elementId, currentUserId, LocalDateTime.now());
         if (updatedRows == 0) {
             throw new IllegalArgumentException("삭제 대상 항목을 찾을 수 없습니다. elementId: " + elementId);
@@ -174,7 +174,7 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
     @Override
     @Transactional
     public void resetElements(Long periodId, Long deptId) {
-        Long currentUserId = 1L; // TODO: SecurityContext에서 실제 사용자 ID 추출
+        Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         elementMapper.resetByPeriodAndDept(periodId, deptId, currentUserId, LocalDateTime.now());
     }
 

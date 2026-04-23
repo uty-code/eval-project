@@ -97,7 +97,7 @@ public class CommonCodeServiceImpl implements CommonCodeService {
     @Override
     @Transactional
     public void deleteCode(Long codeId) {
-        Long currentUserId = 1L; // 시스템 보안 관리자 ID로 추후 대체
+        Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
 
         // 삭제 일시 및 수정자 정보를 담아 소프트 델리트 명령 하달
         int updatedRows = commonCodeMapper.softDelete(codeId, currentUserId, LocalDateTime.now());

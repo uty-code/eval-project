@@ -171,7 +171,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             }
 
             for (Long roleId : roleIds) {
-                employeeMapper.insertEmployeeRole(employee.getEmpId(), roleId, 1L, now);
+                employeeMapper.insertEmployeeRole(employee.getEmpId(), roleId, com.ees.eval.util.SecurityUtil.getCurrentEmployeeId(), now);
             }
         }
 
@@ -292,7 +292,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         // 4. 권한 교체: 기존 권한 소프트 삭제 후 새 권한 삽입
         if (roleIds != null && !roleIds.isEmpty()) {
             LocalDateTime now = LocalDateTime.now();
-            Long adminId = 1L; // TODO: SecurityContext에서 현재 로그인 사용자 ID로 교체
+            Long adminId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
 
             // 임원(ROLE_EXECUTIVE) 지정 시 최상위 부서 소속 여부 검증
             Long executiveRoleId = roleMapper.findByRoleName("ROLE_EXECUTIVE")

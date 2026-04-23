@@ -72,7 +72,6 @@ public class EvaluationTypeWeightServiceImpl implements EvaluationTypeWeightServ
                     .targetRoleCode(targetRoleCode)
                     .elementTypeCode(dto.elementTypeCode())
                     .weight(dto.weight())
-                    .createdBy(1000L) 
                     .build();
             entity.prePersist();
             weightMapper.insert(entity);

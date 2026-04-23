@@ -300,7 +300,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         }
 
         // 4. 안전 검증 통과 → 논리적 삭제 수행
-        Long currentUserId = 1L; // 추후 SecurityContext에서 교체 예정
+        Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         departmentMapper.softDelete(deptId, currentUserId, LocalDateTime.now());
     }
 
@@ -322,7 +322,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         String newStatus = "y".equals(currentStatus) ? "n" : "y";
 
         // 3. 상태 업데이트 수행
-        Long currentUserId = 1L; // 추후 SecurityContext에서 교체 예정
+        Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         departmentMapper.updateActiveStatus(deptId, newStatus, currentUserId, LocalDateTime.now());
     }
 
@@ -368,7 +368,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         }
 
         // 6. 새 리더 지정 (departments 테이블 업데이트)
-        Long currentUserId = 1L; // 추후 SecurityContext에서 교체 예정
+        Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         departmentMapper.updateLeader(deptId, empId, currentUserId, LocalDateTime.now());
 
         // 7. 새 리더에게 ROLE_MANAGER 권한 부여 (이미 보유 중이면 SKIP)
@@ -397,7 +397,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         Long previousLeaderId = dept.getLeaderId();
 
         // 3. 리더 해제 (leader_id를 NULL로)
-        Long currentUserId = 1L; // 추후 SecurityContext에서 교체 예정
+        Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         departmentMapper.updateLeader(deptId, null, currentUserId, LocalDateTime.now());
 
         // 4. 기존 리더의 권한 회수 (다른 부서 리더가 아닌 경우에만)
@@ -425,7 +425,7 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .orElseThrow(() -> new IllegalStateException("ROLE_MANAGER 권한 정보를 찾을 수 없습니다."));
 
         // 기존 권한 소프트 삭제 후 ROLE_MANAGER로 교체
-        Long currentUserId = 1L; // 추후 SecurityContext에서 교체 예정
+        Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         LocalDateTime now = LocalDateTime.now();
         employeeMapper.deleteEmployeeRolesByEmpId(empId, currentUserId, now);
         employeeMapper.insertEmployeeRole(empId, managerRole.getRoleId(), currentUserId, now);
@@ -451,7 +451,7 @@ public class DepartmentServiceImpl implements DepartmentService {
             Role userRole = roleMapper.findByRoleName("ROLE_USER")
                     .orElseThrow(() -> new IllegalStateException("ROLE_USER 권한 정보를 찾을 수 없습니다."));
 
-            Long currentUserId = 1L; // 추후 SecurityContext에서 교체 예정
+            Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
             LocalDateTime now = LocalDateTime.now();
             employeeMapper.deleteEmployeeRolesByEmpId(empId, currentUserId, now);
             employeeMapper.insertEmployeeRole(empId, userRole.getRoleId(), currentUserId, now);

@@ -102,7 +102,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     public void deleteRole(Long roleId) {
-        Long currentUserId = 1L; // 추후 세션 유저로 대체 예정
+        Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
 
         // 매퍼를 통해 is_deleted 값을 'y'로 업데이트
         int updatedRows = roleMapper.softDelete(roleId, currentUserId, LocalDateTime.now());

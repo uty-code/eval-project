@@ -86,7 +86,7 @@ public class PositionServiceImpl implements PositionService {
     @Override
     @Transactional
     public void deletePosition(Long positionId) {
-        Long currentUserId = 1L; // 배포 시 컨텍스트 사용자 정보로 교체
+        Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
 
         // 테이블에서 실제 행을 지우지 않고 상태값만 업데이트 처리
         int updatedRows = positionMapper.softDelete(positionId, currentUserId, LocalDateTime.now());
