@@ -61,6 +61,18 @@ public class DepartmentServiceImpl implements DepartmentService {
 
     /**
      * {@inheritDoc}
+     * N+1 쿼리 방지용 단순 부서 목록 조회 (Select Box 전용)
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<DepartmentDTO> getSimpleAllDepartments() {
+        return departmentMapper.findAll().stream()
+                .map(dept -> convertToDto(dept, null, null, 0))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
      */
     @Override
     @Transactional(readOnly = true)

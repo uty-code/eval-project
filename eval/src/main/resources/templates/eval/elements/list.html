@@ -309,30 +309,39 @@
     <th:block id="page-scripts">
         <script th:inline="javascript">
             (function() {
-                // 1. 역할별 가중치 실시간 밸런싱 (Staff) - 전역에서 1회만 등록 (이벤트 위임)
-                document.body.addEventListener('input', function(e) {
-                    if (e.target && e.target.id === 'weight-PERFORMANCE') {
-                        const compInput = document.getElementById('weight-COMPETENCY');
-                        if (compInput) {
-                            let val = parseInt(e.target.value) || 0;
-                            if (val > 100) val = 100;
-                            if (val < 0) val = 0;
-                            e.target.value = val;
-                            compInput.value = 100 - val;
+                // 1. 역할별 가중치 실시간 밸런싱 (이벤트 위임 범위 축소 및 최적화)
+                const setupWeightSync = () => {
+                    const contentArea = document.getElementById('page-content') || document.body;
+                    
+                    // 중복 등록 방지 꼬리표
+                    if (contentArea.dataset.syncBound === 'true') return;
+                    contentArea.dataset.syncBound = 'true';
+
+                    contentArea.addEventListener('input', function(e) {
+                        // 타겟이 우리가 찾는 input일 때만 DOM 검색 수행
+                        if (e.target.id === 'weight-PERFORMANCE') {
+                            const compInput = document.getElementById('weight-COMPETENCY');
+                            if (compInput) {
+                                let val = parseInt(e.target.value) || 0;
+                                val = Math.max(0, Math.min(100, val)); // 0~100 사이 보정
+                                e.target.value = val;
+                                compInput.value = 100 - val;
+                            }
+                        } else if (e.target.id === 'weight-COMPETENCY') {
+                            const perfInput = document.getElementById('weight-PERFORMANCE');
+                            if (perfInput) {
+                                let val = parseInt(e.target.value) || 0;
+                                val = Math.max(0, Math.min(100, val));
+                                e.target.value = val;
+                                perfInput.value = 100 - val;
+                            }
                         }
-                    } else if (e.target && e.target.id === 'weight-COMPETENCY') {
-                        const perfInput = document.getElementById('weight-PERFORMANCE');
-                        if (perfInput) {
-                            let val = parseInt(e.target.value) || 0;
-                            if (val > 100) val = 100;
-                            if (val < 0) val = 0;
-                            e.target.value = val;
-                            perfInput.value = 100 - val;
-                        }
-                    }
-                });
+                    });
+                };
 
                 const initWeightValidation = () => {
+                    setupWeightSync(); // 밸런싱 이벤트 초기화 호출
+                    
                     // 2. 개별 평가요소 가중치 합계 체크 로직
                     const typeWeights = {}; 
                     
