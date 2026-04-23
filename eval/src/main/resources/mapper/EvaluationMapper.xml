@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ees.eval.mapper.EvaluationMapper">
+
+    <resultMap id="EvaluationResultMap" type="com.ees.eval.domain.Evaluation">
+        <id property="evalId"           column="eval_id"/>
+        <result property="mappingId"    column="mapping_id"/>
+        <result property="elementId"    column="element_id"/>
+        <result property="score"        column="score"/>
+        <result property="oldScore"     column="old_score"/>
+        <result property="reason"       column="reason"/>
+        <result property="comments"     column="comments"/>
+        <result property="totalScore"   column="total_score"/>
+        <result property="gradeCode"    column="grade_code"/>
+        <result property="confirmStatusCode" column="confirm_status_code"/>
+        <result property="isDeleted"    column="is_deleted"/>
+        <result property="version"      column="version"/>
+        <result property="createdAt"    column="created_at"/>
+        <result property="createdBy"    column="created_by"/>
+        <result property="updatedAt"    column="updated_at"/>
+        <result property="updatedBy"    column="updated_by"/>
+    </resultMap>
+
+    <!-- 단건 삽입 -->
+    <insert id="insert" parameterType="com.ees.eval.domain.Evaluation">
+        INSERT INTO evaluations_51 (
+            mapping_id, element_id, score, reason, comments,
+            confirm_status_code, is_deleted, version,
+            created_at, created_by, updated_at, updated_by
+        ) VALUES (
+            #{mappingId}, #{elementId}, #{score}, #{reason}, #{comments},
+            #{confirmStatusCode}, #{isDeleted}, #{version},
+            #{createdAt}, #{createdBy}, #{updatedAt}, #{updatedBy}
+        )
+    </insert>
+
+    <!-- mappingId + elementId 기준 단건 조회 -->
+    <select id="findByMappingIdAndElementId" resultMap="EvaluationResultMap">
+        SELECT *
+        FROM evaluations_51
+        WHERE mapping_id = #{mappingId}
+          AND element_id = #{elementId}
+          AND is_deleted = 'n'
+    </select>
+
+    <!-- 코멘트 및 상태 업데이트 -->
+    <update id="update" parameterType="com.ees.eval.domain.Evaluation">
+        UPDATE evaluations_51
+        SET comments             = #{comments},
+            reason               = #{reason},
+            score                = #{score},
+            confirm_status_code  = #{confirmStatusCode},
+            updated_at           = #{updatedAt},
+            updated_by           = #{updatedBy},
+            version              = version + 1
+        WHERE eval_id = #{evalId}
+          AND version = #{version}
+    </update>
+
+    <!-- mappingId 기준 전체 조회 -->
+    <select id="findByMappingId" resultMap="EvaluationResultMap">
+        SELECT *
+        FROM evaluations_51
+        WHERE mapping_id = #{mappingId}
+          AND is_deleted = 'n'
+    </select>
+
+</mapper>
