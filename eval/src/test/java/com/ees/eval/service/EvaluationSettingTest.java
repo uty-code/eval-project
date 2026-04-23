@@ -129,30 +129,25 @@ class EvaluationSettingTest extends com.ees.eval.support.AbstractMssqlTest {
                 .build();
         EvaluationPeriodDTO period = periodService.createPeriod(periodDto);
 
-        // when: 성과 항목 60% + 역량 항목 30% = 90% (성공)
-        elementService.createElement(EvaluationElementDTO.builder()
-                .periodId(period.periodId()).elementTypeCode("PERFORMANCE")
-                .elementName("업무 달성도").maxScore(new BigDecimal("100.00"))
-                .weight(new BigDecimal("60.00")).build());
-
+        // when: 역량 항목 80% (성공)
         elementService.createElement(EvaluationElementDTO.builder()
                 .periodId(period.periodId()).elementTypeCode("COMPETENCY")
                 .elementName("리더십").maxScore(new BigDecimal("100.00"))
-                .weight(new BigDecimal("30.00")).build());
+                .weight(new BigDecimal("80.00")).build());
 
-        // then: 추가로 20% 시도 → 합계 110% → 예외 발생
+        // then: 추가로 30% 시도 → 합계 110% → 예외 발생
         assertThatThrownBy(() -> elementService.createElement(EvaluationElementDTO.builder()
                 .periodId(period.periodId()).elementTypeCode("COMPETENCY")
                 .elementName("의사소통").maxScore(new BigDecimal("100.00"))
-                .weight(new BigDecimal("20.00")).build()))
+                .weight(new BigDecimal("30.00")).build()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("가중치 합이 100을 초과");
 
-        // then: 10%로 정확히 맞추면 성공, 합계 = 100
+        // then: 20%로 정확히 맞추면 성공, 합계 = 100
         elementService.createElement(EvaluationElementDTO.builder()
                 .periodId(period.periodId()).elementTypeCode("COMPETENCY")
                 .elementName("의사소통").maxScore(new BigDecimal("100.00"))
-                .weight(new BigDecimal("10.00")).build());
+                .weight(new BigDecimal("20.00")).build());
 
         assertThat(elementService.validateWeightSum(period.periodId(), null)).isTrue();
     }
@@ -171,16 +166,16 @@ class EvaluationSettingTest extends com.ees.eval.support.AbstractMssqlTest {
                 .build();
         EvaluationPeriodDTO period = periodService.createPeriod(periodDto);
 
-        // given: 성과 + 역량 항목 등록
+        // given: 성과 + 역량 항목 각각 100% 등록
         elementService.createElement(EvaluationElementDTO.builder()
                 .periodId(period.periodId()).elementTypeCode("COMPETENCY")
                 .elementName("팀워크").maxScore(new BigDecimal("100.00"))
-                .weight(new BigDecimal("40.00")).build());
+                .weight(new BigDecimal("100.00")).build());
 
         elementService.createElement(EvaluationElementDTO.builder()
                 .periodId(period.periodId()).elementTypeCode("PERFORMANCE")
                 .elementName("목표 달성률").maxScore(new BigDecimal("100.00"))
-                .weight(new BigDecimal("60.00")).build());
+                .weight(new BigDecimal("100.00")).build());
 
         // when: 차수별 항목 조회
         List<EvaluationElementDTO> elements = elementService.getElementsByPeriodId(period.periodId(), null);
@@ -190,7 +185,7 @@ class EvaluationSettingTest extends com.ees.eval.support.AbstractMssqlTest {
         assertThat(elements.getFirst().elementTypeCode()).isEqualTo("COMPETENCY");
         assertThat(elements.getLast().elementTypeCode()).isEqualTo("PERFORMANCE");
 
-        // then: 가중치 합 정확히 100 검증
+        // then: 가중치 검증
         assertThat(elementService.validateWeightSum(period.periodId(), null)).isTrue();
     }
 }

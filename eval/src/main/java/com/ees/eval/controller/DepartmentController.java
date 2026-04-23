@@ -211,4 +211,27 @@ public class DepartmentController {
         return "redirect:/departments";
     }
 
+    /**
+     * 부서 리더(부서장)를 지정합니다.
+     *
+     * @param deptId             대상 부서 식별자
+     * @param leaderId           지정할 리더(사원) 식별자
+     * @param redirectAttributes 리다이렉트 시 전달할 Flash 메시지
+     * @return 부서 수정 화면으로 리다이렉트
+     */
+    @PostMapping("/{deptId}/assign-leader")
+    public String assignLeader(
+            @PathVariable Long deptId,
+            @RequestParam("leaderId") Long leaderId,
+            RedirectAttributes redirectAttributes) {
+        try {
+            departmentService.assignLeader(deptId, leaderId);
+            redirectAttributes.addFlashAttribute("successMessage", "부서 리더가 성공적으로 지정되었습니다.");
+        } catch (Exception e) {
+            log.error("부서 리더 지정 실패: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "리더 지정 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        return "redirect:/departments/" + deptId + "/edit";
+    }
+
 }

@@ -138,20 +138,26 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
     public boolean validateWeightSum(Long periodId, Long deptId) {
         List<EvaluationElement> elements = elementMapper.findByPeriodId(periodId, deptId);
         
-        // 1. 일반 평가 그룹 (성과 + 역량) 검증
-        BigDecimal memberSum = elements.stream()
-                .filter(e -> List.of("PERFORMANCE", "COMPETENCY").contains(e.getElementTypeCode()))
+        // 각 평가 그룹별 가중치 합계 계산
+        BigDecimal perfSum = elements.stream()
+                .filter(e -> "PERFORMANCE".equals(e.getElementTypeCode()))
                 .map(EvaluationElement::getWeight)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         
-        // 2. 다면 평가 그룹 검증
-        BigDecimal leaderSum = elements.stream()
+        BigDecimal compSum = elements.stream()
+                .filter(e -> "COMPETENCY".equals(e.getElementTypeCode()))
+                .map(EvaluationElement::getWeight)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                
+        BigDecimal multiSum = elements.stream()
                 .filter(e -> "MULTI_DIMENSIONAL".equals(e.getElementTypeCode()))
                 .map(EvaluationElement::getWeight)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 두 그룹 중 하나라도 100이거나, 설정이 완료된 상태인지 확인 (비즈니스 요구에 따라 조정 가능)
-        return memberSum.compareTo(WEIGHT_LIMIT) == 0 || leaderSum.compareTo(WEIGHT_LIMIT) == 0;
+        // 세 그룹 중 하나라도 설정이 100으로 완료된 상태인지 확인
+        return perfSum.compareTo(WEIGHT_LIMIT) == 0 || 
+               compSum.compareTo(WEIGHT_LIMIT) == 0 || 
+               multiSum.compareTo(WEIGHT_LIMIT) == 0;
     }
 
     /**

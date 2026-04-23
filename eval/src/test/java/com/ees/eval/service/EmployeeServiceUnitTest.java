@@ -1,6 +1,7 @@
 package com.ees.eval.service;
 
 import com.ees.eval.domain.Employee;
+import com.ees.eval.domain.Role;
 import com.ees.eval.dto.EmployeeDTO;
 import com.ees.eval.mapper.*;
 import com.ees.eval.service.impl.EmployeeServiceImpl;
@@ -89,6 +90,9 @@ class EmployeeServiceUnitTest {
         given(employeeMapper.findRoleNamesByEmpId(100L)).willReturn(List.of("ROLE_USER"));
         given(departmentMapper.findById(1L)).willReturn(Optional.empty());
         given(positionMapper.findById(1L)).willReturn(Optional.empty());
+        
+        Role executiveRole = Role.builder().roleId(999L).roleName("ROLE_EXECUTIVE").build();
+        given(roleMapper.findByRoleName("ROLE_EXECUTIVE")).willReturn(Optional.of(executiveRole));
 
         // when: 사원 등록 수행
         EmployeeDTO result = employeeService.registerEmployee(inputDto, List.of(1L));
