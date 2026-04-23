@@ -204,6 +204,15 @@
                     }
                 });
             }
+
+            // HTMX 글로벌 보안 설정 (CSRF)
+            document.body.addEventListener('htmx:configRequest', (evt) => {
+                const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+                const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+                if (csrfToken && csrfHeader) {
+                    evt.detail.headers[csrfHeader] = csrfToken;
+                }
+            });
         });
     </script>
 </body>

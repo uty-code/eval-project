@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ees.eval.mapper.EvaluationTypeWeightMapper">
+
+    <resultMap id="TypeWeightMap" type="com.ees.eval.domain.EvaluationTypeWeight">
+        <id property="weightId" column="WEIGHT_ID"/>
+        <result property="periodId" column="PERIOD_ID"/>
+        <result property="deptId" column="DEPT_ID"/>
+        <result property="targetRoleCode" column="TARGET_ROLE_CODE"/>
+        <result property="elementTypeCode" column="ELEMENT_TYPE_CODE"/>
+        <result property="weight" column="WEIGHT"/>
+        <result property="isDeleted" column="IS_DELETED"/>
+        <result property="version" column="VERSION"/>
+        <result property="createdAt" column="CREATED_AT"/>
+        <result property="createdBy" column="CREATED_BY"/>
+        <result property="updatedAt" column="UPDATED_AT"/>
+        <result property="updatedBy" column="UPDATED_BY"/>
+    </resultMap>
+
+    <select id="findByPeriodId" resultMap="TypeWeightMap">
+        SELECT * FROM evaluation_type_weights_51
+        WHERE period_id = #{periodId}
+          AND is_deleted = 'n'
+          <if test="targetRoleCode != null">
+              AND target_role_code = #{targetRoleCode}
+          </if>
+          <choose>
+              <when test="deptId != null">
+                  AND dept_id = #{deptId}
+              </when>
+              <otherwise>
+                  AND dept_id IS NULL
+              </otherwise>
+          </choose>
+    </select>
+
+    <select id="findById" resultMap="TypeWeightMap">
+        SELECT * FROM evaluation_type_weights_51
+        WHERE weight_id = #{weightId} AND is_deleted = 'n'
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="weightId">
+        INSERT INTO evaluation_type_weights_51 (
+            period_id, dept_id, target_role_code, element_type_code, weight, 
+            is_deleted, version, created_at, created_by
+        ) VALUES (
+            #{periodId}, #{deptId}, #{targetRoleCode}, #{elementTypeCode}, #{weight}, 
+            'n', 0, GETDATE(), #{createdBy}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE evaluation_type_weights_51
+        SET weight = #{weight},
+            version = version + 1,
+            updated_at = GETDATE(),
+            updated_by = #{updatedBy}
+        WHERE weight_id = #{weightId}
+          AND version = #{version}
+    </update>
+
+    <update id="deleteByPeriodId">
+        UPDATE evaluation_type_weights_51
+        SET is_deleted = 'y',
+            updated_at = GETDATE()
+        WHERE period_id = #{periodId}
+          <if test="targetRoleCode != null">
+              AND target_role_code = #{targetRoleCode}
+          </if>
+          <choose>
+              <when test="deptId != null">
+                  AND dept_id = #{deptId}
+              </when>
+              <otherwise>
+                  AND dept_id IS NULL
+              </otherwise>
+          </choose>
+    </update>
+
+</mapper>

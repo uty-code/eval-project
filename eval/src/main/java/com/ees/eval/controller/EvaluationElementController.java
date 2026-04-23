@@ -31,22 +31,28 @@ public class EvaluationElementController {
     private final EvaluationElementService elementService;
     private final EvaluationPeriodService periodService;
     private final DepartmentService departmentService;
+    private final com.ees.eval.service.EvaluationTypeWeightService typeWeightService;
 
     /**
      * 특정 평가 차수의 평가 요소 목록 및 설정 페이지를 반환합니다.
-     *
-     * @param periodId 대상 차수 ID (Optional, 미전달 시 최근 차수 기준)
-     * @param model    Thymeleaf 모델
-     * @return eval/elements/list.html
      */
     @GetMapping
     public String listElements(@RequestParam(required = false) Long periodId, 
                                @RequestParam(required = false) Long deptId, 
+                               @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
                                Model model) {
+        prepareListModel(periodId, deptId, model);
+        
+        if (isHtmx) {
+            return "eval/elements/list :: content";
+        }
+        return "eval/elements/list";
+    }
+
+    private void prepareListModel(Long periodId, Long deptId, Model model) {
         List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
         List<DepartmentDTO> departments = departmentService.getAllDepartments();
         
-        // periodId가 없으면 가장 최근(첫 번째) 차수 선택
         Long selectedId = (periodId != null) ? periodId : 
                          (!periods.isEmpty() ? periods.get(0).periodId() : null);
 
@@ -54,36 +60,89 @@ public class EvaluationElementController {
             List<EvaluationElementDTO> elements = elementService.getElementsByPeriodId(selectedId, deptId);
             EvaluationPeriodDTO selectedPeriod = periodService.getPeriodById(selectedId);
             
-            // 가중치 합계 계산
-            BigDecimal totalWeight = elements.stream()
-                    .map(EvaluationElementDTO::weight)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            List<com.ees.eval.dto.EvaluationTypeWeightDTO> memberWeights = typeWeightService.getTypeWeights(selectedId, deptId, "STAFF");
+            List<com.ees.eval.dto.EvaluationTypeWeightDTO> leaderWeights = typeWeightService.getTypeWeights(selectedId, deptId, "LEADER");
 
             model.addAttribute("elements", elements);
             model.addAttribute("selectedPeriod", selectedPeriod);
             model.addAttribute("selectedDeptId", deptId);
-            model.addAttribute("totalWeight", totalWeight);
-            model.addAttribute("isValid", totalWeight.compareTo(new BigDecimal("100.00")) == 0);
+            model.addAttribute("memberWeights", memberWeights);
+            model.addAttribute("leaderWeights", leaderWeights);
+            
+            BigDecimal memberTotal = elements.stream()
+                    .filter(e -> List.of("PERFORMANCE", "COMPETENCY").contains(e.elementTypeCode()))
+                    .map(EvaluationElementDTO::weight)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal leaderTotal = elements.stream()
+                    .filter(e -> "MULTI_DIMENSIONAL".equals(e.elementTypeCode()))
+                    .map(EvaluationElementDTO::weight)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            model.addAttribute("memberTotalWeight", memberTotal);
+            model.addAttribute("leaderTotalWeight", leaderTotal);
+            model.addAttribute("isMemberValid", memberTotal.compareTo(new BigDecimal("100.00")) == 0);
+            model.addAttribute("isLeaderValid", leaderTotal.compareTo(new BigDecimal("100.00")) == 0);
         }
 
         model.addAttribute("periods", periods);
         model.addAttribute("departments", departments);
         model.addAttribute("activeMenu", "elements");
-        return "eval/elements/list";
     }
 
-    /**
-     * 평가 요소를 신규 생성합니다.
-     */
+    @PostMapping("/type-weights")
+    public String saveTypeWeights(@RequestParam Long periodId,
+                                  @RequestParam(required = false) Long deptId,
+                                  @RequestParam String targetRoleCode,
+                                  @RequestParam List<String> types,
+                                  @RequestParam List<BigDecimal> weights,
+                                  @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+                                  RedirectAttributes redirectAttributes,
+                                  Model model) {
+        try {
+            java.util.List<com.ees.eval.dto.EvaluationTypeWeightDTO> dtoList = new java.util.ArrayList<>();
+            for (int i = 0; i < types.size(); i++) {
+                dtoList.add(com.ees.eval.dto.EvaluationTypeWeightDTO.builder()
+                        .elementTypeCode(types.get(i))
+                        .weight(weights.get(i))
+                        .build());
+            }
+            typeWeightService.saveTypeWeights(periodId, deptId, targetRoleCode, dtoList);
+            model.addAttribute("successMessage", targetRoleCode + "용 유형별 비중이 저장되었습니다.");
+        } catch (Exception e) {
+            log.error("유형별 가중치 저장 실패", e);
+            model.addAttribute("errorMessage", e.getMessage());
+        }
+
+        if (isHtmx) {
+            prepareListModel(periodId, deptId, model);
+            return "eval/elements/list :: content";
+        }
+
+        redirectAttributes.addFlashAttribute("successMessage", targetRoleCode + "용 유형별 비중이 저장되었습니다.");
+        String redirectUrl = "redirect:/eval/elements?periodId=" + periodId;
+        if (deptId != null) redirectUrl += "&deptId=" + deptId;
+        return redirectUrl;
+    }
+
     @PostMapping
-    public String createElement(@ModelAttribute EvaluationElementDTO dto, RedirectAttributes redirectAttributes) {
+    public String createElement(@ModelAttribute EvaluationElementDTO dto, 
+                               @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+                               RedirectAttributes redirectAttributes, 
+                               Model model) {
         try {
             elementService.createElement(dto);
-            redirectAttributes.addFlashAttribute("successMessage", "평가 항목이 추가되었습니다.");
+            model.addAttribute("successMessage", "평가 항목이 추가되었습니다.");
         } catch (Exception e) {
             log.error("평가 항목 생성 실패", e);
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            model.addAttribute("errorMessage", e.getMessage());
         }
+        
+        if (isHtmx) {
+            prepareListModel(dto.periodId(), dto.deptId(), model);
+            return "eval/elements/list :: content";
+        }
+        
+        redirectAttributes.addFlashAttribute("successMessage", "평가 항목이 추가되었습니다.");
         String redirectUrl = "redirect:/eval/elements?periodId=" + dto.periodId();
         if (dto.deptId() != null) {
             redirectUrl += "&deptId=" + dto.deptId();
@@ -91,18 +150,25 @@ public class EvaluationElementController {
         return redirectUrl;
     }
 
-    /**
-     * 평가 요소를 수정합니다.
-     */
     @PostMapping("/update")
-    public String updateElement(@ModelAttribute EvaluationElementDTO dto, RedirectAttributes redirectAttributes) {
+    public String updateElement(@ModelAttribute EvaluationElementDTO dto, 
+                               @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+                               RedirectAttributes redirectAttributes,
+                               Model model) {
         try {
             elementService.updateElement(dto);
-            redirectAttributes.addFlashAttribute("successMessage", "평가 항목이 수정되었습니다.");
+            model.addAttribute("successMessage", "평가 항목이 수정되었습니다.");
         } catch (Exception e) {
             log.error("평가 항목 수정 실패", e);
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            model.addAttribute("errorMessage", e.getMessage());
         }
+
+        if (isHtmx) {
+            prepareListModel(dto.periodId(), dto.deptId(), model);
+            return "eval/elements/list :: content";
+        }
+
+        redirectAttributes.addFlashAttribute("successMessage", "평가 항목이 수정되었습니다.");
         String redirectUrl = "redirect:/eval/elements?periodId=" + dto.periodId();
         if (dto.deptId() != null) {
             redirectUrl += "&deptId=" + dto.deptId();
@@ -110,37 +176,49 @@ public class EvaluationElementController {
         return redirectUrl;
     }
 
-    /**
-     * 전사 공통 항목을 부서 설정으로 복사합니다.
-     */
     @PostMapping("/copy-common")
     public String copyCommonElements(@RequestParam Long periodId,
                                      @RequestParam Long deptId,
-                                     RedirectAttributes redirectAttributes) {
+                                     @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+                                     RedirectAttributes redirectAttributes,
+                                     Model model) {
         try {
             elementService.copyCommonElementsToDept(periodId, deptId);
-            redirectAttributes.addFlashAttribute("successMessage", "전사 공통 항목을 성공적으로 불러왔습니다.");
+            model.addAttribute("successMessage", "전사 공통 항목을 성공적으로 불러왔습니다.");
         } catch (Exception e) {
             log.error("공통 항목 복사 실패", e);
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            model.addAttribute("errorMessage", e.getMessage());
         }
+
+        if (isHtmx) {
+            prepareListModel(periodId, deptId, model);
+            return "eval/elements/list :: content";
+        }
+
+        redirectAttributes.addFlashAttribute("successMessage", "전사 공통 항목을 성공적으로 불러왔습니다.");
         return "redirect:/eval/elements?periodId=" + periodId + "&deptId=" + deptId;
     }
 
-    /**
-     * 특정 차수/부서의 모든 평가 요소를 초기화합니다.
-     */
     @PostMapping("/reset")
     public String resetElements(@RequestParam Long periodId, 
                                 @RequestParam(required = false) Long deptId,
-                                RedirectAttributes redirectAttributes) {
+                                @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+                                RedirectAttributes redirectAttributes,
+                                Model model) {
         try {
             elementService.resetElements(periodId, deptId);
-            redirectAttributes.addFlashAttribute("successMessage", "평가 항목이 모두 초기화되었습니다.");
+            model.addAttribute("successMessage", "평가 항목이 모두 초기화되었습니다.");
         } catch (Exception e) {
             log.error("평가 항목 초기화 실패", e);
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            model.addAttribute("errorMessage", e.getMessage());
         }
+
+        if (isHtmx) {
+            prepareListModel(periodId, deptId, model);
+            return "eval/elements/list :: content";
+        }
+
+        redirectAttributes.addFlashAttribute("successMessage", "평가 항목이 모두 초기화되었습니다.");
         String redirectUrl = "redirect:/eval/elements?periodId=" + periodId;
         if (deptId != null) {
             redirectUrl += "&deptId=" + deptId;
@@ -148,21 +226,27 @@ public class EvaluationElementController {
         return redirectUrl;
     }
 
-    /**
-     * 평가 요소를 삭제합니다.
-     */
     @PostMapping("/{elementId}/delete")
     public String deleteElement(@PathVariable Long elementId, 
                                 @RequestParam Long periodId, 
                                 @RequestParam(required = false) Long deptId,
-                                RedirectAttributes redirectAttributes) {
+                                @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+                                RedirectAttributes redirectAttributes,
+                                Model model) {
         try {
             elementService.deleteElement(elementId);
-            redirectAttributes.addFlashAttribute("successMessage", "평가 항목이 삭제되었습니다.");
+            model.addAttribute("successMessage", "평가 항목이 삭제되었습니다.");
         } catch (Exception e) {
             log.error("평가 항목 삭제 실패", e);
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            model.addAttribute("errorMessage", e.getMessage());
         }
+
+        if (isHtmx) {
+            prepareListModel(periodId, deptId, model);
+            return "eval/elements/list :: content";
+        }
+
+        redirectAttributes.addFlashAttribute("successMessage", "평가 항목이 삭제되었습니다.");
         String redirectUrl = "redirect:/eval/elements?periodId=" + periodId;
         if (deptId != null) {
             redirectUrl += "&deptId=" + deptId;

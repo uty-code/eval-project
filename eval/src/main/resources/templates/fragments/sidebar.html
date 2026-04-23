@@ -12,7 +12,8 @@
         <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">메인 메뉴</h6>
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/}" th:attr="hx-get=@{/}" hx-target="#page-content" hx-select="#page-content"
-                hx-swap="outerHTML show:window:top" hx-push-url="true" th:classappend="${activeMenu == 'dashboard' ? 'active' : ''}">
+                hx-swap="outerHTML show:window:top" hx-push-url="true"
+                th:classappend="${activeMenu == 'dashboard' ? 'active' : ''}">
                 <i class="bi bi-speedometer2"></i>
                 <span>대시보드</span>
             </a>
@@ -48,15 +49,7 @@
                 <i class="bi bi-calendar-check-fill"></i>
                 <span>평가 차수 설정</span>
             </a>
-            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
-                <i class="bi bi-pencil-square"></i>
-                <span>평가요소 관리</span>
-            </a>
-            <a class="nav-link" href="#" onclick="alert('준비 중입니다.')">
-                <i class="bi bi-award-fill"></i>
-                <span>평가자 관리</span>
-            </a>
-            <!-- <a class="nav-link" th:href="@{/eval/elements}" hx-get="/eval/elements" hx-target="#page-content"
+            <a class="nav-link" th:href="@{/eval/elements}" hx-get="/eval/elements" hx-target="#page-content"
                 hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
                 th:classappend="${activeMenu == 'elements' ? 'active' : ''}">
                 <i class="bi bi-list-check"></i>
@@ -67,7 +60,7 @@
                 th:classappend="${activeMenu == 'evaluators' ? 'active' : ''}">
                 <i class="bi bi-person-lines-fill"></i>
                 <span>평가자 관리</span>
-            </a>-->
+            </a>
         </nav>
     </div>
 

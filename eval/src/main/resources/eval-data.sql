@@ -235,6 +235,14 @@ values
 
 if not exists (select 1
 from common_codes_51
+where group_code = 'EVAL_ELEMENT_TYPE' and code_value = 'PEER')
+    insert into common_codes_51
+    (group_code, code_value, code_name, description, is_deleted, version, created_at, created_by)
+values
+    ('EVAL_ELEMENT_TYPE', 'PEER', N'동료 평가', N'동료 간의 상호 평가 항목입니다.', 'n', 0, getdate(), 1);
+
+if not exists (select 1
+from common_codes_51
 where group_code = 'EVAL_ELEMENT_TYPE' and code_value = 'INTERVIEW')
     insert into common_codes_51
     (group_code, code_value, code_name, description, is_deleted, version, created_at, created_by)
@@ -518,3 +526,41 @@ where period_name = N'2026년 상반기 정기 평가')
     (period_year, period_name, status_code, start_date, end_date, is_deleted, version, created_at, created_by)
 values
     (2026, N'2026년 상반기 정기 평가', 'IN_PROGRESS', '2026-01-01', '2026-06-30', 'n', 0, getdate(), 1000);
+
+-- 유형별 초기 가중치 설정 (이미지 기준: 역량 40, 면담 10, 동료 10, 성과 40)
+-- 유형별 초기 가중치 설정
+-- 부서원(STAFF): 성과 50, 역량 50
+insert into evaluation_type_weights_51 (period_id, target_role_code, element_type_code, weight, created_by)
+select period_id, 'STAFF', 'PERFORMANCE', 50.00, 1000 from evaluation_periods_51 where period_name = N'2026년 상반기 정기 평가'
+union all
+select period_id, 'STAFF', 'COMPETENCY', 50.00, 1000 from evaluation_periods_51 where period_name = N'2026년 상반기 정기 평가'
+union all
+-- 부서장(LEADER): 다면(PEER) 100
+select period_id, 'LEADER', 'PEER', 100.00, 1000 from evaluation_periods_51 where period_name = N'2026년 상반기 정기 평가';
+
+-- ==========================================
+-- 10. 세부 평가 요소 더미 데이터 (평가 문항)
+-- PERFORMANCE(성과), COMPETENCY(역량), PEER(다면)
+-- ==========================================
+
+-- 성과 평가 항목 (PERFORMANCE)
+insert into evaluation_elements_51 (period_id, element_type_code, element_name, max_score, weight, created_by)
+select period_id, 'PERFORMANCE', N'주요 KPI 목표 달성도', 100.00, 40.00, 1000 from evaluation_periods_51 where period_name = N'2026년 상반기 정기 평가'
+union all
+select period_id, 'PERFORMANCE', N'업무 결과물의 품질 및 완성도', 100.00, 30.00, 1000 from evaluation_periods_51 where period_name = N'2026년 상반기 정기 평가'
+union all
+select period_id, 'PERFORMANCE', N'업무 프로세스 개선 및 효율화', 100.00, 30.00, 1000 from evaluation_periods_51 where period_name = N'2026년 상반기 정기 평가';
+
+-- 역량 평가 항목 (COMPETENCY)
+insert into evaluation_elements_51 (period_id, element_type_code, element_name, max_score, weight, created_by)
+select period_id, 'COMPETENCY', N'전문지식 및 기술 활용 능력', 100.00, 40.00, 1000 from evaluation_periods_51 where period_name = N'2026년 상반기 정기 평가'
+union all
+select period_id, 'COMPETENCY', N'부서 간 협업 및 소통 능력', 100.00, 30.00, 1000 from evaluation_periods_51 where period_name = N'2026년 상반기 정기 평가'
+union all
+select period_id, 'COMPETENCY', N'문제 분석 및 해결 역량', 100.00, 30.00, 1000 from evaluation_periods_51 where period_name = N'2026년 상반기 정기 평가';
+
+-- 다면 평가 항목 (PEER / MULTI_DIMENSIONAL)
+insert into evaluation_elements_51 (period_id, element_type_code, element_name, max_score, weight, created_by)
+select period_id, 'PEER', N'팀 내 리더십 및 영향력', 100.00, 50.00, 1000 from evaluation_periods_51 where period_name = N'2026년 상반기 정기 평가'
+union all
+select period_id, 'PEER', N'동료 간 신뢰도 및 상호 존중', 100.00, 50.00, 1000 from evaluation_periods_51 where period_name = N'2026년 상반기 정기 평가';

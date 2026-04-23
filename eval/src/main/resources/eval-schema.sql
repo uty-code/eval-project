@@ -12,6 +12,7 @@ EXEC sp_executesql @drop_constraints_sql;
 ';
 
 -- 이전 _51 테이블의 외래 키 제약 조건만 삭제 (다른 팀 테이블 보호)
+drop table if exists evaluation_type_weights_51;
 drop table if exists evidences_51;
 drop table if exists login_logs_51;
 drop table if exists final_grades_51;
@@ -175,6 +176,24 @@ create table evaluation_elements_51
     element_type_code varchar(50) not null,
     element_name nvarchar(255) not null,
     max_score decimal(5,2) not null,
+    weight decimal(5,2) not null,
+    is_deleted char(1) default 'n',
+    version int default 0,
+    created_at datetime default getdate(),
+    created_by bigint,
+    updated_at datetime,
+    updated_by bigint,
+    foreign key (period_id) references evaluation_periods_51(period_id),
+    foreign key (dept_id) references departments_51(dept_id)
+);
+
+create table evaluation_type_weights_51
+(
+    weight_id bigint identity(1,1) primary key,
+    period_id bigint not null,
+    dept_id bigint,
+    target_role_code varchar(50) not null,
+    element_type_code varchar(50) not null,
     weight decimal(5,2) not null,
     is_deleted char(1) default 'n',
     version int default 0,

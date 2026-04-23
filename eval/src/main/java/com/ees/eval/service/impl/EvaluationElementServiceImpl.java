@@ -58,29 +58,25 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
     @Override
     @Transactional
     public EvaluationElementDTO createElement(EvaluationElementDTO elementDto) {
-        // 1. 유형당 하나만 존재하도록 검증
+        // 1. 가중치 그룹별 합계 검증
+        // 성과(PERFORMANCE)/역량(COMPETENCY)은 합쳐서 100%, 다면평가(MULTI_DIMENSIONAL)는 단독으로 100%
         List<EvaluationElement> existing = elementMapper.findByPeriodId(elementDto.periodId(), elementDto.deptId());
-        boolean typeExists = existing.stream()
-                .anyMatch(e -> e.getElementTypeCode().equals(elementDto.elementTypeCode()));
-        if (typeExists) {
-            throw new IllegalStateException("해당 차수 및 부서에 이미 동일한 유형의 평가 항목이 존재합니다.");
-        }
+        List<String> targetGroup = getEvaluationGroup(elementDto.elementTypeCode());
+        BigDecimal currentGroupSum = existing.stream()
+                .filter(e -> targetGroup.contains(e.getElementTypeCode()))
+                .map(EvaluationElement::getWeight)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 2. 가중치 초과 여부 사전 검증 (기존 합 + 신규 항목 가중치)
-        BigDecimal currentSum = elementMapper.sumWeightByPeriodId(elementDto.periodId(), elementDto.deptId(), null);
-        BigDecimal newTotal = currentSum.add(elementDto.weight());
+        BigDecimal newTotal = currentGroupSum.add(elementDto.weight());
         if (newTotal.compareTo(WEIGHT_LIMIT) > 0) {
             throw new IllegalStateException(
-                    "가중치 합이 100을 초과합니다. 현재 합계: " + currentSum +
-                            ", 추가 항목 가중치: " + elementDto.weight() +
-                            ", 합산: " + newTotal);
+                    String.format("[%s] 그룹의 가중치 합이 100을 초과합니다. (현재: %s, 추가: %s, 합계: %s)",
+                            String.join("/", targetGroup), currentGroupSum, elementDto.weight(), newTotal));
         }
 
-        // 3. 엔티티 변환 및 감사 필드 초기화
+        // 3. 엔티티 변환 및 저장
         EvaluationElement element = convertToEntity(elementDto);
         element.prePersist();
-
-        // 4. 데이터베이스에 삽입
         elementMapper.insert(element);
 
         return getElementById(element.getElementId());
@@ -92,23 +88,22 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
     @Override
     @Transactional
     public EvaluationElementDTO updateElement(EvaluationElementDTO elementDto) {
-        // 1. 유형 중복 검증 (자신을 제외한 다른 항목 중 동일 유형 존재 여부)
+        // 1. 가중치 그룹별 합계 검증
         List<EvaluationElement> existing = elementMapper.findByPeriodId(elementDto.periodId(), elementDto.deptId());
-        boolean typeExists = existing.stream()
-                .anyMatch(e -> !e.getElementId().equals(elementDto.elementId()) && 
-                               e.getElementTypeCode().equals(elementDto.elementTypeCode()));
-        if (typeExists) {
-            throw new IllegalStateException("해당 차수 및 부서에 이미 동일한 유형의 다른 평가 항목이 존재합니다.");
-        }
 
-        // 2. 자신을 제외한 가중치 합 + 수정될 가중치가 100을 초과하는지 검증
-        BigDecimal otherSum = elementMapper.sumWeightByPeriodId(elementDto.periodId(), elementDto.deptId(), elementDto.elementId());
-        BigDecimal newTotal = otherSum.add(elementDto.weight());
+        // 2. 가중치 그룹별 합계 검증
+        List<String> targetGroup = getEvaluationGroup(elementDto.elementTypeCode());
+        BigDecimal otherSumInGroup = existing.stream()
+                .filter(e -> !e.getElementId().equals(elementDto.elementId()) && 
+                             targetGroup.contains(e.getElementTypeCode()))
+                .map(EvaluationElement::getWeight)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal newTotal = otherSumInGroup.add(elementDto.weight());
         if (newTotal.compareTo(WEIGHT_LIMIT) > 0) {
             throw new IllegalStateException(
-                    "가중치 합이 100을 초과합니다. 다른 항목 합계: " + otherSum +
-                            ", 수정 항목 가중치: " + elementDto.weight() +
-                            ", 합산: " + newTotal);
+                    String.format("[%s] 그룹의 가중치 합이 100을 초과합니다. (기타 항목: %s, 수정 가중치: %s)",
+                            String.join("/", targetGroup), otherSumInGroup, elementDto.weight()));
         }
 
         // 3. 엔티티 변환 및 업데이트
@@ -141,10 +136,30 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
     @Override
     @Transactional(readOnly = true)
     public boolean validateWeightSum(Long periodId, Long deptId) {
-        // 해당 부서(또는 전사 공통)의 가중치 합계만 확인합니다.
-        BigDecimal totalWeight = elementMapper.sumWeightByPeriodId(periodId, deptId, null);
+        List<EvaluationElement> elements = elementMapper.findByPeriodId(periodId, deptId);
         
-        return totalWeight.compareTo(WEIGHT_LIMIT) == 0;
+        // 1. 일반 평가 그룹 (성과 + 역량) 검증
+        BigDecimal memberSum = elements.stream()
+                .filter(e -> List.of("PERFORMANCE", "COMPETENCY").contains(e.getElementTypeCode()))
+                .map(EvaluationElement::getWeight)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        // 2. 다면 평가 그룹 검증
+        BigDecimal leaderSum = elements.stream()
+                .filter(e -> "MULTI_DIMENSIONAL".equals(e.getElementTypeCode()))
+                .map(EvaluationElement::getWeight)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // 두 그룹 중 하나라도 100이거나, 설정이 완료된 상태인지 확인 (비즈니스 요구에 따라 조정 가능)
+        return memberSum.compareTo(WEIGHT_LIMIT) == 0 || leaderSum.compareTo(WEIGHT_LIMIT) == 0;
+    }
+
+    /**
+     * 평가 유형에 따른 가중치 산정 그룹을 반환합니다.
+     * 이제 각 유형은 독립적인 가중치 그룹(100%)을 가집니다.
+     */
+    private List<String> getEvaluationGroup(String typeCode) {
+        return List.of(typeCode);
     }
 
     /**
