@@ -22,6 +22,13 @@ public interface DepartmentService {
     DepartmentDTO getDepartmentById(Long deptId);
 
     /**
+     * N+1 쿼리 최적화용 단순 부서 목록(ID, 이름만 포함)을 조회합니다.
+     *
+     * @return 부서 DTO 리스트
+     */
+    List<DepartmentDTO> getSimpleAllDepartments();
+
+    /**
      * 전체 부서 목록을 조회합니다.
      *
      * @return 부서 DTO 리스트

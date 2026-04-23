@@ -12,22 +12,26 @@
                 border-radius: 12px;
                 box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             }
+
             .type-weight-bar {
                 background: rgba(255, 193, 7, 0.05);
                 border-left: 4px solid #ffc107;
                 padding: 20px;
                 margin-bottom: 25px;
             }
+
             .form-control-custom {
                 background: rgba(0, 0, 0, 0.2) !important;
                 border: 1px solid rgba(255, 255, 255, 0.1) !important;
                 color: #fff !important;
                 border-radius: 6px;
             }
+
             .form-control-custom:focus {
                 border-color: #4facfe !important;
                 box-shadow: 0 0 8px rgba(79, 172, 254, 0.4);
             }
+
             .table-custom thead th {
                 font-weight: 600;
                 color: #888;
@@ -37,34 +41,75 @@
                 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
                 padding: 15px;
             }
+
             .table-custom tbody td {
                 padding: 15px;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.05);
                 vertical-align: middle;
             }
+
             .badge-custom {
                 padding: 5px 10px;
                 border-radius: 4px;
                 font-weight: 600;
                 font-size: 0.7rem;
             }
-            .bg-peer { background: rgba(255, 193, 7, 0.1); color: #ffc107; }
-            .bg-performance { background: rgba(13, 110, 253, 0.1); color: #0d6efd; }
-            .bg-competency { background: rgba(25, 135, 84, 0.1); color: #198754; }
-            .bg-interview { background: rgba(108, 117, 125, 0.1); color: #adb5bd; }
-            .bg-purple { background: rgba(111, 66, 193, 0.1); color: #6f42c1; }
-            .bg-purple { background: rgba(111, 66, 193, 0.1); color: #6f42c1; }
-            
+
+            .bg-peer {
+                background: rgba(255, 193, 7, 0.1);
+                color: #ffc107;
+            }
+
+            .bg-performance {
+                background: rgba(13, 110, 253, 0.1);
+                color: #0d6efd;
+            }
+
+            .bg-competency {
+                background: rgba(25, 135, 84, 0.1);
+                color: #198754;
+            }
+
+            .bg-interview {
+                background: rgba(108, 117, 125, 0.1);
+                color: #adb5bd;
+            }
+
+            .bg-purple {
+                background: rgba(111, 66, 193, 0.1);
+                color: #6f42c1;
+            }
+
+            .bg-purple {
+                background: rgba(111, 66, 193, 0.1);
+                color: #6f42c1;
+            }
+
             .text-gradient {
                 background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
             }
-            .bg-dark-800 { background-color: #1e2028 !important; }
-            .bg-dark-700 { background-color: #2a2d37 !important; }
-            .hover-border-primary:hover { border-color: #4facfe !important; }
-            .transition-all { transition: all 0.3s ease; }
-            .bg-primary-soft { background-color: rgba(79, 172, 254, 0.1) !important; }
+
+            .bg-dark-800 {
+                background-color: #1e2028 !important;
+            }
+
+            .bg-dark-700 {
+                background-color: #2a2d37 !important;
+            }
+
+            .hover-border-primary:hover {
+                border-color: #4facfe !important;
+            }
+
+            .transition-all {
+                transition: all 0.3s ease;
+            }
+
+            .bg-primary-soft {
+                background-color: rgba(79, 172, 254, 0.1) !important;
+            }
         </style>
     </th:block>
 </head>
@@ -79,12 +124,14 @@
                 border-radius: 12px;
                 box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             }
+
             .type-weight-bar {
                 background: rgba(255, 193, 7, 0.05);
                 border-left: 4px solid #ffc107;
                 padding: 20px;
                 margin-bottom: 25px;
             }
+
             .table-custom thead th {
                 font-weight: 600;
                 color: #888;
@@ -94,47 +141,111 @@
                 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
                 padding: 15px;
             }
+
             .table-custom tbody td {
                 padding: 15px;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.05);
                 vertical-align: middle;
             }
+
             .badge-custom {
                 padding: 5px 10px;
                 border-radius: 4px;
                 font-weight: 600;
                 font-size: 0.7rem;
             }
-            .bg-peer { background: rgba(255, 193, 7, 0.1); color: #ffc107; }
-            .bg-performance { background: rgba(13, 110, 253, 0.1); color: #0d6efd; }
-            .bg-competency { background: rgba(25, 135, 84, 0.1); color: #198754; }
-            .bg-interview { background: rgba(108, 117, 125, 0.1); color: #adb5bd; }
-            .bg-purple { background: rgba(111, 66, 193, 0.1); color: #6f42c1; }
-            
+
+            .bg-peer {
+                background: rgba(255, 193, 7, 0.1);
+                color: #ffc107;
+            }
+
+            .bg-performance {
+                background: rgba(13, 110, 253, 0.1);
+                color: #0d6efd;
+            }
+
+            .bg-competency {
+                background: rgba(25, 135, 84, 0.1);
+                color: #198754;
+            }
+
+            .bg-interview {
+                background: rgba(108, 117, 125, 0.1);
+                color: #adb5bd;
+            }
+
+            .bg-purple {
+                background: rgba(111, 66, 193, 0.1);
+                color: #6f42c1;
+            }
+
             .text-gradient {
                 background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
             }
-            .bg-dark-800 { background-color: #1e2028 !important; }
-            .bg-dark-700 { background-color: #2a2d37 !important; }
-            .hover-border-primary:hover { border-color: #4facfe !important; }
-            .transition-all { transition: all 0.3s ease; }
-            .bg-primary-soft { background-color: rgba(79, 172, 254, 0.1) !important; }
+
+            .bg-dark-800 {
+                background-color: #1e2028 !important;
+            }
+
+            .bg-dark-700 {
+                background-color: #2a2d37 !important;
+            }
+
+            .hover-border-primary:hover {
+                border-color: #4facfe !important;
+            }
+
+            .transition-all {
+                transition: all 0.3s ease;
+            }
+
+            .bg-primary-soft {
+                background-color: rgba(79, 172, 254, 0.1) !important;
+            }
         </style>
+        <!-- 알림 메시지 (Toast/Alert) -->
+        <div th:if="${successMessage}"
+            class="alert alert-success alert-dismissible fade show d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-check-circle-fill fs-4 me-2"></i>
+            <div th:text="${successMessage}" class="fw-bold">성공 메시지</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${errorMessage}"
+            class="alert alert-danger alert-dismissible fade show d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-2"></i>
+            <div th:text="${errorMessage}" class="fw-bold">오류 메시지</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
         <!-- Title Section -->
         <div class="row align-items-center mb-4">
             <div class="col-md-6">
                 <h1 class="fw-bold fs-3 mb-0">평가요소 관리</h1>
             </div>
             <div class="col-md-6 text-md-end">
-                <form hx-get="/eval/elements" hx-target="#page-content" hx-swap="outerHTML" hx-trigger="change" class="d-inline-flex gap-2" id="filterForm">
+                <form hx-get="/eval/elements" hx-target="#page-content" hx-swap="outerHTML" hx-trigger="change"
+                    class="d-inline-flex gap-2" id="filterForm">
                     <select name="periodId" class="form-select form-select-sm bg-dark text-white border-secondary">
-                        <option th:each="p : ${periods}" th:value="${p.periodId()}" th:text="${p.periodName()}" th:selected="${selectedPeriod?.periodId() == p.periodId()}"></option>
+                        <option th:each="p : ${periods}" th:value="${p.periodId()}" th:text="${p.periodName()}"
+                            th:selected="${selectedPeriod?.periodId() == p.periodId()}"></option>
                     </select>
                     <select name="deptId" class="form-select form-select-sm bg-dark text-white border-secondary">
                         <option value="">전사 공통</option>
-                        <option th:each="d : ${departments}" th:value="${d.deptId()}" th:text="${d.deptName()}" th:selected="${selectedDeptId == d.deptId()}"></option>
+                        <th:block th:each="d : ${departments}">
+                            <!-- 상위부서 (본부): parentDeptId == null -->
+                            <option th:if="${d.parentDeptId() == null}" th:value="${d.deptId()}"
+                                th:text="'🏢 ' + ${d.deptName()}" th:selected="${selectedDeptId == d.deptId()}"
+                                style="font-weight: 700; color: #a5b4fc;">
+                            </option>
+                            <!-- 하위부서 (팀): parentDeptId != null -->
+                            <option th:unless="${d.parentDeptId() == null}" th:value="${d.deptId()}"
+                                th:text="'　└ ' + ${d.deptName()}" th:selected="${selectedDeptId == d.deptId()}"
+                                style="color: #94a3b8; padding-left: 1.5rem;">
+                            </option>
+                        </th:block>
                     </select>
                 </form>
             </div>
@@ -152,18 +263,19 @@
                         <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
                         <input type="hidden" name="deptId" th:value="${selectedDeptId}">
                         <input type="hidden" name="targetRoleCode" value="STAFF">
-                        
+
                         <div class="input-group input-group-photo shadow-sm">
                             <th:block th:each="weight, iterStat : ${memberWeights}">
-                                <span class="input-group-text bg-dark-700 border-secondary text-white fw-bold px-3" 
-                                      th:text="${weight.elementTypeCode() == 'PERFORMANCE' ? '성과' : '역량'}" 
-                                      th:classappend="${iterStat.index > 0 ? 'border-start-0' : ''}">성과</span>
-                                <input type="number" name="weights" th:value="${#numbers.formatDecimal(weight.weight(), 1, 0)}" 
-                                       th:id="'weight-' + ${weight.elementTypeCode()}"
-                                       class="form-control bg-white text-dark text-center fw-bold border-secondary border-end-0 weight-input-sync" 
-                                       style="font-size: 1.1rem; max-width: 100px;"
-                                       min="0" max="100">
-                                <span class="input-group-text bg-white border-secondary border-start-0 text-secondary px-2">%</span>
+                                <span class="input-group-text bg-dark-700 border-secondary text-white fw-bold px-3"
+                                    th:text="${weight.elementTypeCode() == 'PERFORMANCE' ? '성과' : '역량'}"
+                                    th:classappend="${iterStat.index > 0 ? 'border-start-0' : ''}">성과</span>
+                                <input type="number" name="weights"
+                                    th:value="${#numbers.formatDecimal(weight.weight(), 1, 0)}"
+                                    th:id="'weight-' + ${weight.elementTypeCode()}"
+                                    class="form-control bg-white text-dark text-center fw-bold border-secondary border-end-0 weight-input-sync"
+                                    style="font-size: 1.1rem; max-width: 100px;" min="0" max="100">
+                                <span
+                                    class="input-group-text bg-white border-secondary border-start-0 text-secondary px-2">%</span>
                                 <input type="hidden" name="types" th:value="${weight.elementTypeCode()}">
                             </th:block>
                             <button type="submit" class="btn btn-primary fw-bold px-4 border-secondary transition-all">
@@ -183,11 +295,13 @@
                     </div>
                     <div class="input-group input-group-photo shadow-sm d-flex">
                         <th:block th:each="weight : ${leaderWeights}">
-                            <span class="input-group-text bg-dark-700 border-secondary text-primary fw-bold px-3">다면</span>
-                            <input type="number" th:value="${#numbers.formatDecimal(weight.weight(), 1, 0)}" 
-                                   class="form-control bg-dark-800 text-white text-center fw-bold border-secondary border-end-0" 
-                                   style="font-size: 1.1rem; max-width: 100px;" readonly disabled>
-                            <span class="input-group-text bg-dark-800 border-secondary border-start-0 text-secondary px-2">%</span>
+                            <span
+                                class="input-group-text bg-dark-700 border-secondary text-primary fw-bold px-3">다면</span>
+                            <input type="number" th:value="${#numbers.formatDecimal(weight.weight(), 1, 0)}"
+                                class="form-control bg-dark-800 text-white text-center fw-bold border-secondary border-end-0"
+                                style="font-size: 1.1rem; max-width: 100px;" readonly disabled>
+                            <span
+                                class="input-group-text bg-dark-800 border-secondary border-start-0 text-secondary px-2">%</span>
                         </th:block>
                     </div>
                 </div>
@@ -203,8 +317,9 @@
                             <i class="bi bi-list-task me-2 text-primary"></i>
                             <h5 class="fw-bold mb-0">등록된 평가 기준(문항)</h5>
                         </div>
-                        <form th:if="${selectedDeptId != null}" hx-post="/eval/elements/copy-common" hx-target="#page-content" hx-swap="outerHTML" 
-                              hx-confirm="전사 공통 항목을 현재 부서로 가져오시겠습니까? (현재 부서에 이미 있는 항목은 중복해서 가져오지 않습니다.)">
+                        <form th:if="${selectedDeptId != null}" hx-post="/eval/elements/copy-common"
+                            hx-target="#page-content" hx-swap="outerHTML"
+                            hx-confirm="전사 공통 항목을 현재 부서로 가져오시겠습니까? (현재 부서에 이미 있는 항목은 중복해서 가져오지 않습니다.)">
                             <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
                             <input type="hidden" name="deptId" th:value="${selectedDeptId}">
                             <button type="submit" class="btn btn-sm btn-outline-info fw-bold rounded-pill px-3">
@@ -223,22 +338,28 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="el : ${elements}" th:data-type="${el.elementTypeCode()}" th:data-weight="${el.weight()}">
+                                <tr th:each="el : ${elements}" th:data-type="${el.elementTypeCode()}"
+                                    th:data-weight="${el.weight()}">
                                     <td>
-                                        <span th:if="${el.elementTypeCode() == 'PERFORMANCE'}" class="badge-custom bg-performance">성과</span>
-                                        <span th:if="${el.elementTypeCode() == 'COMPETENCY'}" class="badge-custom bg-competency">역량</span>
-                                        <span th:if="${el.elementTypeCode() == 'PEER'}" class="badge-custom bg-peer">다면</span>
-                                        <span th:if="${el.elementTypeCode() == 'INTERVIEW'}" class="badge-custom bg-interview">면담</span>
-                                        <span th:if="${el.elementTypeCode() == 'MULTI_DIMENSIONAL'}" class="badge-custom bg-purple">다면</span>
+                                        <span th:if="${el.elementTypeCode() == 'PERFORMANCE'}"
+                                            class="badge-custom bg-performance">성과</span>
+                                        <span th:if="${el.elementTypeCode() == 'COMPETENCY'}"
+                                            class="badge-custom bg-competency">역량</span>
+                                        <span th:if="${el.elementTypeCode() == 'PEER'}"
+                                            class="badge-custom bg-peer">다면</span>
+                                        <span th:if="${el.elementTypeCode() == 'INTERVIEW'}"
+                                            class="badge-custom bg-interview">면담</span>
+                                        <span th:if="${el.elementTypeCode() == 'MULTI_DIMENSIONAL'}"
+                                            class="badge-custom bg-purple">다면</span>
                                     </td>
                                     <td class="fw-medium" th:text="${el.elementName()}">요소명</td>
-                                    <td class="text-center text-primary fw-bold" th:text="${#numbers.formatDecimal(el.weight(), 1, 0) + '%'}">0%</td>
+                                    <td class="text-center text-primary fw-bold"
+                                        th:text="${#numbers.formatDecimal(el.weight(), 1, 0) + '%'}">0%</td>
                                     <td class="text-center">
-                                        <form th:attr="hx-post=@{/eval/elements/{id}/delete(id=${el.elementId()})}" 
-                                              hx-target="#page-content" 
-                                              hx-swap="outerHTML" 
-                                              hx-confirm="항목을 삭제하시겠습니까?">
-                                            <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
+                                        <form th:attr="hx-post=@{/eval/elements/{id}/delete(id=${el.elementId()})}"
+                                            hx-target="#page-content" hx-swap="outerHTML" hx-confirm="항목을 삭제하시겠습니까?">
+                                            <input type="hidden" name="periodId"
+                                                th:value="${selectedPeriod.periodId()}">
                                             <input type="hidden" name="deptId" th:value="${selectedDeptId}">
                                             <button type="submit" class="btn btn-sm btn-outline-danger border-0">
                                                 <i class="bi bi-trash"></i>
@@ -266,10 +387,11 @@
                         <input type="hidden" name="periodId" th:value="${selectedPeriod?.periodId()}">
                         <input type="hidden" name="deptId" th:value="${selectedDeptId}">
                         <input type="hidden" name="maxScore" value="100">
-                        
+
                         <div class="mb-4">
                             <label class="form-label small text-muted">평가 유형</label>
-                            <select name="elementTypeCode" id="newElementType" class="form-select form-control-custom" required>
+                            <select name="elementTypeCode" id="newElementType" class="form-select form-control-custom"
+                                required>
                                 <option value="PERFORMANCE">성과 평가</option>
                                 <option value="COMPETENCY">역량 평가</option>
                                 <option value="PEER">다면 평가</option>
@@ -278,20 +400,23 @@
                         </div>
                         <div class="mb-4">
                             <label class="form-label small text-muted">평가요소명</label>
-                            <input type="text" name="elementName" class="form-control form-control-custom" placeholder="예: 의사소통 및 협업" required>
+                            <input type="text" name="elementName" class="form-control form-control-custom"
+                                placeholder="예: 의사소통 및 협업" required>
                         </div>
                         <div class="mb-4">
                             <label class="form-label small text-muted">가중치 (%)</label>
-                            <input type="number" name="weight" id="newElementWeight" class="form-control form-control-custom" placeholder="30" step="1" required>
+                            <input type="number" name="weight" id="newElementWeight"
+                                class="form-control form-control-custom" placeholder="30" step="1" required>
                             <div id="weightFeedback" class="form-text small mt-1"></div>
                         </div>
-                        
-                        <button type="submit" id="submitElementBtn" class="btn btn-primary w-100 py-2 fw-bold shadow-sm mt-2">
+
+                        <button type="submit" id="submitElementBtn"
+                            class="btn btn-primary w-100 py-2 fw-bold shadow-sm mt-2">
                             추가하기
                         </button>
                     </form>
                 </div>
-                
+
                 <!-- Quick Reset / Tooltips -->
                 <div class="premium-card p-3 mt-4">
                     <p class="x-small text-muted mb-1">
@@ -304,39 +429,37 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <th:block id="page-scripts">
+        <!-- HTMX 교체 시에도 무조건 실행되도록 fragment 내부에 스크립트 배치 -->
         <script th:inline="javascript">
-            (function() {
-                // 1. 역할별 가중치 실시간 밸런싱 (Staff) - 전역에서 1회만 등록 (이벤트 위임)
-                document.body.addEventListener('input', function(e) {
-                    if (e.target && e.target.id === 'weight-PERFORMANCE') {
-                        const compInput = document.getElementById('weight-COMPETENCY');
-                        if (compInput) {
-                            let val = parseInt(e.target.value) || 0;
-                            if (val > 100) val = 100;
-                            if (val < 0) val = 0;
-                            e.target.value = val;
-                            compInput.value = 100 - val;
+            (function () {
+                // 1. 역할별 가중치 실시간 밸런싱 (body에 딱 한 번만 위임하여 영구 생존)
+                if (!document.body.dataset.weightSyncBound) {
+                    document.body.dataset.weightSyncBound = 'true';
+                    document.body.addEventListener('input', function (e) {
+                        if (e.target.id === 'weight-PERFORMANCE') {
+                            const compInput = document.getElementById('weight-COMPETENCY');
+                            if (compInput) {
+                                let val = parseInt(e.target.value) || 0;
+                                val = Math.max(0, Math.min(100, val));
+                                e.target.value = val;
+                                compInput.value = 100 - val;
+                            }
+                        } else if (e.target.id === 'weight-COMPETENCY') {
+                            const perfInput = document.getElementById('weight-PERFORMANCE');
+                            if (perfInput) {
+                                let val = parseInt(e.target.value) || 0;
+                                val = Math.max(0, Math.min(100, val));
+                                e.target.value = val;
+                                perfInput.value = 100 - val;
+                            }
                         }
-                    } else if (e.target && e.target.id === 'weight-COMPETENCY') {
-                        const perfInput = document.getElementById('weight-PERFORMANCE');
-                        if (perfInput) {
-                            let val = parseInt(e.target.value) || 0;
-                            if (val > 100) val = 100;
-                            if (val < 0) val = 0;
-                            e.target.value = val;
-                            perfInput.value = 100 - val;
-                        }
-                    }
-                });
+                    });
+                }
 
-                const initWeightValidation = () => {
-                    // 2. 개별 평가요소 가중치 합계 체크 로직
-                    const typeWeights = {}; 
-                    
-                    // 화면의 표에서 직접 데이터 추출 (가장 확실한 방법)
+                // 2. 가중치 요약 및 하단 폼 검증 (교체될 때마다 실행)
+                const updateSummaryAndValidation = () => {
+                    const typeWeights = {};
+                    // 화면의 표에서 직접 데이터 추출
                     const rows = document.querySelectorAll('tr[data-weight]');
                     rows.forEach(row => {
                         const type = row.getAttribute('data-type');
@@ -344,26 +467,11 @@
                         typeWeights[type] = (typeWeights[type] || 0) + weight;
                     });
 
-                    const typeSelect = document.getElementById('newElementType');
-                    const weightInput = document.getElementById('newElementWeight');
-                    const feedback = document.getElementById('weightFeedback');
+                    // 하단 요약(Summary) 업데이트
                     const summary = document.getElementById('typeSummary');
-                    const submitBtn = document.getElementById('submitElementBtn');
-
-                    if (!typeSelect || !weightInput) return;
-
-                    const updateValidation = () => {
-                        const selectedType = typeSelect.value;
-                        const inputWeight = parseFloat(weightInput.value) || 0;
-                        
-                        // 각 유형은 독립적으로 100%를 가짐
-                        const currentSum = typeWeights[selectedType] || 0;
-                        const remaining = 100 - currentSum;
-
-                        // 하단 요약 업데이트
+                    const typeNames = { 'PERFORMANCE': '성과', 'COMPETENCY': '역량', 'PEER': '다면', 'MULTI_DIMENSIONAL': '다면' };
+                    if (summary) {
                         let summaryHtml = '';
-                        const typeNames = { 'PERFORMANCE': '성과', 'COMPETENCY': '역량', 'PEER': '다면' };
-                        
                         ['PERFORMANCE', 'COMPETENCY', 'PEER'].forEach(t => {
                             const s = typeWeights[t] || 0;
                             const color = s === 100 ? 'text-success' : (s > 100 ? 'text-danger' : 'text-warning');
@@ -372,41 +480,47 @@
                                 <span class="${color} fw-bold">${s}%</span>
                             </div>`;
                         });
-
                         summary.innerHTML = summaryHtml;
+                    }
 
-                        // 피드백 문구 제어
+                    // 폼 피드백 검증
+                    const typeSelect = document.getElementById('newElementType');
+                    const weightInput = document.getElementById('newElementWeight');
+                    const feedback = document.getElementById('weightFeedback');
+                    const submitBtn = document.getElementById('submitElementBtn');
+
+                    if (typeSelect && weightInput && feedback) {
+                        const selectedType = typeSelect.value;
+                        const inputWeight = parseFloat(weightInput.value) || 0;
+                        const currentSum = typeWeights[selectedType] || 0;
+                        const remaining = 100 - currentSum;
+
                         if (currentSum >= 100) {
                             feedback.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> [${typeNames[selectedType]}] 가중치 합계가 이미 100%입니다.</span>`;
-                            submitBtn.disabled = true;
+                            if (submitBtn) submitBtn.disabled = true;
                         } else if (inputWeight > remaining) {
                             feedback.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle"></i> 남은 가중치(${remaining}%)를 초과했습니다.</span>`;
-                            submitBtn.disabled = true;
+                            if (submitBtn) submitBtn.disabled = true;
                         } else {
                             feedback.innerHTML = `<span class="text-info"><i class="bi bi-info-circle"></i> 현재 [${typeNames[selectedType]}] 잔여 가중치: <strong>${remaining}%</strong></span>`;
-                            submitBtn.disabled = false;
+                            if (submitBtn) submitBtn.disabled = false;
                         }
-                    };
-
-                    typeSelect.onchange = updateValidation;
-                    weightInput.oninput = updateValidation;
-                    updateValidation();
+                    }
                 };
 
-                // 초기 로드 및 HTMX 교체 후 모두 실행
-                document.addEventListener('DOMContentLoaded', initWeightValidation);
-                document.addEventListener('htmx:afterSwap', (evt) => {
-                    if (evt.detail.target.id === 'page-content') {
-                        initWeightValidation();
-                    }
-                });
-                
-                // 즉시 실행 (만약 이미 로드된 상태라면)
-                if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                    initWeightValidation();
-                }
+                // 즉시 1회 실행
+                updateSummaryAndValidation();
+
+                // 입력 이벤트 바인딩
+                const typeSelect = document.getElementById('newElementType');
+                const weightInput = document.getElementById('newElementWeight');
+                if (typeSelect) typeSelect.onchange = updateSummaryAndValidation;
+                if (weightInput) weightInput.oninput = updateSummaryAndValidation;
             })();
         </script>
+    </div>
+
+    <th:block id="page-scripts">
     </th:block>
 </body>
 

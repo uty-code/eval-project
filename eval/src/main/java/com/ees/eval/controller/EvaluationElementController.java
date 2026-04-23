@@ -51,7 +51,7 @@ public class EvaluationElementController {
 
     private void prepareListModel(Long periodId, Long deptId, Model model) {
         List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
-        List<DepartmentDTO> departments = departmentService.getAllDepartments();
+        List<DepartmentDTO> departments = departmentService.getSimpleAllDepartments();
         
         Long selectedId = (periodId != null) ? periodId : 
                          (!periods.isEmpty() ? periods.get(0).periodId() : null);
