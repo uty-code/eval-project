@@ -309,23 +309,30 @@
     <th:block id="page-scripts">
         <script th:inline="javascript">
             (function() {
-                const initWeightValidation = () => {
-                    // 1. 역할별 가중치 실시간 밸런싱 (Staff)
-                    const perfInput = document.getElementById('weight-PERFORMANCE');
-                    const compInput = document.getElementById('weight-COMPETENCY');
-
-                    if (perfInput && compInput) {
-                        const syncWeights = (source, target) => {
-                            let val = parseInt(source.value) || 0;
+                // 1. 역할별 가중치 실시간 밸런싱 (Staff) - 전역에서 1회만 등록 (이벤트 위임)
+                document.body.addEventListener('input', function(e) {
+                    if (e.target && e.target.id === 'weight-PERFORMANCE') {
+                        const compInput = document.getElementById('weight-COMPETENCY');
+                        if (compInput) {
+                            let val = parseInt(e.target.value) || 0;
                             if (val > 100) val = 100;
                             if (val < 0) val = 0;
-                            source.value = val;
-                            target.value = 100 - val;
-                        };
-                        perfInput.oninput = () => syncWeights(perfInput, compInput);
-                        compInput.oninput = () => syncWeights(compInput, perfInput);
+                            e.target.value = val;
+                            compInput.value = 100 - val;
+                        }
+                    } else if (e.target && e.target.id === 'weight-COMPETENCY') {
+                        const perfInput = document.getElementById('weight-PERFORMANCE');
+                        if (perfInput) {
+                            let val = parseInt(e.target.value) || 0;
+                            if (val > 100) val = 100;
+                            if (val < 0) val = 0;
+                            e.target.value = val;
+                            perfInput.value = 100 - val;
+                        }
                     }
+                });
 
+                const initWeightValidation = () => {
                     // 2. 개별 평가요소 가중치 합계 체크 로직
                     const typeWeights = {}; 
                     
