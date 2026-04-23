@@ -1,290 +1,332 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'evaluators', ~{}, ~{})}">
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'evaluators', ~{}, ~{})}">
+
 <head>
     <title>평가자 관리 - EES</title>
 </head>
+
 <body>
-<div id="page-content" class="container-fluid py-4">
-    <!-- Header -->
-    <div class="row align-items-center mb-4">
-        <div class="col-md-4">
-            <h1 class="fw-bold fs-3 mb-1">평가자 매핑 관리</h1>
-            <p class="text-muted mb-0">평가 대상자별 평가자를 설정하고 조회합니다.</p>
-        </div>
-        <div class="col-md-8 text-md-end">
-            <form th:action="@{/eval/evaluators}" method="get" class="d-inline-flex gap-2 align-items-center flex-wrap justify-content-end">
-                <label class="text-muted small text-nowrap">차수 선택:</label>
-                <select name="periodId" class="form-select form-select-sm bg-dark text-white border-secondary" 
+    <div id="page-content" class="container-fluid py-4">
+        <!-- Header -->
+        <div class="row align-items-center mb-4">
+            <div class="col-md-4">
+                <h1 class="fw-bold fs-3 mb-1">평가자 매핑 관리</h1>
+                <p class="text-muted mb-0">평가 대상자별 평가자를 설정하고 조회합니다.</p>
+            </div>
+            <div class="col-md-8 text-md-end">
+                <form th:action="@{/eval/evaluators}" method="get"
+                    class="d-inline-flex gap-2 align-items-center flex-wrap justify-content-end">
+                    <label class="text-muted small text-nowrap">차수 선택:</label>
+                    <select name="periodId" class="form-select form-select-sm bg-dark text-white border-secondary"
                         onchange="this.form.submit()" style="width: 200px;">
-                    <option th:each="p : ${periods}" th:value="${p.periodId()}" 
+                        <option th:each="p : ${periods}" th:value="${p.periodId()}"
                             th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
                             th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수</option>
-                </select>
-                
-                <th:block th:if="${departments != null}">
-                    <label class="text-muted small text-nowrap ms-2">부서:</label>
-                    <select name="deptId" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 150px;">
-                        <option value="">전체 부서</option>
-                        <option th:each="d : ${departments}" th:value="${d.deptId}" th:text="${d.deptName}"
-                                th:selected="${d.deptId == selectedDeptId}"></option>
                     </select>
-                </th:block>
-                
-                <input type="text" name="searchName" class="form-control form-control-sm bg-dark text-white border-secondary" 
-                       placeholder="사원명 검색" th:value="${searchName}" style="width: 120px;">
-                <button type="submit" class="btn btn-sm btn-outline-secondary">조회</button>
-            </form>
-        </div>
-    </div>
 
-    <!-- Flash Messages -->
-    <div th:if="${successMessage}"
-        class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show mb-4"
-        role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i>
-        <span th:text="${successMessage}"></span>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    <div th:if="${errorMessage}"
-        class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show mb-4"
-        role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        <span th:text="${errorMessage}"></span>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+                    <th:block th:if="${departments != null}">
+                        <label class="text-muted small text-nowrap ms-2">부서:</label>
+                        <select name="deptId" class="form-select form-select-sm bg-dark text-white border-secondary"
+                            style="width: 150px;">
+                            <option value="">전체 부서</option>
+                            <th:block th:each="d : ${departments}">
+                                <!-- 상위부서 (본부): parentDeptId == null -->
+                                <option th:if="${d.parentDeptId == null}" th:value="${d.deptId}"
+                                    th:text="'🏢 ' + ${d.deptName}" th:selected="${d.deptId == selectedDeptId}"
+                                    style="font-weight: 700; color: #a5b4fc;">
+                                </option>
+                                <!-- 하위부서 (팀): parentDeptId != null -->
+                                <option th:unless="${d.parentDeptId == null}" th:value="${d.deptId}"
+                                    th:text="'　└ ' + ${d.deptName}" th:selected="${d.deptId == selectedDeptId}"
+                                    style="color: #94a3b8; padding-left: 1.5rem;">
+                                </option>
+                            </th:block>
+                        </select>
+                    </th:block>
 
-    <!-- 필터링 안내 (부서장/임원 전용) -->
-    <div th:if="${isFiltered}" class="alert border-0 shadow-sm d-flex align-items-center mb-4 bg-primary bg-opacity-10 text-primary">
-        <i class="bi bi-info-circle-fill fs-5 me-3"></i>
-        <div>
-            <strong>필터링 적용 중:</strong> 현재 조회 조건(부서 또는 사원 검색)에 따른 매핑 결과만 표시됩니다. 자동 생성/초기화 시 현재 선택된 부서가 기준이 됩니다.
-        </div>
-    </div>
-
-    <!-- Stats & Actions -->
-    <div th:if="${selectedPeriod != null}" class="row g-4 mb-4">
-        <div class="col-md-3">
-            <div class="glass-card p-4 text-center h-100">
-                <div class="text-muted small mb-1">총 매핑 수</div>
-                <div class="fs-2 fw-bold text-primary" th:text="${mappings.size()}">0</div>
+                    <input type="text" name="searchName"
+                        class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="사원명 검색"
+                        th:value="${searchName}" style="width: 120px;">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">조회</button>
+                </form>
             </div>
         </div>
-        <div class="col-md-9">
-            <div class="glass-card p-4 h-100 d-flex align-items-center justify-content-end gap-3 flex-wrap">
-                <div class="me-auto">
-                    <h6 class="fw-bold mb-1">매핑 관리</h6>
-                    <p class="small text-muted mb-0">대상 조직의 평가자를 자동 매핑하거나 수동으로 추가, 전체 초기화 할 수 있습니다.</p>
+
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}"
+            class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show mb-4"
+            role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${errorMessage}"
+            class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show mb-4"
+            role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- 필터링 안내 (부서장/임원 전용) -->
+        <div th:if="${isFiltered}"
+            class="alert border-0 shadow-sm d-flex align-items-center mb-4 bg-primary bg-opacity-10 text-primary">
+            <i class="bi bi-info-circle-fill fs-5 me-3"></i>
+            <div>
+                <strong>필터링 적용 중:</strong> 현재 조회 조건(부서 또는 사원 검색)에 따른 매핑 결과만 표시됩니다. 자동 생성/초기화 시 현재 선택된 부서가 기준이 됩니다.
+            </div>
+        </div>
+
+        <!-- Stats & Actions -->
+        <div th:if="${selectedPeriod != null}" class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="glass-card p-4 text-center h-100">
+                    <div class="text-muted small mb-1">총 매핑 수</div>
+                    <div class="fs-2 fw-bold text-primary" th:text="${mappings.size()}">0</div>
                 </div>
-                
-                <button type="button" class="btn btn-outline-info px-3 py-2" data-bs-toggle="modal" data-bs-target="#createMappingModal">
-                    <i class="bi bi-plus-lg me-1"></i>수동 추가
-                </button>
-                
-                <form th:action="@{/eval/evaluators/initialize}" method="post" class="m-0"
-                      onsubmit="return confirm('선택된 대상의 모든 평가 매핑을 정말 삭제(초기화)하시겠습니까? (되돌릴 수 없습니다)')">
-                    <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
-                    <input type="hidden" name="targetDeptId" th:value="${selectedDeptId}">
-                    <button type="submit" class="btn btn-outline-danger px-3 py-2">
-                        <i class="bi bi-trash3 me-1"></i>일괄 초기화
-                    </button>
-                </form>
+            </div>
+            <div class="col-md-9">
+                <div class="glass-card p-4 h-100 d-flex align-items-center justify-content-end gap-3 flex-wrap">
+                    <div class="me-auto">
+                        <h6 class="fw-bold mb-1">매핑 관리</h6>
+                        <p class="small text-muted mb-0">대상 조직의 평가자를 자동 매핑하거나 수동으로 추가, 전체 초기화 할 수 있습니다.</p>
+                    </div>
 
-                <form th:action="@{/eval/evaluators/auto-generate}" method="post" class="m-0"
-                      onsubmit="return confirm('조직 정보를 기반으로 평가자를 자동 생성하시겠습니까? (이미 존재하는 관계는 중복되지 않습니다)')">
-                    <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
-                    <input type="hidden" name="targetDeptId" th:value="${selectedDeptId}">
-                    <button type="submit" class="btn btn-primary px-3 py-2">
-                        <i class="bi bi-magic me-1"></i>자동 생성
+                    <button type="button" class="btn btn-outline-info px-3 py-2" data-bs-toggle="modal"
+                        data-bs-target="#createMappingModal">
+                        <i class="bi bi-plus-lg me-1"></i>수동 추가
                     </button>
-                </form>
+
+                    <form th:action="@{/eval/evaluators/initialize}" method="post" class="m-0"
+                        onsubmit="return confirm('선택된 대상의 모든 평가 매핑을 정말 삭제(초기화)하시겠습니까? (되돌릴 수 없습니다)')">
+                        <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
+                        <input type="hidden" name="targetDeptId" th:value="${selectedDeptId}">
+                        <button type="submit" class="btn btn-outline-danger px-3 py-2">
+                            <i class="bi bi-trash3 me-1"></i>일괄 초기화
+                        </button>
+                    </form>
+
+                    <form th:action="@{/eval/evaluators/auto-generate}" method="post" class="m-0"
+                        onsubmit="return confirm('조직 정보를 기반으로 평가자를 자동 생성하시겠습니까? (이미 존재하는 관계는 중복되지 않습니다)')">
+                        <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
+                        <input type="hidden" name="targetDeptId" th:value="${selectedDeptId}">
+                        <button type="submit" class="btn btn-primary px-3 py-2">
+                            <i class="bi bi-magic me-1"></i>자동 생성
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Mappings Table -->
-    <div th:if="${selectedPeriod != null}" class="glass-card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="fw-bold mb-0">평가 대상 및 평가자 목록</h5>
+        <!-- Mappings Table -->
+        <div th:if="${selectedPeriod != null}" class="glass-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0">평가 대상 및 평가자 목록</h5>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover table-dark-custom align-middle">
+                    <thead>
+                        <tr class="text-secondary">
+                            <th class="fw-normal pb-3" style="width: 20%">피평가자 (대상)</th>
+                            <th class="fw-normal pb-3" style="width: 20%">1차 평가자 (부서장)</th>
+                            <th class="fw-normal pb-3" style="width: 20%">최종 평가자 (임원)</th>
+                            <th class="fw-normal pb-3" style="width: 30%">다면 평가자 (부서원)</th>
+                            <th class="fw-normal pb-3 text-end" style="width: 10%">상세/관리</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="g : ${groupedMappings}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div
+                                        class="avatar-sm me-3 bg-secondary bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-person text-secondary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-white" th:text="${g.evaluateeName}">피평가자</div>
+                                        <div class="small text-muted" th:text="${'사번: ' + g.evaluateeId}">사번</div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- 1차 평가자 (부서장) -->
+                            <td>
+                                <div th:if="${g.manager != null}" class="d-flex align-items-center">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary fw-normal me-2">부서장</span>
+                                    <span class="text-white small" th:text="${g.manager.evaluatorName()}">평가자명</span>
+                                </div>
+                                <span th:if="${g.manager == null}" class="text-muted small">-</span>
+                            </td>
+
+                            <!-- 최종 평가자 (임원) -->
+                            <td>
+                                <div th:if="${g.executive != null}" class="d-flex align-items-center">
+                                    <span class="badge bg-warning bg-opacity-10 text-warning fw-normal me-2">임원</span>
+                                    <span class="text-white small" th:text="${g.executive.evaluatorName()}">평가자명</span>
+                                </div>
+                                <span th:if="${g.executive == null}" class="text-muted small">-</span>
+                            </td>
+
+                            <!-- 다면 평가자 (부서원) -->
+                            <td>
+                                <div th:if="${not #lists.isEmpty(g.subordinates)}" class="d-flex flex-wrap gap-1">
+                                    <th:block th:each="sub, stat : ${g.subordinates}">
+                                        <span th:if="${stat.index < 3}"
+                                            class="badge bg-danger bg-opacity-10 text-danger fw-normal"
+                                            th:text="${sub.evaluatorName()}">부서원</span>
+                                    </th:block>
+                                    <span th:if="${#lists.size(g.subordinates) > 3}"
+                                        class="badge bg-secondary bg-opacity-25 text-light fw-normal"
+                                        title="상세/관리에서 전체 확인 가능"
+                                        th:text="'+' + (${#lists.size(g.subordinates)} - 3) + '명'">+N명</span>
+                                </div>
+                                <span th:if="${#lists.isEmpty(g.subordinates)}" class="text-muted small">-</span>
+                            </td>
+
+                            <td class="text-end">
+                                <button type="button" class="btn btn-outline-info btn-sm border-0"
+                                    data-bs-toggle="modal" th:data-bs-target="'#manageMappingModal' + ${g.evaluateeId}"
+                                    title="상세 관리">
+                                    <i class="bi bi-gear"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(groupedMappings)}">
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-2 d-block mb-2"></i>
+                                조건에 해당하는 평가 매핑이 없습니다.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover table-dark-custom align-middle">
-                <thead>
-                    <tr class="text-secondary">
-                        <th class="fw-normal pb-3" style="width: 20%">피평가자 (대상)</th>
-                        <th class="fw-normal pb-3" style="width: 20%">1차 평가자 (부서장)</th>
-                        <th class="fw-normal pb-3" style="width: 20%">최종 평가자 (임원)</th>
-                        <th class="fw-normal pb-3" style="width: 30%">다면 평가자 (부서원)</th>
-                        <th class="fw-normal pb-3 text-end" style="width: 10%">상세/관리</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="g : ${groupedMappings}">
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-sm me-3 bg-secondary bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center">
+        <!-- 개별 피평가자 관리 모달 (테이블 외부로 분리 - overflow 제약 회피) -->
+        <th:block th:if="${selectedPeriod != null}" th:each="g : ${groupedMappings}">
+            <div class="modal fade text-start" th:id="'manageMappingModal' + ${g.evaluateeId}" tabindex="-1"
+                aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content bg-dark text-white border-secondary">
+                        <div class="modal-header border-secondary">
+                            <h5 class="modal-title">평가자 상세 관리</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="d-flex align-items-center mb-4">
+                                <div
+                                    class="avatar-sm me-3 bg-secondary bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center">
                                     <i class="bi bi-person text-secondary"></i>
                                 </div>
                                 <div>
-                                    <div class="fw-bold text-white" th:text="${g.evaluateeName}">피평가자</div>
-                                    <div class="small text-muted" th:text="${'사번: ' + g.evaluateeId}">사번</div>
+                                    <div class="fw-bold fs-5 text-white" th:text="${g.evaluateeName}">피평가자</div>
+                                    <div class="text-muted" th:text="${'사번: ' + g.evaluateeId}">사번</div>
                                 </div>
                             </div>
-                        </td>
-                        
-                        <!-- 1차 평가자 (부서장) -->
-                        <td>
-                            <div th:if="${g.manager != null}" class="d-flex align-items-center">
-                                <span class="badge bg-primary bg-opacity-10 text-primary fw-normal me-2">부서장</span>
-                                <span class="text-white small" th:text="${g.manager.evaluatorName()}">평가자명</span>
-                            </div>
-                            <span th:if="${g.manager == null}" class="text-muted small">-</span>
-                        </td>
-                        
-                        <!-- 최종 평가자 (임원) -->
-                        <td>
-                            <div th:if="${g.executive != null}" class="d-flex align-items-center">
-                                <span class="badge bg-warning bg-opacity-10 text-warning fw-normal me-2">임원</span>
-                                <span class="text-white small" th:text="${g.executive.evaluatorName()}">평가자명</span>
-                            </div>
-                            <span th:if="${g.executive == null}" class="text-muted small">-</span>
-                        </td>
-                        
-                        <!-- 다면 평가자 (부서원) -->
-                        <td>
-                            <div th:if="${not #lists.isEmpty(g.subordinates)}" class="d-flex flex-wrap gap-1">
-                                <th:block th:each="sub, stat : ${g.subordinates}">
-                                    <span th:if="${stat.index < 3}" class="badge bg-danger bg-opacity-10 text-danger fw-normal" th:text="${sub.evaluatorName()}">부서원</span>
-                                </th:block>
-                                <span th:if="${#lists.size(g.subordinates) > 3}" 
-                                      class="badge bg-secondary bg-opacity-25 text-light fw-normal" 
-                                      title="상세/관리에서 전체 확인 가능"
-                                      th:text="'+' + (${#lists.size(g.subordinates)} - 3) + '명'">+N명</span>
-                            </div>
-                            <span th:if="${#lists.isEmpty(g.subordinates)}" class="text-muted small">-</span>
-                        </td>
-                        
-                        <td class="text-end">
-                            <button type="button" class="btn btn-outline-info btn-sm border-0" 
-                                    data-bs-toggle="modal" th:data-bs-target="'#manageMappingModal' + ${g.evaluateeId}" title="상세 관리">
-                                <i class="bi bi-gear"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    <tr th:if="${#lists.isEmpty(groupedMappings)}">
-                        <td colspan="5" class="text-center py-5 text-muted">
-                            <i class="bi bi-people fs-2 d-block mb-2"></i>
-                            조건에 해당하는 평가 매핑이 없습니다.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
 
-    <!-- 개별 피평가자 관리 모달 (테이블 외부로 분리 - overflow 제약 회피) -->
-    <th:block th:if="${selectedPeriod != null}" th:each="g : ${groupedMappings}">
-        <div class="modal fade text-start" th:id="'manageMappingModal' + ${g.evaluateeId}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content bg-dark text-white border-secondary">
-                    <div class="modal-header border-secondary">
-                        <h5 class="modal-title">평가자 상세 관리</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="d-flex align-items-center mb-4">
-                            <div class="avatar-sm me-3 bg-secondary bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center">
-                                <i class="bi bi-person text-secondary"></i>
-                            </div>
-                            <div>
-                                <div class="fw-bold fs-5 text-white" th:text="${g.evaluateeName}">피평가자</div>
-                                <div class="text-muted" th:text="${'사번: ' + g.evaluateeId}">사번</div>
+                            <h6 class="text-muted mb-3">등록된 평가자 목록</h6>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover align-middle mb-0">
+                                    <thead>
+                                        <tr class="text-secondary small">
+                                            <th class="fw-normal">유형</th>
+                                            <th class="fw-normal">평가자명</th>
+                                            <th class="fw-normal">사번</th>
+                                            <th class="fw-normal text-end">작업</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- 해당 피평가자의 모든 매핑 정보 렌더링 -->
+                                        <tr th:each="m : ${mappings}" th:if="${m.evaluateeId() == g.evaluateeId}">
+                                            <td>
+                                                <span th:if="${m.relationTypeCode() == 'MANAGER'}"
+                                                    class="badge bg-primary bg-opacity-10 text-primary fw-normal">부서장</span>
+                                                <span th:if="${m.relationTypeCode() == 'PEER'}"
+                                                    class="badge bg-info bg-opacity-10 text-info fw-normal">동료</span>
+                                                <span th:if="${m.relationTypeCode() == 'SUBORDINATE'}"
+                                                    class="badge bg-danger bg-opacity-10 text-danger fw-normal">부서원</span>
+                                                <span th:if="${m.relationTypeCode() == 'EXECUTIVE'}"
+                                                    class="badge bg-warning bg-opacity-10 text-warning fw-normal">임원</span>
+                                            </td>
+                                            <td th:text="${m.evaluatorName()}">평가자명</td>
+                                            <td class="text-muted small" th:text="${m.evaluatorId()}">사번</td>
+                                            <td class="text-end">
+                                                <form th:action="@{/eval/evaluators/{id}/delete(id=${m.mappingId()})}"
+                                                    method="post" class="d-inline"
+                                                    onsubmit="return confirm('이 평가 관계를 삭제하시겠습니까?')">
+                                                    <input type="hidden" name="periodId"
+                                                        th:value="${selectedPeriod.periodId()}">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm border-0"
+                                                        title="삭제">
+                                                        <i class="bi bi-x-circle"></i> 삭제
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                        
-                        <h6 class="text-muted mb-3">등록된 평가자 목록</h6>
-                        <div class="table-responsive">
-                            <table class="table table-dark table-hover align-middle mb-0">
-                                <thead>
-                                    <tr class="text-secondary small">
-                                        <th class="fw-normal">유형</th>
-                                        <th class="fw-normal">평가자명</th>
-                                        <th class="fw-normal">사번</th>
-                                        <th class="fw-normal text-end">작업</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- 해당 피평가자의 모든 매핑 정보 렌더링 -->
-                                    <tr th:each="m : ${mappings}" th:if="${m.evaluateeId() == g.evaluateeId}">
-                                        <td>
-                                            <span th:if="${m.relationTypeCode() == 'MANAGER'}" class="badge bg-primary bg-opacity-10 text-primary fw-normal">부서장</span>
-                                            <span th:if="${m.relationTypeCode() == 'PEER'}" class="badge bg-info bg-opacity-10 text-info fw-normal">동료</span>
-                                            <span th:if="${m.relationTypeCode() == 'SUBORDINATE'}" class="badge bg-danger bg-opacity-10 text-danger fw-normal">부서원</span>
-                                            <span th:if="${m.relationTypeCode() == 'EXECUTIVE'}" class="badge bg-warning bg-opacity-10 text-warning fw-normal">임원</span>
-                                        </td>
-                                        <td th:text="${m.evaluatorName()}">평가자명</td>
-                                        <td class="text-muted small" th:text="${m.evaluatorId()}">사번</td>
-                                        <td class="text-end">
-                                            <form th:action="@{/eval/evaluators/{id}/delete(id=${m.mappingId()})}" method="post" class="d-inline"
-                                                  onsubmit="return confirm('이 평가 관계를 삭제하시겠습니까?')">
-                                                <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
-                                                <button type="submit" class="btn btn-outline-danger btn-sm border-0" title="삭제">
-                                                    <i class="bi bi-x-circle"></i> 삭제
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div class="modal-footer border-secondary">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
                         </div>
-                    </div>
-                    <div class="modal-footer border-secondary">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
                     </div>
                 </div>
             </div>
-        </div>
-    </th:block>
+        </th:block>
 
-    <!-- Create Modal -->
-    <div th:if="${selectedPeriod != null}" class="modal fade" id="createMappingModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-secondary">
-                <form th:action="@{/eval/evaluators/create}" method="post">
-                    <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
-                    <div class="modal-header border-secondary">
-                        <h5 class="modal-title">수동 매핑 추가</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label text-muted small">피평가자 사번 <span class="text-danger">*</span></label>
-                            <input type="number" name="evaluateeId" class="form-control bg-dark text-white border-secondary" required placeholder="예: 1001">
+        <!-- Create Modal -->
+        <div th:if="${selectedPeriod != null}" class="modal fade" id="createMappingModal" tabindex="-1"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-white border-secondary">
+                    <form th:action="@{/eval/evaluators/create}" method="post">
+                        <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
+                        <div class="modal-header border-secondary">
+                            <h5 class="modal-title">수동 매핑 추가</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted small">평가자 사번 <span class="text-danger">*</span></label>
-                            <input type="number" name="evaluatorId" class="form-control bg-dark text-white border-secondary" required placeholder="예: 1002">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">피평가자 사번 <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" name="evaluateeId"
+                                    class="form-control bg-dark text-white border-secondary" required
+                                    placeholder="예: 1001">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">평가자 사번 <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" name="evaluatorId"
+                                    class="form-control bg-dark text-white border-secondary" required
+                                    placeholder="예: 1002">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">관계 유형 <span
+                                        class="text-danger">*</span></label>
+                                <select name="relationTypeCode" class="form-select bg-dark text-white border-secondary"
+                                    required>
+                                    <option value="SELF">본인 (SELF)</option>
+                                    <option value="MANAGER">부서장 (MANAGER)</option>
+                                    <option value="SUBORDINATE">부서원 (SUBORDINATE)</option>
+                                    <option value="PEER">동료 (PEER)</option>
+                                    <option value="EXECUTIVE">임원 (EXECUTIVE)</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted small">관계 유형 <span class="text-danger">*</span></label>
-                            <select name="relationTypeCode" class="form-select bg-dark text-white border-secondary" required>
-                                <option value="SELF">본인 (SELF)</option>
-                                <option value="MANAGER">부서장 (MANAGER)</option>
-                                <option value="SUBORDINATE">부서원 (SUBORDINATE)</option>
-                                <option value="PEER">동료 (PEER)</option>
-                                <option value="EXECUTIVE">임원 (EXECUTIVE)</option>
-                            </select>
+                        <div class="modal-footer border-secondary">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
+                            <button type="submit" class="btn btn-primary">추가하기</button>
                         </div>
-                    </div>
-                    <div class="modal-footer border-secondary">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
-                        <button type="submit" class="btn btn-primary">추가하기</button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
 </body>
+
 </html>
