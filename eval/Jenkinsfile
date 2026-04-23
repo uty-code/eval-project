@@ -21,7 +21,7 @@ pipeline {
         stage('Maven Build') {
             steps {
                 dir('eval') {
-                    // 💡 [수정] 리눅스 환경(도커 컨테이너)에서 mvnw 실행 권한 부여
+                    // 실행 권한 부여 및 빌드
                     sh 'chmod +x mvnw'
                     sh './mvnw clean package -DskipTests'
                 }
@@ -31,22 +31,22 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 withCredentials([azureServicePrincipal(env.AZURE_CRED_ID)]) {
+                    // 1. Azure 및 ACR 로그인 (sh 안에서 실행)
                     sh """
-                        # Azure 로그인
                         az login --service-principal -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET -t \$AZURE_TENANT_ID
-                        
-                        # ACR 전용 로그인
                         az acr login --name ${ACR_NAME}
-                        
-                        dir('eval') {
-                            # 💡 윈도우 환경을 고려하여 태그 이름 명확히 지정
+                    """
+                    
+                    // 2. 도커 빌드 및 푸시 (dir은 sh 밖으로 꺼내야 합니다!)
+                    dir('eval') {
+                        sh """
                             docker build -t ${ACR_URL}/${IMAGE_NAME}:${TAG} .
                             docker push ${ACR_URL}/${IMAGE_NAME}:${TAG}
                             
                             docker tag ${ACR_URL}/${IMAGE_NAME}:${TAG} ${ACR_URL}/${IMAGE_NAME}:latest
                             docker push ${ACR_URL}/${IMAGE_NAME}:latest
-                        }
-                    """
+                        """
+                    }
                 }
             }
         }
@@ -57,6 +57,7 @@ pipeline {
                     sh """
                         az login --service-principal -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET -t \$AZURE_TENANT_ID
                         
+                        # 웹 앱의 컨테이너 이미지 업데이트
                         az webapp config container set --name ${APP_NAME} \
                             --resource-group ${RESOURCE_GROUP} \
                             --docker-custom-image-name ${ACR_URL}/${IMAGE_NAME}:${TAG}
@@ -71,7 +72,7 @@ pipeline {
             echo '🚀 배포가 성공적으로 완료되었습니다!'
         }
         always {
-            // 💡 docker: not found 에러 방지를 위해 가용성 체크 후 삭제
+            // 로컬에 생성된 이미지 삭제 (용량 확보)
             sh "docker rmi ${ACR_URL}/${IMAGE_NAME}:${TAG} || true"
             cleanWs()
         }
