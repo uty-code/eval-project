@@ -2,13 +2,13 @@ pipeline {
     agent any
 
     environment {
-        ACR_NAME = 'eesregistry2026' 
-        ACR_URL = "${ACR_NAME}-heftdudme8crajh2.azurecr.io"
+        ACR_NAME = 'eesregistry' 
+        ACR_URL = "${ACR_NAME}.azurecr.io"
         IMAGE_NAME = 'ees-eval-app'
         RESOURCE_GROUP = 'EES-ResourceGroup'
-        APP_NAME = 'ees-eval-app-2026' 
+        APP_NAME = 'ees-eval' 
         TAG = "${env.BUILD_NUMBER}"
-        AZURE_CRED_ID = 'my-azure-credential' 
+        AZURE_CRED_ID = 'ees-azure-creds' 
     }
 
     stages {
@@ -60,7 +60,7 @@ pipeline {
                         # 웹 앱의 컨테이너 이미지 업데이트
                         az webapp config container set --name ${APP_NAME} \
                             --resource-group ${RESOURCE_GROUP} \
-                            --docker-custom-image-name ${ACR_URL}/${IMAGE_NAME}:${TAG}
+                            --container-image-name ${ACR_URL}/${IMAGE_NAME}:${TAG}
                     """
                 }
             }
