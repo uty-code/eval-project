@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        ACR_NAME = 'eesregistry2026-heftdudme8crajh2' 
-        ACR_URL = "${ACR_NAME}.azurecr.io"
+        ACR_NAME = 'eesregistry2026' 
+        ACR_URL = "${ACR_NAME}-heftdudme8crajh2.azurecr.io"
         IMAGE_NAME = 'ees-eval-app'
         RESOURCE_GROUP = 'EES-ResourceGroup'
         APP_NAME = 'ees-eval-app-2026' 
