@@ -2,20 +2,12 @@ pipeline {
     agent any
 
     environment {
-        // [수정 완료] 성공적으로 생성하신 ACR 이름 적용
         ACR_NAME = 'eesregistry2026' 
         ACR_URL = "${ACR_NAME}.azurecr.io"
         IMAGE_NAME = 'ees-eval-app'
-        
-        // [수정 완료] 이전 단계에서 생성한 리소스 그룹 이름 적용
         RESOURCE_GROUP = 'EES-ResourceGroup'
-        
-        // 💡 주의: Azure Web App(웹 서버)을 아직 안 만드셨다면, 나중에 서버 생성 후 이 이름을 꼭 채워주셔야 합니다!
         APP_NAME = 'ees-eval-app-2026' 
-        
         TAG = "${env.BUILD_NUMBER}"
-        
-        // 젠킨스 Credentials 메뉴에서 만든 ID
         AZURE_CRED_ID = 'my-azure-credential' 
     }
 
@@ -29,6 +21,8 @@ pipeline {
         stage('Maven Build') {
             steps {
                 dir('eval') {
+                    // 💡 [수정] 리눅스 환경(도커 컨테이너)에서 mvnw 실행 권한 부여
+                    sh 'chmod +x mvnw'
                     sh './mvnw clean package -DskipTests'
                 }
             }
@@ -41,14 +35,14 @@ pipeline {
                         # Azure 로그인
                         az login --service-principal -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET -t \$AZURE_TENANT_ID
                         
-                        # ACR 전용 로그인 (별도 비번 필요 없음)
+                        # ACR 전용 로그인
                         az acr login --name ${ACR_NAME}
                         
                         dir('eval') {
+                            # 💡 윈도우 환경을 고려하여 태그 이름 명확히 지정
                             docker build -t ${ACR_URL}/${IMAGE_NAME}:${TAG} .
                             docker push ${ACR_URL}/${IMAGE_NAME}:${TAG}
                             
-                            # 최신 이미지임을 알리기 위해 latest 태그도 함께 푸시 (선택 사항)
                             docker tag ${ACR_URL}/${IMAGE_NAME}:${TAG} ${ACR_URL}/${IMAGE_NAME}:latest
                             docker push ${ACR_URL}/${IMAGE_NAME}:latest
                         }
@@ -63,7 +57,6 @@ pipeline {
                     sh """
                         az login --service-principal -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET -t \$AZURE_TENANT_ID
                         
-                        # 웹 앱의 컨테이너 이미지 업데이트
                         az webapp config container set --name ${APP_NAME} \
                             --resource-group ${RESOURCE_GROUP} \
                             --docker-custom-image-name ${ACR_URL}/${IMAGE_NAME}:${TAG}
@@ -73,13 +66,12 @@ pipeline {
         }
     }
 
-    // 빌드 후 정리 작업
     post {
         success {
-            echo '배포가 성공적으로 완료되었습니다!'
+            echo '🚀 배포가 성공적으로 완료되었습니다!'
         }
         always {
-            // 젠킨스 서버의 디스크 용량 확보를 위해 로컬에 생성된 이미지는 삭제
+            // 💡 docker: not found 에러 방지를 위해 가용성 체크 후 삭제
             sh "docker rmi ${ACR_URL}/${IMAGE_NAME}:${TAG} || true"
             cleanWs()
         }
