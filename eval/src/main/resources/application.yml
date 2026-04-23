@@ -23,7 +23,7 @@ spring:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   sql:
     init:
-      mode: always  # 강제 초기화를 위해 always로 변경
+      mode: never  # 강제 초기화를 위해 always로 변경
       schema-locations: classpath:eval-schema.sql
       data-locations: classpath:eval-data.sql
       encoding: UTF-8
