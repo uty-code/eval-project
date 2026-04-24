@@ -165,10 +165,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
 
             Long evaluateeId = emp.getEmpId();
 
-            // 1. 본인 평가(SELF) 매핑 생성 제외 (요구사항 변경으로 제외)
-            
-
-            boolean isLeader = false;
+            // 1. 본인 평가(SELF) 매핑 생성
+            count += safeInsertMapping(periodId, evaluateeId, evaluateeId, "SELF");            boolean isLeader = false;
             if (emp.getDeptId() != null) {
                 java.util.Optional<Long> leaderIdOpt = employeeMapper.findDeptLeaderByDeptId(emp.getDeptId());
                 if (leaderIdOpt.isPresent() && leaderIdOpt.get().equals(evaluateeId)) {
@@ -214,8 +212,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     }
 
     private int safeInsertMapping(Long periodId, Long evaluateeId, Long evaluatorId, String relationTypeCode) {
-        if (evaluateeId.equals(evaluatorId)) {
-            return 0; // 본인 평가 불가
+        if (evaluateeId.equals(evaluatorId) && !"SELF".equals(relationTypeCode)) {
+            return 0; // 본인 평가(SELF)가 아닌데 평가자와 피평가자가 같으면 불가
         }
         int count = mappingMapper.countDuplicate(periodId, evaluateeId, evaluatorId, relationTypeCode);
         if (count == 0) {
@@ -277,7 +275,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     }
 
     private void validateSelfMapping(Long evaluateeId, Long evaluatorId, String relationTypeCode) {
-        if (evaluateeId.equals(evaluatorId)) {
+        if (evaluateeId.equals(evaluatorId) && !"SELF".equals(relationTypeCode)) {
             throw new IllegalArgumentException("자기 자신을 평가자로 지정할 수 없습니다. (본인 평가 불가)");
         }
     }

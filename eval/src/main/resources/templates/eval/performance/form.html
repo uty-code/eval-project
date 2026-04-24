@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'performance-eval', ~{::style}, ~{})}">
+<head>
+    <title th:text="${evalType == 'COMPETENCY'} ? '역량평가 작성 - EES' : '성과평가 작성 - EES'">평가 작성 - EES</title>
+    <style></style>
+</head>
+<body>
+<div id="page-content" class="container-fluid py-4">
+    <style>
+        .eval-form-container { max-width: 1200px; margin: 0 auto; }
+        .eval-card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 8px;
+            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            border-left: 4px solid var(--primary);
+            padding: 24px 30px;
+            margin-bottom: 20px;
+            transition: border-color 0.2s;
+        }
+        .eval-card.submitted {
+            border-left-color: #22c55e;
+        }
+        .eval-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .eval-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .eval-title i { color: #818cf8; }
+        .weight-badge {
+            background-color: rgba(255,255,255,0.05);
+            color: var(--text-muted);
+            border: 1px solid var(--glass-border);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 4px;
+        }
+        .field-label {
+            color: #818cf8;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .eval-textarea {
+            width: 100%;
+            border: 1px solid var(--glass-border);
+            background-color: rgba(0,0,0,0.15);
+            border-radius: 6px;
+            padding: 14px 16px;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            min-height: 120px;
+            resize: vertical;
+        }
+        .eval-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: rgba(0,0,0,0.25);
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+        }
+        .eval-textarea::placeholder { color: var(--text-muted); }
+        .eval-textarea:read-only {
+            background-color: rgba(255,255,255,0.03);
+            border-color: rgba(255,255,255,0.08);
+            color: var(--text-muted);
+            cursor: default;
+            resize: none;
+        }
+        .submitted-view {
+            background: rgba(34,197,94,0.08);
+            border: 1px solid rgba(34,197,94,0.25);
+            border-radius: 8px;
+            padding: 14px 18px;
+            font-size: 0.95rem;
+            color: #d1fae5;
+            min-height: 80px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.7;
+        }
+        .empty-comment {
+            color: var(--text-muted);
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+        .header-section {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.3);
+        }
+        .submitted-banner {
+            background: rgba(34,197,94,0.12);
+            border: 1px solid rgba(34,197,94,0.3);
+            border-radius: 8px;
+            padding: 14px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #86efac;
+            font-weight: 600;
+        }
+        .success-toast {
+            background: rgba(34,197,94,0.15);
+            border: 1px solid rgba(34,197,94,0.35);
+            border-radius: 8px;
+            padding: 12px 18px;
+            margin-bottom: 16px;
+            color: #86efac;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-submit {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .btn-submit:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79,70,229,0.4);
+        }
+        .btn-resubmit {
+            background-color: rgba(79,70,229,0.2);
+            color: #a5b4fc;
+            border: 1px solid rgba(79,70,229,0.4);
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .btn-resubmit:hover {
+            background-color: rgba(79,70,229,0.35);
+            color: white;
+        }
+        .btn-back {
+            background-color: rgba(255,255,255,0.05);
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-back:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+    </style>
+    <div class="eval-form-container">
+
+        <!-- 상단 헤더 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center gap-3">
+            <!-- evalType hidden input: 폼 제출 시 서버로 전달 -->
+                <h1 class="text-white fw-bold fs-3 mb-0" 
+                    th:text="${mapping.relationTypeCode() == 'SELF'} ? (${evalType == 'COMPETENCY'} ? '역량 자가평가' : '성과 자가평가') : (${evalType == 'COMPETENCY'} ? '역량 평가 입력' : '성과 평가 입력')">평가 입력</h1>
+                <span class="badge px-3 py-2 fs-6"
+                      th:classappend="${evalType == 'COMPETENCY'} ? 'bg-success' : 'bg-primary'"
+                      th:text="${mapping.evaluateeName()}">피평가자</span>
+            </div>
+            <a href="#" class="btn-back"
+               hx-get="/eval/performance" hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML show:window:top" hx-push-url="true">
+                <i class="bi bi-arrow-left"></i> 목록으로 돌아가기
+            </a>
+        </div>
+
+        <!-- 안내 배너 (매니저 성과평가 시) -->
+        <div th:if="${mapping.relationTypeCode() == 'MANAGER' && evalType == 'PERFORMANCE'}" 
+             class="p-3 mb-4 d-flex align-items-start gap-3" 
+             style="background: rgba(79, 70, 229, 0.15); border: 1px solid rgba(79, 70, 229, 0.3); border-radius: 12px;">
+            <i class="bi bi-bar-chart-fill fs-4 text-primary mt-1"></i>
+            <div>
+                <div class="fw-bold text-white mb-1">성과 평가 주요 포인트</div>
+                <div class="text-muted small">
+                    <span class="text-warning">⭐ 팀장 최종 평가</span> — 팀원의 실적 서술을 검토하고 목표 달성도 중심으로 최종 점수를 매겨주세요.
+                </div>
+            </div>
+        </div>
+
+        <!-- 안내 배너 (매니저 역량평가 시) -->
+        <div th:if="${mapping.relationTypeCode() == 'MANAGER' && evalType == 'COMPETENCY'}" 
+             class="p-3 mb-4 d-flex align-items-start gap-3" 
+             style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px;">
+            <i class="bi bi-stars fs-4 mt-1" style="color:#34d399;"></i>
+            <div>
+                <div class="fw-bold text-white mb-1">역량 평가 주요 포인트</div>
+                <div class="text-muted small">
+                    <span style="color:#6ee7b7;">🧠 팀장 컨퍼럭 평가</span> — 팀원의 역량 서술을 검토하고 전문성, 협업 능력, 문제해결 역량 중심으로 점수를 매겨주세요.
+                </div>
+            </div>
+        </div>
+
+        <!-- 제출 성공 토스트 (Flash Attribute) -->
+        <div th:if="${successMessage}" class="success-toast">
+            <i class="bi bi-check-circle-fill"></i>
+            <span th:text="${successMessage}"></span>
+        </div>
+
+        <!-- 제출 완료 배너 -->
+        <div th:if="${submitted}" class="submitted-banner">
+            <i class="bi bi-patch-check-fill fs-5"></i>
+            <span>평가가 제출된 상태입니다. 내용을 수정하여 재제출할 수 있습니다.</span>
+        </div>
+
+        <!-- 평가요소 없을 때 -->
+        <div th:if="${elements == null || elements.isEmpty()}" class="glass-card text-center py-5">
+            <i class="bi bi-exclamation-circle fs-1 text-warning mb-3 d-block"></i>
+            <h5 class="text-white fw-bold">등록된 평가요소가 없습니다.</h5>
+            <p class="text-muted">관리자가 해당 차수의 평가요소를 먼저 등록해야 합니다.</p>
+        </div>
+
+        <!-- 평가 폼 -->
+        <form th:if="${elements != null && !elements.isEmpty()}" id="evaluationForm"
+              th:action="@{/eval/performance/submit}" method="post">
+            <input type="hidden" name="mappingId" th:value="${mappingId}">
+            <input type="hidden" name="evalType" th:value="${evalType}">
+
+            <div th:each="element : ${elements}"
+                 th:class="${savedMap != null and savedMap.containsKey(element.elementId())} ? 'eval-card submitted' : 'eval-card'"
+                 th:style="${evalType == 'COMPETENCY'} ? 'border-left-color: #10b981;' : ''">
+                <div class="eval-card-header">
+                    <div class="eval-title">
+                        <i th:class="${evalType == 'COMPETENCY'} ? 'bi bi-stars' : 'bi bi-check2-square'"
+                           th:style="${evalType == 'COMPETENCY'} ? 'color:#34d399;' : ''"></i>
+                        <span th:text="${element.elementName()}">목표 달성도</span>
+                    </div>
+                    <div class="weight-badge">
+                        가중치 <span th:text="${element.weight() + '%'}">40%</span>
+                    </div>
+                </div>
+
+                <!-- 대상자의 자가 평가 영역 -->
+                <div th:if="${mapping.relationTypeCode() == 'MANAGER'}" class="mb-4">
+                    <div class="field-label mb-2">
+                        <i class="bi bi-person-badge-fill"></i> 대상자의 자가 평가 (제출된 실적 기록)
+                    </div>
+                    <div class="eval-textarea" style="min-height: 60px; background: rgba(255,255,255,0.03);" 
+                         th:with="hasSelfEval=${selfEvalMap != null and selfEvalMap.containsKey(element.elementId()) and !#strings.isEmpty(selfEvalMap.get(element.elementId()))}"
+                         th:text="${hasSelfEval ? selfEvalMap.get(element.elementId()) : (${evalType == 'COMPETENCY'} ? '제출된 역량 기술이 없습니다.' : '제출된 실적 기록이 없습니다.')}"
+                         th:classappend="${!hasSelfEval ? 'empty-comment' : ''}">
+                    </div>
+                </div>
+
+                <!-- 평가 입력 영역 -->
+                <div class="row g-4">
+                    <!-- 매니저 평가 시 점수 입력 노출 -->
+                    <div th:if="${mapping.relationTypeCode() != 'SELF'}" class="col-md-3">
+                        <div class="field-label mb-2">
+                            <i class="bi bi-award-fill"></i> 최종 평가 점수 (0~100점)
+                        </div>
+                        <input type="number" class="eval-textarea text-center fs-4 fw-bold" style="min-height: 60px;"
+                               th:name="'score_' + ${element.elementId()}"
+                               th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                               min="0" th:max="${element.maxScore()}" step="0.1" 
+                               required>
+                    </div>
+                    <!-- 코멘트 영역: 매니저면 9칸, 본인이면 12칸 (전체) 차지 -->
+                    <div th:class="${mapping.relationTypeCode() == 'SELF' ? 'col-md-12' : 'col-md-9'}">
+                        <div class="field-label mb-2"
+                             th:style="${evalType == 'COMPETENCY'} ? 'color:#34d399;' : ''">
+                            <i class="bi bi-chat-left-text-fill"></i>
+                            <span th:text="${mapping.relationTypeCode() == 'SELF'}
+                                           ? (${evalType == 'COMPETENCY'} ? '본인 역량 서술 (구체적인 근거 작성)' : '본인 성과 서술 (구체적인 근거 작성)')
+                                           : (${evalType == 'COMPETENCY'} ? '최종 코멘트 (역량 평가 사유 및 피드백)' : '최종 코멘트 (평가 사유 및 피드백)')">코멘트</span>
+                        </div>
+                        <textarea class="eval-textarea" style="min-height: 100px;"
+                                  th:name="'comment_' + ${element.elementId()}"
+                                  th:placeholder="${mapping.relationTypeCode() == 'SELF'}
+                                                   ? (${evalType == 'COMPETENCY'} ? '해당 역량 항목에서 본인의 강점, 노력, 성장 과정 등을 상세히 서술해주세요.' : '본인의 실적과 목표 달성 과정, 기여도 등을 상세히 서술해주세요.')
+                                                   : (${evalType == 'COMPETENCY'} ? '제출된 역량 서술을 바탕으로 전문성, 협업, 문제해결 능력 중심으로 피드백을 작성해주세요.' : '제출된 실적을 바탕으로 구체적인 피드백을 작성해주세요.')"
+                                  th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ?
+                                             savedMap.get(element.elementId()).getComments() : ''}"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 하단 플로팅 버튼 영역 -->
+            <div class="d-flex justify-content-end mt-4 mb-5">
+                <button type="submit" form="evaluationForm" class="btn-submit btn-lg py-3 px-5 fs-5"
+                        th:style="${evalType == 'COMPETENCY'} ? 'background-color:#10b981;' : ''">
+                    <i th:class="${evalType == 'COMPETENCY'} ? 'bi bi-stars me-2' : 'bi bi-check2-circle me-2'"></i>
+                    <span th:text="${evalType == 'COMPETENCY'} ? '역량 평가 저장 및 제출' : '성과 평가 저장 및 제출'">모든 평가 내용 저장 및 제출</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>
