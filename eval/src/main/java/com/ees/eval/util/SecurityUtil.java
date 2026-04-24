@@ -8,7 +8,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 /**
  * Spring Security Context에서 현재 로그인한 사용자의 정보를 추출하는 유틸리티 클래스입니다.
  */
-public class SecurityUtil {
+public final class SecurityUtil {
+    
+    private SecurityUtil() {
+        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+    }
+
 
     /**
      * 현재 로그인한 사원의 고유 식별자(empId)를 반환합니다.
