@@ -133,21 +133,21 @@ public class PerformanceEvaluationController {
             // 피평가자 자가평가 제출 여부 Map (자가평가가 있어야 부서장 진입 가능)
             java.util.Map<Long, Boolean> evaluateeSelfSubmittedMap = new java.util.HashMap<>();
 
-            List<EvaluationElementDTO> allPeriodElements = selectedPeriod != null
-                ? elementService.getElementsByPeriodId(selectedPeriod.periodId(), null)
-                : java.util.Collections.emptyList();
-
             for (EvaluatorMappingDTO task : teamTasks) {
+                Employee evaluatee = employeeMapper.findById(task.evaluateeId()).orElse(null);
+                Long evaluateeDeptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
+                List<EvaluationElementDTO> elementsForTask = getElementsWithFallback(selectedPeriod.periodId(), evaluateeDeptId);
+
                 List<Evaluation> evals = evaluationMapper.findByMappingId(task.mappingId());
                 List<Long> submittedIds = evals.stream()
                     .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
                     .map(Evaluation::getElementId)
                     .toList();
 
-                boolean perfSubmitted = allPeriodElements.stream()
+                boolean perfSubmitted = elementsForTask.stream()
                     .filter(el -> "PERFORMANCE".equals(el.elementTypeCode()))
                     .anyMatch(el -> submittedIds.contains(el.elementId()));
-                boolean compSubmitted = allPeriodElements.stream()
+                boolean compSubmitted = elementsForTask.stream()
                     .filter(el -> "COMPETENCY".equals(el.elementTypeCode()))
                     .anyMatch(el -> submittedIds.contains(el.elementId()));
 
