@@ -1,162 +1,246 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'performance-eval', ~{::style}, ~{})}">
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'performance-eval', ~{::style}, ~{})}">
+
 <head>
-    <title>성과/업무 평가 - EES</title>
+    <title>성과/역량 평가 - EES</title>
     <style></style>
 </head>
-<body>
-<div id="page-content" class="container-fluid py-4">
-    <style>
-        .eval-list-container {
-            background: var(--glass);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-radius: 1rem;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--glass-border);
-            overflow: hidden;
-            margin-top: 20px;
-        }
-        .eval-list-item {
-            display: flex;
-            align-items: center;
-            padding: 18px 24px;
-            border-bottom: 1px solid var(--glass-border);
-            transition: background-color 0.2s ease;
-        }
-        .eval-list-item:last-child {
-            border-bottom: none;
-        }
-        .eval-list-item:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-        .eval-name {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-main);
-            min-width: 140px;
-        }
-        .badge-dept {
-            background-color: var(--surface-light);
-            color: var(--text-main);
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 4px 12px;
-            border-radius: 6px;
-            margin-right: 16px;
-            border: 1px solid var(--glass-border);
-        }
-        .badge-status {
-            background-color: rgba(245, 158, 11, 0.2);
-            color: #fbd38d;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 4px 12px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-evaluate {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 24px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-        .btn-evaluate:hover {
-            background-color: var(--primary-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
-            color: white;
-        }
-    </style>
 
-    <!-- 상단 헤더 & 차수 선택 영역 -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="text-white fs-3 mb-1"><i class="bi bi-pencil-square text-primary me-2"></i>성과/업무 평가</h1>
-            <p class="text-muted mb-0 small">배정된 팀원들의 성과 평가를 진행해주세요.</p>
-        </div>
-        <div>
-            <form th:action="@{/eval/performance}" method="get" class="d-inline-flex gap-2 align-items-center bg-dark p-2 rounded-pill shadow-sm" style="border: 1px solid var(--glass-border);">
-                <select name="periodId" class="form-select form-select-sm bg-transparent text-white border-0 fw-bold" 
+<body>
+    <div id="page-content" class="container-fluid py-4">
+        <style>
+            .eval-list-container {
+                background: var(--glass);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-radius: 1rem;
+                box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+                border: 1px solid var(--glass-border);
+                overflow: hidden;
+                margin-top: 20px;
+            }
+
+            .eval-list-item {
+                display: flex;
+                align-items: center;
+                padding: 18px 24px;
+                border-bottom: 1px solid var(--glass-border);
+                transition: background-color 0.2s ease;
+            }
+
+            .eval-list-item:last-child {
+                border-bottom: none;
+            }
+
+            .eval-list-item:hover {
+                background-color: rgba(255, 255, 255, 0.05);
+            }
+
+            .eval-name {
+                font-size: 1.1rem;
+                font-weight: 700;
+                color: var(--text-main);
+                min-width: 140px;
+            }
+
+            .badge-dept {
+                background-color: var(--surface-light);
+                color: var(--text-main);
+                font-size: 0.85rem;
+                font-weight: 600;
+                padding: 4px 12px;
+                border-radius: 6px;
+                margin-right: 16px;
+                border: 1px solid var(--glass-border);
+            }
+
+            .badge-status {
+                background-color: rgba(245, 158, 11, 0.2);
+                color: #fbd38d;
+                border: 1px solid rgba(245, 158, 11, 0.3);
+                font-size: 0.85rem;
+                font-weight: 600;
+                padding: 4px 12px;
+                border-radius: 6px;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .btn-evaluate {
+                background-color: var(--primary);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 24px;
+                font-size: 0.95rem;
+                font-weight: 600;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                text-decoration: none;
+                transition: all 0.2s;
+            }
+
+            .btn-evaluate:hover {
+                background-color: var(--primary-hover);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+                color: white;
+            }
+        </style>
+
+        <!-- 상단 헤더 & 차수 선택 영역 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+            <h1 class="text-white fs-3 mb-1"><i class="bi bi-pencil-square text-primary me-2"></i>성과 / 역량 평가</h1>
+                <p class="text-muted mb-0 small">배정된 평가를 유형별로 진행해주세요.</p>
+            </div>
+            <div>
+                <form th:action="@{/eval/performance}" method="get"
+                    class="d-inline-flex gap-2 align-items-center bg-dark p-2 rounded-pill shadow-sm"
+                    style="border: 1px solid var(--glass-border);">
+                    <select name="periodId"
+                        class="form-select form-select-sm bg-transparent text-white border-0 fw-bold"
                         onchange="this.form.submit()" style="width: 200px; box-shadow: none;">
-                    <option class="bg-dark" th:each="p : ${periods}" th:value="${p.periodId()}" 
+                        <option class="bg-dark" th:each="p : ${periods}" th:value="${p.periodId()}"
                             th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
                             th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수 선택</option>
-                </select>
-            </form>
-        </div>
-    </div>
-
-    <!-- 나의 자가평가 영역 -->
-    <h5 class="text-white fw-bold mb-3 mt-2"><i class="bi bi-person-badge me-2"></i>나의 자가평가</h5>
-    <div th:if="${selfTask == null}" class="glass-card text-center py-4 border-0 shadow-sm rounded-3 mb-4">
-        <p class="text-muted mb-0">현재 차수에 진행할 자가평가가 없습니다.</p>
-    </div>
-    
-    <div th:if="${selfTask != null}" class="eval-list-container mb-5 mt-0">
-        <div class="eval-list-item">
-            <div class="eval-name" th:text="${selfTask.evaluateeName()}">나의 이름</div>
-            <div class="badge-dept">본인</div>
-            <!-- 제출 여부에 따라 상태 뱃지 동적 변경 -->
-            <div th:if="${!selfSubmitted}" class="badge-status"><i class="bi bi-hourglass-split"></i> 자가평가 대기</div>
-            <div th:if="${selfSubmitted}" class="badge-status" style="background:rgba(34,197,94,0.15);color:#86efac;border-color:rgba(34,197,94,0.3);">
-                <i class="bi bi-check-circle-fill"></i> 자가평가 완료
-            </div>
-            <div class="flex-grow-1"></div>
-            <div>
-                <a href="#" class="btn-evaluate" 
-                   th:attr="hx-get=@{/eval/performance/form(mappingId=${selfTask.mappingId()})}"
-                   hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
-                    <i class="bi bi-pencil-square"></i> 자가평가 작성
-                </a>
+                    </select>
+                </form>
             </div>
         </div>
-    </div>
 
-    <!-- 팀원 평가 리스트 영역 (부서장 이상 권한만 노출) -->
-    <div sec:authorize="hasAnyRole('MANAGER', 'ADMIN', 'EXECUTIVE')">
-        <h5 class="text-white fw-bold mb-3"><i class="bi bi-people me-2"></i>팀원 성과 평가</h5>
-        <div th:if="${tasks == null || tasks.isEmpty()}" class="glass-card text-center py-5 border-0 shadow-sm rounded-3">
-            <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
-            <h5 class="fw-bold text-white">평가 대상 팀원이 없습니다.</h5>
+        <!-- 나의 자가평가 영역 -->
+        <h5 class="text-white fw-bold mb-3 mt-2"><i class="bi bi-person-badge me-2"></i>나의 자가평가</h5>
+        <div th:if="${selfTask == null}" class="glass-card text-center py-4 border-0 shadow-sm rounded-3 mb-4">
+            <p class="text-muted mb-0">현재 차수에 진행할 자가평가가 없습니다.</p>
         </div>
 
-        <div th:if="${tasks != null && !tasks.isEmpty()}" class="eval-list-container mt-0">
-            <div th:each="task : ${tasks}" class="eval-list-item">
-                <div class="eval-name" th:text="${task.evaluateeName()}">팀원 이름</div>
-                <div class="badge-dept">소속팀</div>
-                <!-- 부서장 본인의 평가 제출 여부에 따라 상태 동적 변경 -->
-                <div th:if="${teamSubmittedMap == null || !teamSubmittedMap.getOrDefault(task.mappingId(), false)}"
-                     class="badge-status">
-                    <i class="bi bi-hourglass-split"></i> 평가 대기
-                </div>
-                <div th:if="${teamSubmittedMap != null && teamSubmittedMap.getOrDefault(task.mappingId(), false)}"
-                     class="badge-status" style="background:rgba(34,197,94,0.15);color:#86efac;border-color:rgba(34,197,94,0.3);">
-                    <i class="bi bi-check-circle-fill"></i> 평가 완료
+        <div th:if="${selfTask != null}" class="eval-list-container mb-5 mt-0">
+            <!-- 성과 평가 행 -->
+            <div class="eval-list-item">
+                <div class="eval-name">📊 성과 평가</div>
+                <div class="badge-dept">본인</div>
+                <div th:if="${!selfPerfSubmitted}" class="badge-status"><i class="bi bi-hourglass-split"></i> 미제출</div>
+                <div th:if="${selfPerfSubmitted}" class="badge-status"
+                    style="background:rgba(34,197,94,0.15);color:#86efac;border-color:rgba(34,197,94,0.3);">
+                    <i class="bi bi-check-circle-fill"></i> 제출 완료
                 </div>
                 <div class="flex-grow-1"></div>
                 <div>
-                    <a href="#" class="btn-evaluate" 
-                       th:attr="hx-get=@{/eval/performance/form(mappingId=${task.mappingId()})}"
-                       hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
-                        <i class="bi bi-pencil-square"></i> 팀원 평가
+                    <a href="#" class="btn-evaluate"
+                        th:attr="hx-get=@{/eval/performance/form(mappingId=${selfTask.mappingId()},evalType='PERFORMANCE')}"
+                        hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                        <i class="bi bi-pencil-square"></i> 성과 자가평가
+                    </a>
+                </div>
+            </div>
+            <!-- 역량 평가 행 -->
+            <div class="eval-list-item">
+                <div class="eval-name">🧠 역량 평가</div>
+                <div class="badge-dept">본인</div>
+                <div th:if="${!selfCompSubmitted}" class="badge-status"><i class="bi bi-hourglass-split"></i> 미제출</div>
+                <div th:if="${selfCompSubmitted}" class="badge-status"
+                    style="background:rgba(34,197,94,0.15);color:#86efac;border-color:rgba(34,197,94,0.3);">
+                    <i class="bi bi-check-circle-fill"></i> 제출 완료
+                </div>
+                <div class="flex-grow-1"></div>
+                <div>
+                    <a href="#" class="btn-evaluate"
+                        style="background:rgba(16,185,129,0.8);"
+                        th:attr="hx-get=@{/eval/performance/form(mappingId=${selfTask.mappingId()},evalType='COMPETENCY')}"
+                        hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                        <i class="bi bi-stars"></i> 역량 자가평가
                     </a>
                 </div>
             </div>
         </div>
+
+        <!-- 팀원 평가 리스트 영역 (부서장 이상 권한만 노출) -->
+        <div sec:authorize="hasAnyRole('MANAGER', 'ADMIN', 'EXECUTIVE')">
+            <!-- 팀원 성과 평가 섹션 -->
+            <h5 class="text-white fw-bold mb-3 mt-2"><i class="bi bi-bar-chart-fill text-primary me-2"></i>팀원 성과 평가</h5>
+            <div th:if="${tasks == null || tasks.isEmpty()}"
+                class="glass-card text-center py-4 border-0 shadow-sm rounded-3 mb-4">
+                <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+                <h5 class="fw-bold text-white">평가 대상 팀원이 없습니다.</h5>
+            </div>
+            <div th:if="${tasks != null && !tasks.isEmpty()}" class="eval-list-container mb-5 mt-0">
+                <div th:each="task : ${tasks}" class="eval-list-item">
+                    <div class="eval-name" th:text="${task.evaluateeName()}">팀원 이름</div>
+                    <div class="badge-dept">소속팀</div>
+                    <!-- 성과 평가 제출 여부 배지 -->
+                    <div th:if="${teamPerfSubmittedMap == null || !teamPerfSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                        class="badge-status">
+                        <i class="bi bi-hourglass-split"></i> 평가 대기
+                    </div>
+                    <div th:if="${teamPerfSubmittedMap != null && teamPerfSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                        class="badge-status"
+                        style="background:rgba(34,197,94,0.15);color:#86efac;border-color:rgba(34,197,94,0.3);">
+                        <i class="bi bi-check-circle-fill"></i> 평가 완료
+                    </div>
+                    <div class="flex-grow-1"></div>
+                    <div>
+                        <!-- 자가평가가 완료된 경우에만 평가 작성 가능 -->
+                        <a th:if="${evaluateeSelfSubmittedMap != null && evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                            href="#" class="btn-evaluate"
+                            th:attr="hx-get=@{/eval/performance/form(mappingId=${task.mappingId()},evalType='PERFORMANCE')}"
+                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                            <i class="bi bi-pencil-square"></i> 성과 평가
+                        </a>
+                        <button
+                            th:if="${evaluateeSelfSubmittedMap == null || !evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                            class="btn-evaluate" style="background-color: #4b5563; cursor: not-allowed; opacity: 0.7;"
+                            disabled>
+                            <i class="bi bi-lock-fill"></i> 자가평가 대기중
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 팀원 역량 평가 섹션 -->
+            <h5 class="text-white fw-bold mb-3 mt-4"><i class="bi bi-stars me-2" style="color:#34d399;"></i>팀원 역량 평가</h5>
+            <div th:if="${tasks == null || tasks.isEmpty()}"
+                class="glass-card text-center py-4 border-0 shadow-sm rounded-3">
+                <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+                <h5 class="fw-bold text-white">평가 대상 팀원이 없습니다.</h5>
+            </div>
+            <div th:if="${tasks != null && !tasks.isEmpty()}" class="eval-list-container mt-0">
+                <div th:each="task : ${tasks}" class="eval-list-item">
+                    <div class="eval-name" th:text="${task.evaluateeName()}">팀원 이름</div>
+                    <div class="badge-dept">소속팀</div>
+                    <!-- 역량 평가 제출 여부 배지 -->
+                    <div th:if="${teamCompSubmittedMap == null || !teamCompSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                        class="badge-status">
+                        <i class="bi bi-hourglass-split"></i> 평가 대기
+                    </div>
+                    <div th:if="${teamCompSubmittedMap != null && teamCompSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                        class="badge-status"
+                        style="background:rgba(34,197,94,0.15);color:#86efac;border-color:rgba(34,197,94,0.3);">
+                        <i class="bi bi-check-circle-fill"></i> 평가 완료
+                    </div>
+                    <div class="flex-grow-1"></div>
+                    <div>
+                        <a th:if="${evaluateeSelfSubmittedMap != null && evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                            href="#" class="btn-evaluate"
+                            style="background:rgba(16,185,129,0.8);"
+                            th:attr="hx-get=@{/eval/performance/form(mappingId=${task.mappingId()},evalType='COMPETENCY')}"
+                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                            <i class="bi bi-stars"></i> 역량 평가
+                        </a>
+                        <button
+                            th:if="${evaluateeSelfSubmittedMap == null || !evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false)}"
+                            class="btn-evaluate" style="background-color: #4b5563; cursor: not-allowed; opacity: 0.7;"
+                            disabled>
+                            <i class="bi bi-lock-fill"></i> 자가평가 대기중
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 </body>
+
 </html>

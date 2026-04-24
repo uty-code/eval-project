@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'performance-eval', ~{::style}, ~{})}">
 <head>
-    <title>자가평가 작성 - EES</title>
+    <title th:text="${evalType == 'COMPETENCY'} ? '역량평가 작성 - EES' : '성과평가 작성 - EES'">평가 작성 - EES</title>
     <style></style>
 </head>
 <body>
@@ -183,34 +183,47 @@
             color: white;
         }
     </style>
-
     <div class="eval-form-container">
 
         <!-- 상단 헤더 -->
-        <div class="header-section">
-            <div>
-                <h1 class="text-white fw-bold fs-4 mb-1">
-                    <i class="bi bi-file-earmark-person text-primary me-2"></i>
-                    <span th:text="${mapping.relationTypeCode() == 'SELF' ? '자가평가 작성' : '성과평가 수행'}">평가 작성</span>
-                    <span th:if="${mapping != null}" class="fs-6 fw-normal text-muted ms-2">
-                        - <span th:text="${mapping.evaluateeName()}"></span>
-                    </span>
-                </h1>
-                <p class="text-muted mb-0 small" th:text="${mapping.relationTypeCode() == 'SELF' ? '본인의 성과와 업무 내역을 구체적으로 작성해 주세요.' : '피평가자의 성과와 자가평가 내용을 참고하여 객관적으로 평가해 주세요.'}">평가 안내 문구</p>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center gap-3">
+            <!-- evalType hidden input: 폼 제출 시 서버로 전달 -->
+                <h1 class="text-white fw-bold fs-3 mb-0" 
+                    th:text="${mapping.relationTypeCode() == 'SELF'} ? (${evalType == 'COMPETENCY'} ? '역량 자가평가' : '성과 자가평가') : (${evalType == 'COMPETENCY'} ? '역량 평가 입력' : '성과 평가 입력')">평가 입력</h1>
+                <span class="badge px-3 py-2 fs-6"
+                      th:classappend="${evalType == 'COMPETENCY'} ? 'bg-success' : 'bg-primary'"
+                      th:text="${mapping.evaluateeName()}">피평가자</span>
             </div>
-            <div class="d-flex gap-2 align-items-center">
-                <a href="#" class="btn-back"
-                   hx-get="/eval/performance" hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML show:window:top" hx-push-url="true">
-                    <i class="bi bi-arrow-left"></i> 뒤로가기
-                </a>
-                <!-- 제출 전: 제출 버튼 -->
-                <button th:if="${!submitted}" type="submit" form="evaluationForm" class="btn-submit">
-                    <i class="bi bi-check2 me-1"></i> 평가 제출
-                </button>
-                <!-- 제출 후: 재작성 버튼 -->
-                <button th:if="${submitted}" type="submit" form="evaluationForm" class="btn-resubmit">
-                    <i class="bi bi-pencil me-1"></i> 내용 수정 후 재제출
-                </button>
+            <a href="#" class="btn-back"
+               hx-get="/eval/performance" hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML show:window:top" hx-push-url="true">
+                <i class="bi bi-arrow-left"></i> 목록으로 돌아가기
+            </a>
+        </div>
+
+        <!-- 안내 배너 (매니저 성과평가 시) -->
+        <div th:if="${mapping.relationTypeCode() == 'MANAGER' && evalType == 'PERFORMANCE'}" 
+             class="p-3 mb-4 d-flex align-items-start gap-3" 
+             style="background: rgba(79, 70, 229, 0.15); border: 1px solid rgba(79, 70, 229, 0.3); border-radius: 12px;">
+            <i class="bi bi-bar-chart-fill fs-4 text-primary mt-1"></i>
+            <div>
+                <div class="fw-bold text-white mb-1">성과 평가 주요 포인트</div>
+                <div class="text-muted small">
+                    <span class="text-warning">⭐ 팀장 최종 평가</span> — 팀원의 실적 서술을 검토하고 목표 달성도 중심으로 최종 점수를 매겨주세요.
+                </div>
+            </div>
+        </div>
+
+        <!-- 안내 배너 (매니저 역량평가 시) -->
+        <div th:if="${mapping.relationTypeCode() == 'MANAGER' && evalType == 'COMPETENCY'}" 
+             class="p-3 mb-4 d-flex align-items-start gap-3" 
+             style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px;">
+            <i class="bi bi-stars fs-4 mt-1" style="color:#34d399;"></i>
+            <div>
+                <div class="fw-bold text-white mb-1">역량 평가 주요 포인트</div>
+                <div class="text-muted small">
+                    <span style="color:#6ee7b7;">🧠 팀장 컨퍼럭 평가</span> — 팀원의 역량 서술을 검토하고 전문성, 협업 능력, 문제해결 역량 중심으로 점수를 매겨주세요.
+                </div>
             </div>
         </div>
 
@@ -237,62 +250,74 @@
         <form th:if="${elements != null && !elements.isEmpty()}" id="evaluationForm"
               th:action="@{/eval/performance/submit}" method="post">
             <input type="hidden" name="mappingId" th:value="${mappingId}">
+            <input type="hidden" name="evalType" th:value="${evalType}">
 
             <div th:each="element : ${elements}"
-                 th:class="${savedMap != null and savedMap.containsKey(element.elementId())} ? 'eval-card submitted' : 'eval-card'">
+                 th:class="${savedMap != null and savedMap.containsKey(element.elementId())} ? 'eval-card submitted' : 'eval-card'"
+                 th:style="${evalType == 'COMPETENCY'} ? 'border-left-color: #10b981;' : ''">
                 <div class="eval-card-header">
                     <div class="eval-title">
-                        <i class="bi bi-check-square"></i>
-                        <span th:text="${element.elementName()}">평가 항목명</span>
+                        <i th:class="${evalType == 'COMPETENCY'} ? 'bi bi-stars' : 'bi bi-check2-square'"
+                           th:style="${evalType == 'COMPETENCY'} ? 'color:#34d399;' : ''"></i>
+                        <span th:text="${element.elementName()}">목표 달성도</span>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <!-- 저장된 경우 완료 뱃지 표시 -->
-                        <span th:if="${savedMap != null and savedMap.containsKey(element.elementId())}"
-                              class="badge" style="background:rgba(34,197,94,0.2);color:#86efac;border:1px solid rgba(34,197,94,0.3);font-size:0.78rem;padding:4px 10px;">
-                            <i class="bi bi-check2 me-1"></i>작성 완료
-                        </span>
-                        <div class="weight-badge">
-                            가중치 <strong th:text="${element.weight() + '%'}">0%</strong>
-                            &nbsp;|&nbsp; 만점 <strong th:text="${element.maxScore() + '점'}">0점</strong>
-                        </div>
+                    <div class="weight-badge">
+                        가중치 <span th:text="${element.weight() + '%'}">40%</span>
                     </div>
                 </div>
 
-                <!-- 피평가자 자가평가 내용 표시 (평가자 화면인 경우) -->
-                <div th:if="${selfEvalMap != null and selfEvalMap.containsKey(element.elementId())}" class="mb-4">
-                    <div class="field-label" style="color: #10b981;">
-                        <i class="bi bi-person-check-fill"></i> 피평가자 자가평가 의견
+                <!-- 대상자의 자가 평가 영역 -->
+                <div th:if="${mapping.relationTypeCode() == 'MANAGER'}" class="mb-4">
+                    <div class="field-label mb-2">
+                        <i class="bi bi-person-badge-fill"></i> 대상자의 자가 평가 (제출된 실적 기록)
                     </div>
-                    <div class="submitted-view" 
-                         th:text="${#strings.isEmpty(selfEvalMap.get(element.elementId())) ? '작성된 내용이 없습니다.' : selfEvalMap.get(element.elementId())}"
-                         th:classappend="${#strings.isEmpty(selfEvalMap.get(element.elementId())) ? 'empty-comment' : ''}">
+                    <div class="eval-textarea" style="min-height: 60px; background: rgba(255,255,255,0.03);" 
+                         th:with="hasSelfEval=${selfEvalMap != null and selfEvalMap.containsKey(element.elementId()) and !#strings.isEmpty(selfEvalMap.get(element.elementId()))}"
+                         th:text="${hasSelfEval ? selfEvalMap.get(element.elementId()) : (${evalType == 'COMPETENCY'} ? '제출된 역량 기술이 없습니다.' : '제출된 실적 기록이 없습니다.')}"
+                         th:classappend="${!hasSelfEval ? 'empty-comment' : ''}">
                     </div>
                 </div>
 
-                <!-- 점수 및 코멘트 입력 영역 -->
+                <!-- 평가 입력 영역 -->
                 <div class="row g-4">
-                    <div class="col-md-3">
-                        <div class="field-label">
-                            <i class="bi bi-star-fill"></i> 점수 (만점: <span th:text="${element.maxScore()}"></span>점)
+                    <!-- 매니저 평가 시 점수 입력 노출 -->
+                    <div th:if="${mapping.relationTypeCode() != 'SELF'}" class="col-md-3">
+                        <div class="field-label mb-2">
+                            <i class="bi bi-award-fill"></i> 최종 평가 점수 (0~100점)
                         </div>
-                        <input type="number" class="eval-textarea" style="min-height: 50px;"
+                        <input type="number" class="eval-textarea text-center fs-4 fw-bold" style="min-height: 60px;"
                                th:name="'score_' + ${element.elementId()}"
                                th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
                                min="0" th:max="${element.maxScore()}" step="0.1" 
-                               th:placeholder="${element.maxScore() + '점 만점'}"
                                required>
                     </div>
-                    <div class="col-md-9">
-                        <div class="field-label">
-                            <i class="bi bi-pencil-fill"></i> <span th:text="${mapping.relationTypeCode() == 'SELF' ? '본인 성과 서술' : '평가 의견 작성'}">성과 서술</span>
+                    <!-- 코멘트 영역: 매니저면 9칸, 본인이면 12칸 (전체) 차지 -->
+                    <div th:class="${mapping.relationTypeCode() == 'SELF' ? 'col-md-12' : 'col-md-9'}">
+                        <div class="field-label mb-2"
+                             th:style="${evalType == 'COMPETENCY'} ? 'color:#34d399;' : ''">
+                            <i class="bi bi-chat-left-text-fill"></i>
+                            <span th:text="${mapping.relationTypeCode() == 'SELF'}
+                                           ? (${evalType == 'COMPETENCY'} ? '본인 역량 서술 (구체적인 근거 작성)' : '본인 성과 서술 (구체적인 근거 작성)')
+                                           : (${evalType == 'COMPETENCY'} ? '최종 코멘트 (역량 평가 사유 및 피드백)' : '최종 코멘트 (평가 사유 및 피드백)')">코멘트</span>
                         </div>
-                        <textarea class="eval-textarea"
+                        <textarea class="eval-textarea" style="min-height: 100px;"
                                   th:name="'comment_' + ${element.elementId()}"
-                                  placeholder="구체적인 근거와 함께 의견을 작성해주세요."
+                                  th:placeholder="${mapping.relationTypeCode() == 'SELF'}
+                                                   ? (${evalType == 'COMPETENCY'} ? '해당 역량 항목에서 본인의 강점, 노력, 성장 과정 등을 상세히 서술해주세요.' : '본인의 실적과 목표 달성 과정, 기여도 등을 상세히 서술해주세요.')
+                                                   : (${evalType == 'COMPETENCY'} ? '제출된 역량 서술을 바탕으로 전문성, 협업, 문제해결 능력 중심으로 피드백을 작성해주세요.' : '제출된 실적을 바탕으로 구체적인 피드백을 작성해주세요.')"
                                   th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ?
                                              savedMap.get(element.elementId()).getComments() : ''}"></textarea>
                     </div>
                 </div>
+            </div>
+
+            <!-- 하단 플로팅 버튼 영역 -->
+            <div class="d-flex justify-content-end mt-4 mb-5">
+                <button type="submit" form="evaluationForm" class="btn-submit btn-lg py-3 px-5 fs-5"
+                        th:style="${evalType == 'COMPETENCY'} ? 'background-color:#10b981;' : ''">
+                    <i th:class="${evalType == 'COMPETENCY'} ? 'bi bi-stars me-2' : 'bi bi-check2-circle me-2'"></i>
+                    <span th:text="${evalType == 'COMPETENCY'} ? '역량 평가 저장 및 제출' : '성과 평가 저장 및 제출'">모든 평가 내용 저장 및 제출</span>
+                </button>
             </div>
         </form>
     </div>
