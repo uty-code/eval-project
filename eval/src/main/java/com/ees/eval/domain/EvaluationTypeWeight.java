@@ -2,39 +2,30 @@ package com.ees.eval.domain;
 
 import lombok.*;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 /**
  * 평가 유형별 가중치(Type Weight)를 정의하는 도메인입니다.
- * 이미지 디자인에 따라 COMPETENCY, PERFORMANCE 등 유형별 비중을 100% 기준으로 설정합니다.
+ * BaseEntity를 상속하여 감사(Audit) 필드를 제공받습니다.
  */
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class EvaluationTypeWeight {
+public class EvaluationTypeWeight extends BaseEntity {
     private Long weightId;
     private Long periodId;
     private Long deptId;
     private String targetRoleCode;
     private String elementTypeCode;
     private BigDecimal weight;
-    
-    private String isDeleted;
-    private Integer version;
-    private LocalDateTime createdAt;
-    private Long createdBy;
-    private LocalDateTime updatedAt;
-    private Long updatedBy;
 
-    public void prePersist() {
-        this.isDeleted = "n";
-        this.version = 0;
-        this.createdAt = LocalDateTime.now();
-    }
-
-    public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
+    @Builder
+    public EvaluationTypeWeight(Long weightId, Long periodId, Long deptId, 
+                              String targetRoleCode, String elementTypeCode, BigDecimal weight) {
+        this.weightId = weightId;
+        this.periodId = periodId;
+        this.deptId = deptId;
+        this.targetRoleCode = targetRoleCode;
+        this.elementTypeCode = elementTypeCode;
+        this.weight = weight;
     }
 }

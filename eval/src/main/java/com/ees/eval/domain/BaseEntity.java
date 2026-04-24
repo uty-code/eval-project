@@ -27,9 +27,9 @@ public abstract class BaseEntity {
         this.isDeleted = "n";
         this.version = 0;
         this.createdAt = LocalDateTime.now();
-        this.createdBy = 1L; // 임시 시스템 식별자
+        this.createdBy = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         this.updatedAt = this.createdAt;
-        this.updatedBy = 1L;
+        this.updatedBy = this.createdBy;
     }
 
     /**
@@ -38,6 +38,6 @@ public abstract class BaseEntity {
      */
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
-        this.updatedBy = 1L;
+        this.updatedBy = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
     }
 }

@@ -236,7 +236,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     @Override
     @Transactional
     public void deleteMapping(Long mappingId) {
-        Long currentUserId = 1L;
+        Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         int updatedRows = mappingMapper.softDelete(mappingId, currentUserId, LocalDateTime.now());
         if (updatedRows == 0) {
             throw new IllegalArgumentException("삭제 대상 매핑을 찾을 수 없습니다. mappingId: " + mappingId);
@@ -257,7 +257,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         }
 
         mapping.setEvaluatorId(evaluatorId);
-        mapping.setUpdatedBy(1L); // TODO: 현재 로그인한 사용자로 변경
+        mapping.preUpdate();
+        mapping.setUpdatedBy(com.ees.eval.util.SecurityUtil.getCurrentEmployeeId());
         mapping.setUpdatedAt(LocalDateTime.now());
         
         int updated = mappingMapper.update(mapping);
@@ -271,7 +272,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     @Override
     @Transactional
     public void initializeMappingsByDept(Long periodId, Long deptId) {
-        mappingMapper.deleteByPeriodAndDept(periodId, deptId, 1L, LocalDateTime.now());
+        mappingMapper.deleteByPeriodAndDept(periodId, deptId, com.ees.eval.util.SecurityUtil.getCurrentEmployeeId(), LocalDateTime.now());
     }
 
     private void validateSelfMapping(Long evaluateeId, Long evaluatorId, String relationTypeCode) {

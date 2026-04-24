@@ -137,7 +137,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
     @Override
     @Transactional
     public void deletePeriod(Long periodId) {
-        Long currentUserId = 1L;
+        Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         int updatedRows = periodMapper.softDelete(periodId, currentUserId, LocalDateTime.now());
         if (updatedRows == 0) {
             throw new IllegalArgumentException("삭제 대상 차수를 찾을 수 없습니다. periodId: " + periodId);
