@@ -6,11 +6,14 @@ import com.ees.eval.domain.Evaluation;
 import com.ees.eval.dto.EvaluationPeriodDTO;
 import com.ees.eval.dto.EvaluatorMappingDTO;
 import com.ees.eval.dto.EvaluationElementDTO;
+import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.EvaluationMapper;
 import com.ees.eval.mapper.EvaluatorMappingMapper;
 import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationPeriodService;
+import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.EvaluatorMappingService;
+import com.ees.eval.domain.Employee;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -68,6 +71,10 @@ class PerformanceEvaluationControllerTest {
     private EvaluationMapper evaluationMapper;
     @Mock
     private EvaluatorMappingMapper evaluatorMappingMapper;
+    @Mock
+    private EvaluationTypeWeightService typeWeightService;
+    @Mock
+    private EmployeeMapper employeeMapper;
 
     @InjectMocks
     private PerformanceEvaluationController performanceEvaluationController;
@@ -81,6 +88,12 @@ class PerformanceEvaluationControllerTest {
                 .password("password")
                 .authorities("ROLE_USER")
                 .build();
+
+        // 공통 Mock 설정 (NPE 방지 및 기본값)
+        lenient().when(typeWeightService.isWeightSumValid(anyLong(), any(), anyString())).thenReturn(true);
+        lenient().when(employeeMapper.findById(anyLong())).thenReturn(Optional.of(
+            Employee.builder().empId(1001L).deptId(10L).build()
+        ));
 
         mockMvc = MockMvcBuilders.standaloneSetup(performanceEvaluationController)
                 .setCustomArgumentResolvers(new HandlerMethodArgumentResolver() {
@@ -238,6 +251,9 @@ class PerformanceEvaluationControllerTest {
         String evalType = "PERFORMANCE";
 
         given(evaluationMapper.findByMappingIdAndElementId(mappingId, elementId)).willReturn(Optional.empty());
+        given(mappingService.getMappingById(mappingId)).willReturn(
+            EvaluatorMappingDTO.builder().mappingId(mappingId).evaluateeId(1001L).periodId(1L).build()
+        );
 
         // when & then
         mockMvc.perform(post("/eval/performance/submit")
@@ -272,6 +288,9 @@ class PerformanceEvaluationControllerTest {
 
         given(evaluationMapper.findByMappingIdAndElementId(mappingId, elementId))
                 .willReturn(Optional.of(existingEval));
+        given(mappingService.getMappingById(mappingId)).willReturn(
+            EvaluatorMappingDTO.builder().mappingId(mappingId).evaluateeId(1001L).periodId(1L).build()
+        );
 
         // when & then
         mockMvc.perform(post("/eval/performance/submit")
@@ -296,6 +315,10 @@ class PerformanceEvaluationControllerTest {
         Long mappingId = 100L;
         Long elementId = 10L;
         String evalType = "PERFORMANCE";
+
+        given(mappingService.getMappingById(mappingId)).willReturn(
+            EvaluatorMappingDTO.builder().mappingId(mappingId).evaluateeId(1001L).periodId(1L).build()
+        );
 
         // when & then
         mockMvc.perform(post("/eval/performance/submit")
@@ -455,6 +478,9 @@ class PerformanceEvaluationControllerTest {
         // given
         Long mappingId = 800L;
         String evalType = "PERFORMANCE";
+        given(mappingService.getMappingById(mappingId)).willReturn(
+            EvaluatorMappingDTO.builder().mappingId(mappingId).evaluateeId(1001L).periodId(1L).build()
+        );
 
         // when & then
         mockMvc.perform(post("/eval/performance/submit")
@@ -475,6 +501,9 @@ class PerformanceEvaluationControllerTest {
     void submitForm_ShouldIgnoreInvalidElementIdKeys() throws Exception {
         // given
         Long mappingId = 900L;
+        given(mappingService.getMappingById(mappingId)).willReturn(
+            EvaluatorMappingDTO.builder().mappingId(mappingId).evaluateeId(1001L).periodId(1L).build()
+        );
         
         // when & then
         mockMvc.perform(post("/eval/performance/submit")
@@ -506,6 +535,9 @@ class PerformanceEvaluationControllerTest {
                 .willReturn(java.util.Optional.of(existingEval));
         given(evaluationMapper.findByMappingIdAndElementId(mappingId, elementIdNew))
                 .willReturn(java.util.Optional.empty());
+        given(mappingService.getMappingById(mappingId)).willReturn(
+            EvaluatorMappingDTO.builder().mappingId(mappingId).evaluateeId(1001L).periodId(1L).build()
+        );
 
         // when & then
         mockMvc.perform(post("/eval/performance/submit")
