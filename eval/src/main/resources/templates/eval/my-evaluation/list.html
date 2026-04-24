@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'my-evaluation', ~{::style}, ~{})}">
+
+<head>
+    <title>나의 자가평가 - EES</title>
+    <style></style>
+</head>
+
+<body>
+    <div id="page-content" class="container-fluid py-4">
+        <style>
+            /* ━━━━ 나의 자가평가 대시보드 ━━━━ */
+            .my-eval-header {
+                position: relative;
+                padding: 36px 40px 32px;
+                background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(168,85,247,0.08) 100%);
+                border: 1px solid rgba(99,102,241,0.2);
+                border-radius: 1rem;
+                margin-bottom: 28px;
+                overflow: hidden;
+            }
+            .my-eval-header::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -10%;
+                width: 300px;
+                height: 300px;
+                background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
+                border-radius: 50%;
+            }
+            .my-eval-header h1 {
+                font-size: 1.6rem;
+                font-weight: 800;
+                margin-bottom: 6px;
+                position: relative;
+            }
+            .my-eval-header p {
+                color: rgba(255,255,255,0.55);
+                font-size: 0.92rem;
+                margin: 0;
+                position: relative;
+            }
+            .period-selector {
+                position: relative;
+                z-index: 2;
+            }
+            .period-selector select {
+                background: rgba(0,0,0,0.3);
+                border: 1px solid rgba(255,255,255,0.1);
+                color: #fff;
+                padding: 10px 16px;
+                border-radius: 0.75rem;
+                font-weight: 600;
+                font-size: 0.92rem;
+                min-width: 220px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            .period-selector select:focus {
+                outline: none;
+                border-color: rgba(99,102,241,0.5);
+                box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+            }
+            .period-selector select option { background: #1e1e2e; }
+
+            /* 프로그레스 오버뷰 카드 */
+            .progress-overview {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 16px;
+                margin-bottom: 28px;
+            }
+            .progress-card {
+                background: var(--glass);
+                backdrop-filter: blur(12px);
+                border: 1px solid var(--glass-border);
+                border-radius: 0.875rem;
+                padding: 22px 24px;
+                position: relative;
+                overflow: hidden;
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .progress-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+            }
+            .progress-card .card-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 0.625rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.25rem;
+                margin-bottom: 14px;
+            }
+            .progress-card .card-label {
+                font-size: 0.82rem;
+                color: rgba(255,255,255,0.5);
+                font-weight: 500;
+                margin-bottom: 4px;
+            }
+            .progress-card .card-value {
+                font-size: 1.5rem;
+                font-weight: 800;
+                color: #fff;
+            }
+            .icon-perf { background: rgba(99,102,241,0.15); color: #818cf8; }
+            .icon-comp { background: rgba(16,185,129,0.15); color: #34d399; }
+            .icon-weight { background: rgba(245,158,11,0.15); color: #fbbf24; }
+            .icon-total { background: rgba(236,72,153,0.15); color: #f472b6; }
+
+            /* 가중치 경고 배너 */
+            .weight-warning {
+                background: rgba(245,158,11,0.1);
+                border: 1px solid rgba(245,158,11,0.25);
+                border-radius: 0.75rem;
+                padding: 16px 22px;
+                margin-bottom: 24px;
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                color: #fde68a;
+            }
+            .weight-warning i { font-size: 1.4rem; color: #f59e0b; }
+
+            /* 에러 메시지 */
+            .error-banner {
+                background: rgba(239,68,68,0.12);
+                border: 1px solid rgba(239,68,68,0.25);
+                border-radius: 0.75rem;
+                padding: 14px 22px;
+                margin-bottom: 24px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                color: #fca5a5;
+            }
+
+            /* 평가 카드 영역 */
+            .eval-section-title {
+                font-size: 1.05rem;
+                font-weight: 700;
+                color: #fff;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .eval-section-title .title-accent {
+                width: 4px;
+                height: 22px;
+                border-radius: 2px;
+            }
+            .accent-perf { background: linear-gradient(180deg, #6366f1, #818cf8); }
+            .accent-comp { background: linear-gradient(180deg, #10b981, #34d399); }
+
+            .eval-panel {
+                background: var(--glass);
+                backdrop-filter: blur(12px);
+                border: 1px solid var(--glass-border);
+                border-radius: 1rem;
+                overflow: hidden;
+                margin-bottom: 24px;
+            }
+            .eval-panel-header {
+                padding: 18px 24px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 1px solid var(--glass-border);
+            }
+            .eval-panel-header .panel-title {
+                font-weight: 700;
+                font-size: 1.05rem;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .eval-element-row {
+                padding: 16px 24px;
+                border-bottom: 1px solid rgba(255,255,255,0.04);
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                transition: background 0.15s;
+            }
+            .eval-element-row:last-child { border-bottom: none; }
+            .eval-element-row:hover { background: rgba(255,255,255,0.03); }
+            .element-name {
+                font-weight: 600;
+                font-size: 0.95rem;
+                color: rgba(255,255,255,0.9);
+                flex: 1;
+            }
+            .element-weight {
+                font-size: 0.85rem;
+                font-weight: 600;
+                color: rgba(255,255,255,0.4);
+                min-width: 70px;
+                text-align: right;
+            }
+            .element-status {
+                min-width: 100px;
+                text-align: center;
+            }
+            .status-badge {
+                font-size: 0.8rem;
+                font-weight: 600;
+                padding: 4px 14px;
+                border-radius: 99px;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .status-pending {
+                background: rgba(245,158,11,0.15);
+                color: #fbbf24;
+                border: 1px solid rgba(245,158,11,0.2);
+            }
+            .status-done {
+                background: rgba(34,197,94,0.12);
+                color: #86efac;
+                border: 1px solid rgba(34,197,94,0.2);
+            }
+            .eval-comment-preview {
+                font-size: 0.85rem;
+                color: rgba(255,255,255,0.4);
+                max-width: 300px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .btn-evaluate {
+                background-color: var(--primary);
+                color: white;
+                border: none;
+                border-radius: 0.5rem;
+                padding: 10px 28px;
+                font-size: 0.95rem;
+                font-weight: 600;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                text-decoration: none;
+                transition: all 0.25s;
+                cursor: pointer;
+            }
+            .btn-evaluate:hover {
+                background-color: var(--primary-hover);
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(79,70,229,0.4);
+                color: white;
+            }
+            .btn-comp {
+                background: linear-gradient(135deg, rgba(16,185,129,0.85), rgba(16,185,129,0.7));
+            }
+            .btn-comp:hover {
+                box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+            }
+            .btn-disabled {
+                background-color: rgba(75,85,99,0.6) !important;
+                cursor: not-allowed !important;
+                opacity: 0.7;
+            }
+            .btn-disabled:hover {
+                transform: none !important;
+                box-shadow: none !important;
+            }
+
+            /* 빈 상태 */
+            .empty-state {
+                text-align: center;
+                padding: 60px 20px;
+            }
+            .empty-state i {
+                font-size: 3rem;
+                color: rgba(255,255,255,0.15);
+                margin-bottom: 16px;
+            }
+            .empty-state h4 {
+                font-weight: 700;
+                font-size: 1.1rem;
+                color: rgba(255,255,255,0.6);
+                margin-bottom: 8px;
+            }
+            .empty-state p {
+                font-size: 0.88rem;
+                color: rgba(255,255,255,0.35);
+            }
+
+            /* 타임라인 형태 진행 바 */
+            .eval-progress-bar {
+                height: 6px;
+                background: rgba(255,255,255,0.06);
+                border-radius: 3px;
+                overflow: hidden;
+                margin-top: 12px;
+            }
+            .eval-progress-fill {
+                height: 100%;
+                border-radius: 3px;
+                transition: width 0.6s ease;
+            }
+            .fill-perf { background: linear-gradient(90deg, #6366f1, #818cf8); }
+            .fill-comp { background: linear-gradient(90deg, #10b981, #34d399); }
+        </style>
+
+        <!-- 에러 메시지 -->
+        <div th:if="${errorMessage}" class="error-banner">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div th:text="${errorMessage}"></div>
+        </div>
+
+        <!-- 헤더 -->
+        <div class="my-eval-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="text-white">
+                        <i class="bi bi-person-workspace me-2" style="color:#818cf8;"></i>나의 자가평가
+                    </h1>
+                    <p th:if="${currentEmp != null}">
+                        <span th:text="${currentEmp.name}">사원명</span>님, 배정된 자가평가를 진행해주세요.
+                    </p>
+                </div>
+                <div class="period-selector">
+                    <form th:action="@{/eval/my-evaluation}" method="get">
+                        <select name="periodId" onchange="this.form.submit()">
+                            <option class="bg-dark" th:each="p : ${periods}" th:value="${p.periodId()}"
+                                th:text="${'📅 [' + p.periodYear() + '] ' + p.periodName()}"
+                                th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수 선택</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 가중치 미설정 경고 -->
+        <div th:if="${selfTask != null && selfWeightValid != null && !selfWeightValid}" class="weight-warning">
+            <i class="bi bi-shield-exclamation"></i>
+            <div>
+                <strong>유형별 가중치 미설정</strong>
+                <span class="ms-1 d-block d-sm-inline" style="font-size:0.88rem;">
+                    평가 유형별 가중치 합계가 100%가 아닙니다. 관리자에게 가중치 설정을 요청해주세요.
+                </span>
+            </div>
+        </div>
+
+        <!-- 프로그레스 오버뷰 -->
+        <div th:if="${selfTask != null}" class="progress-overview">
+            <div class="progress-card">
+                <div class="card-icon icon-perf"><i class="bi bi-bar-chart-fill"></i></div>
+                <div class="card-label">성과 평가</div>
+                <div class="card-value">
+                    <span th:if="${selfPerfSubmitted}" style="color:#86efac;">제출 완료</span>
+                    <span th:if="${!selfPerfSubmitted}" style="color:#fbbf24;">미제출</span>
+                </div>
+                <div class="eval-progress-bar">
+                    <div class="eval-progress-fill fill-perf"
+                         th:style="${selfPerfSubmitted ? 'width:100%' : 'width:0%'}"></div>
+                </div>
+            </div>
+            <div class="progress-card">
+                <div class="card-icon icon-comp"><i class="bi bi-stars"></i></div>
+                <div class="card-label">역량 평가</div>
+                <div class="card-value">
+                    <span th:if="${selfCompSubmitted}" style="color:#86efac;">제출 완료</span>
+                    <span th:if="${!selfCompSubmitted}" style="color:#fbbf24;">미제출</span>
+                </div>
+                <div class="eval-progress-bar">
+                    <div class="eval-progress-fill fill-comp"
+                         th:style="${selfCompSubmitted ? 'width:100%' : 'width:0%'}"></div>
+                </div>
+            </div>
+            <div class="progress-card">
+                <div class="card-icon icon-weight"><i class="bi bi-sliders2"></i></div>
+                <div class="card-label">가중치 설정</div>
+                <div class="card-value">
+                    <span th:if="${selfWeightValid}" style="color:#86efac;">✓ 유효</span>
+                    <span th:if="${!selfWeightValid}" style="color:#ef4444;">✗ 미설정</span>
+                </div>
+                <div class="eval-progress-bar">
+                    <div class="eval-progress-fill"
+                         th:style="${selfWeightValid ? 'width:100%;background:#22c55e;' : 'width:30%;background:#ef4444;'}"></div>
+                </div>
+            </div>
+            <div class="progress-card">
+                <div class="card-icon icon-total"><i class="bi bi-trophy-fill"></i></div>
+                <div class="card-label">전체 진행률</div>
+                <div class="card-value"
+                     th:text="${(selfPerfSubmitted && selfCompSubmitted) ? '100%' : (selfPerfSubmitted || selfCompSubmitted) ? '50%' : '0%'}">0%</div>
+                <div class="eval-progress-bar">
+                    <div class="eval-progress-fill"
+                         th:style="${(selfPerfSubmitted && selfCompSubmitted) ? 'width:100%;background:linear-gradient(90deg,#f472b6,#ec4899);' : (selfPerfSubmitted || selfCompSubmitted) ? 'width:50%;background:linear-gradient(90deg,#f472b6,#ec4899);' : 'width:0%;'}"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 자가평가 없음 -->
+        <div th:if="${selfTask == null}" class="eval-panel">
+            <div class="empty-state">
+                <i class="bi bi-clipboard2-x d-block"></i>
+                <h4>배정된 자가평가가 없습니다</h4>
+                <p>현재 선택된 차수에 자가평가 항목이 없습니다. 다른 차수를 선택하거나 관리자에게 문의해주세요.</p>
+            </div>
+        </div>
+
+        <!-- ━━━━ 성과 평가 섹션 ━━━━ -->
+        <div th:if="${selfTask != null}">
+            <div class="eval-section-title">
+                <span class="title-accent accent-perf"></span>
+                📊 성과 자가평가
+            </div>
+            <div class="eval-panel">
+                <div class="eval-panel-header">
+                    <div class="panel-title">
+                        <i class="bi bi-bar-chart-fill" style="color:#818cf8;"></i>
+                        성과 평가 항목
+                    </div>
+                    <div>
+                        <!-- 가중치 유효 시 평가 진입 버튼 -->
+                        <a th:if="${selfWeightValid != null && selfWeightValid}" href="#"
+                            class="btn-evaluate"
+                            th:attr="hx-get=@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()},evalType='PERFORMANCE')}"
+                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                            <i class="bi bi-pencil-square"></i>
+                            <span th:text="${selfPerfSubmitted ? '수정하기' : '작성하기'}">작성하기</span>
+                        </a>
+                        <button th:if="${selfWeightValid == null || !selfWeightValid}"
+                            class="btn-evaluate btn-disabled" disabled>
+                            <i class="bi bi-lock-fill"></i> 가중치 미설정
+                        </button>
+                    </div>
+                </div>
+                <!-- 요소 없음 -->
+                <div th:if="${perfElements == null || perfElements.isEmpty()}" class="eval-element-row"
+                    style="justify-content:center;padding:30px;">
+                    <span style="color:rgba(255,255,255,0.4);font-size:0.9rem;">등록된 성과 평가 항목이 없습니다.</span>
+                </div>
+                <!-- 요소 리스트 -->
+                <div th:each="el : ${perfElements}" class="eval-element-row">
+                    <div class="element-name" th:text="${el.elementName()}">항목명</div>
+                    <div class="element-weight">
+                        가중치 <span th:text="${el.weight() + '%'}">30%</span>
+                    </div>
+                    <div class="eval-comment-preview"
+                         th:if="${selfEvalMap != null && selfEvalMap.containsKey(el.elementId()) && selfEvalMap.get(el.elementId()).getComments() != null}"
+                         th:text="${selfEvalMap.get(el.elementId()).getComments()}">작성된 코멘트 미리보기...</div>
+                    <div class="eval-comment-preview"
+                         th:if="${selfEvalMap == null || !selfEvalMap.containsKey(el.elementId()) || selfEvalMap.get(el.elementId()).getComments() == null}"
+                         style="font-style:italic;">미작성</div>
+                    <div class="element-status">
+                        <span th:if="${selfEvalMap != null && selfEvalMap.containsKey(el.elementId()) && 'SUBMITTED'.equals(selfEvalMap.get(el.elementId()).getConfirmStatusCode())}"
+                              class="status-badge status-done">
+                            <i class="bi bi-check-circle-fill"></i> 제출
+                        </span>
+                        <span th:if="${selfEvalMap == null || !selfEvalMap.containsKey(el.elementId()) || !'SUBMITTED'.equals(selfEvalMap.get(el.elementId()).getConfirmStatusCode())}"
+                              class="status-badge status-pending">
+                            <i class="bi bi-hourglass-split"></i> 대기
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ━━━━ 역량 평가 섹션 ━━━━ -->
+            <div class="eval-section-title mt-4">
+                <span class="title-accent accent-comp"></span>
+                🧠 역량 자가평가
+            </div>
+            <div class="eval-panel">
+                <div class="eval-panel-header">
+                    <div class="panel-title">
+                        <i class="bi bi-stars" style="color:#34d399;"></i>
+                        역량 평가 항목
+                    </div>
+                    <div>
+                        <a th:if="${selfWeightValid != null && selfWeightValid}" href="#"
+                            class="btn-evaluate btn-comp"
+                            th:attr="hx-get=@{/eval/my-evaluation/form(mappingId=${selfTask.mappingId()},evalType='COMPETENCY')}"
+                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                            <i class="bi bi-stars"></i>
+                            <span th:text="${selfCompSubmitted ? '수정하기' : '작성하기'}">작성하기</span>
+                        </a>
+                        <button th:if="${selfWeightValid == null || !selfWeightValid}"
+                            class="btn-evaluate btn-disabled" disabled>
+                            <i class="bi bi-lock-fill"></i> 가중치 미설정
+                        </button>
+                    </div>
+                </div>
+                <!-- 요소 없음 -->
+                <div th:if="${compElements == null || compElements.isEmpty()}" class="eval-element-row"
+                    style="justify-content:center;padding:30px;">
+                    <span style="color:rgba(255,255,255,0.4);font-size:0.9rem;">등록된 역량 평가 항목이 없습니다.</span>
+                </div>
+                <!-- 요소 리스트 -->
+                <div th:each="el : ${compElements}" class="eval-element-row">
+                    <div class="element-name" th:text="${el.elementName()}">항목명</div>
+                    <div class="element-weight">
+                        가중치 <span th:text="${el.weight() + '%'}">30%</span>
+                    </div>
+                    <div class="eval-comment-preview"
+                         th:if="${selfEvalMap != null && selfEvalMap.containsKey(el.elementId()) && selfEvalMap.get(el.elementId()).getComments() != null}"
+                         th:text="${selfEvalMap.get(el.elementId()).getComments()}">작성된 코멘트 미리보기...</div>
+                    <div class="eval-comment-preview"
+                         th:if="${selfEvalMap == null || !selfEvalMap.containsKey(el.elementId()) || selfEvalMap.get(el.elementId()).getComments() == null}"
+                         style="font-style:italic;">미작성</div>
+                    <div class="element-status">
+                        <span th:if="${selfEvalMap != null && selfEvalMap.containsKey(el.elementId()) && 'SUBMITTED'.equals(selfEvalMap.get(el.elementId()).getConfirmStatusCode())}"
+                              class="status-badge status-done">
+                            <i class="bi bi-check-circle-fill"></i> 제출
+                        </span>
+                        <span th:if="${selfEvalMap == null || !selfEvalMap.containsKey(el.elementId()) || !'SUBMITTED'.equals(selfEvalMap.get(el.elementId()).getConfirmStatusCode())}"
+                              class="status-badge status-pending">
+                            <i class="bi bi-hourglass-split"></i> 대기
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,13 +1,16 @@
 package com.ees.eval.controller;
 
+import com.ees.eval.domain.Employee;
 import com.ees.eval.domain.Evaluation;
 import com.ees.eval.dto.EvaluationElementDTO;
 import com.ees.eval.dto.EvaluationPeriodDTO;
 import com.ees.eval.dto.EvaluatorMappingDTO;
+import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.EvaluationMapper;
 import com.ees.eval.mapper.EvaluatorMappingMapper;
 import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationPeriodService;
+import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.EvaluatorMappingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,13 +37,37 @@ public class PerformanceEvaluationController {
     private final EvaluationPeriodService periodService;
     private final EvaluatorMappingService mappingService;
     private final EvaluationElementService elementService;
+    private final EvaluationTypeWeightService typeWeightService;
     private final EvaluationMapper evaluationMapper;
     private final EvaluatorMappingMapper evaluatorMappingMapper;
+    private final EmployeeMapper employeeMapper;
+
+    /**
+     * 피평가자의 부서에 맞는 평가요소를 조회합니다.
+     * 부서 전용 설정이 없으면 전사 공통(dept_id IS NULL)으로 폴백합니다.
+     */
+    private List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId) {
+        if (deptId != null) {
+            List<EvaluationElementDTO> deptElements = elementService.getElementsByPeriodId(periodId, deptId);
+            if (!deptElements.isEmpty()) {
+                return deptElements;
+            }
+        }
+        return elementService.getElementsByPeriodId(periodId, null);
+    }
 
     @GetMapping
     public String list(Model model,
                        @RequestParam(required = false) Long periodId,
+                       @RequestParam(defaultValue = "PERFORMANCE") String evalType,
                        @AuthenticationPrincipal UserDetails userDetails) {
+
+        // evalType 검증
+        if (!"PERFORMANCE".equals(evalType) && !"COMPETENCY".equals(evalType)) {
+            evalType = "PERFORMANCE";
+        }
+        model.addAttribute("evalType", evalType);
+        model.addAttribute("activeMenu", "COMPETENCY".equals(evalType) ? "competency-eval" : "performance-eval");
 
         Long empId = Long.parseLong(userDetails.getUsername());
 
@@ -85,8 +112,10 @@ public class PerformanceEvaluationController {
                     .map(Evaluation::getElementId)
                     .toList();
                 if (!submittedElementIds.isEmpty()) {
+                    Employee selfEmpInfo = employeeMapper.findById(empId).orElse(null);
+                    Long selfDeptId = (selfEmpInfo != null) ? selfEmpInfo.getDeptId() : null;
                     List<EvaluationElementDTO> allElements =
-                        elementService.getElementsByPeriodId(selectedPeriod.periodId(), null);
+                        getElementsWithFallback(selectedPeriod.periodId(), selfDeptId);
                     selfPerfSubmitted = allElements.stream()
                         .filter(el -> "PERFORMANCE".equals(el.elementTypeCode()))
                         .anyMatch(el -> submittedElementIds.contains(el.elementId()));
@@ -140,6 +169,23 @@ public class PerformanceEvaluationController {
             model.addAttribute("teamPerfSubmittedMap", teamPerfSubmittedMap);
             model.addAttribute("teamCompSubmittedMap", teamCompSubmittedMap);
             model.addAttribute("evaluateeSelfSubmittedMap", evaluateeSelfSubmittedMap);
+
+            // 부서별 유형별 가중치 합계 100 검증
+            // 로그인 사용자의 부서 가중치가 유효한지 확인 (자가평가용)
+            Employee currentEmp = employeeMapper.findById(empId).orElse(null);
+            Long myDeptId = (currentEmp != null) ? currentEmp.getDeptId() : null;
+            boolean selfWeightValid = typeWeightService.isWeightSumValid(selectedPeriod.periodId(), myDeptId, "STAFF");
+            model.addAttribute("selfWeightValid", selfWeightValid);
+
+            // 팀원별 가중치 유효성 Map (각 팀원의 부서 기준)
+            java.util.Map<Long, Boolean> teamWeightValidMap = new java.util.HashMap<>();
+            for (EvaluatorMappingDTO task : teamTasks) {
+                Employee evaluatee = employeeMapper.findById(task.evaluateeId()).orElse(null);
+                Long evaluateeDeptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
+                boolean weightValid = typeWeightService.isWeightSumValid(selectedPeriod.periodId(), evaluateeDeptId, "STAFF");
+                teamWeightValidMap.put(task.mappingId(), weightValid);
+            }
+            model.addAttribute("teamWeightValidMap", teamWeightValidMap);
         }
 
         return "eval/performance/list";
@@ -149,7 +195,8 @@ public class PerformanceEvaluationController {
     public String getForm(@RequestParam Long mappingId,
                           @RequestParam(defaultValue = "PERFORMANCE") String evalType,
                           Model model,
-                          @AuthenticationPrincipal UserDetails userDetails) {
+                          @AuthenticationPrincipal UserDetails userDetails,
+                          RedirectAttributes redirectAttributes) {
 
         // evalType 검증 (PERFORMANCE 또는 COMPETENCY만 허용)
         if (!"PERFORMANCE".equals(evalType) && !"COMPETENCY".equals(evalType)) {
@@ -158,11 +205,21 @@ public class PerformanceEvaluationController {
 
         // 매핑 정보 조회 (피평가자 정보, 차수 정보 포함)
         EvaluatorMappingDTO mapping = mappingService.getMappingById(mappingId);
+
+        // 부서별 유형별 가중치 합계 100 검증
+        Employee evaluatee = employeeMapper.findById(mapping.evaluateeId()).orElse(null);
+        Long evaluateeDeptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
+        if (!typeWeightService.isWeightSumValid(mapping.periodId(), evaluateeDeptId, "STAFF")) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                "유형별 가중치 합계가 100%가 아닙니다. 관리자에게 가중치 설정을 요청하세요.");
+            return "redirect:/eval/performance?periodId=" + mapping.periodId();
+        }
+
         model.addAttribute("mapping", mapping);
         model.addAttribute("evalType", evalType);
 
-        // 해당 차수의 평가요소 목록 조회 → evalType에 맞는 항목만 필터링
-        List<EvaluationElementDTO> allElements = elementService.getElementsByPeriodId(mapping.periodId(), null);
+        // 해당 차수의 평가요소 목록 조회 → evalType에 맞는 항목만 필터링 (부서 전용 → 전사 공통 폴백)
+        List<EvaluationElementDTO> allElements = getElementsWithFallback(mapping.periodId(), evaluateeDeptId);
         final String finalEvalType = evalType;
         List<EvaluationElementDTO> elements = allElements.stream()
             .filter(e -> finalEvalType.equals(e.elementTypeCode()))
@@ -224,6 +281,17 @@ public class PerformanceEvaluationController {
 
         Long empId = Long.parseLong(userDetails.getUsername());
         log.info("[평가제출] empId={}, mappingId={}", empId, mappingId);
+
+        // 부서별 유형별 가중치 합계 100 검증
+        EvaluatorMappingDTO submitMapping = mappingService.getMappingById(mappingId);
+        Employee submitEvaluatee = employeeMapper.findById(submitMapping.evaluateeId()).orElse(null);
+        Long submitDeptId = (submitEvaluatee != null) ? submitEvaluatee.getDeptId() : null;
+        if (!typeWeightService.isWeightSumValid(submitMapping.periodId(), submitDeptId, "STAFF")) {
+            String currentEvalType = params.getOrDefault("evalType", "PERFORMANCE");
+            redirectAttributes.addFlashAttribute("errorMessage",
+                "유형별 가중치 합계가 100%가 아니어서 평가를 제출할 수 없습니다.");
+            return "redirect:/eval/performance/form?mappingId=" + mappingId + "&evalType=" + currentEvalType;
+        }
 
         // elementId 추출 및 데이터 그룹화
         java.util.Set<Long> elementIds = new java.util.HashSet<>();

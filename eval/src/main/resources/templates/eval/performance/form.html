@@ -190,13 +190,13 @@
             <div class="d-flex align-items-center gap-3">
             <!-- evalType hidden input: 폼 제출 시 서버로 전달 -->
                 <h1 class="text-white fw-bold fs-3 mb-0" 
-                    th:text="${mapping.relationTypeCode() == 'SELF'} ? (${evalType == 'COMPETENCY'} ? '역량 자가평가' : '성과 자가평가') : (${evalType == 'COMPETENCY'} ? '역량 평가 입력' : '성과 평가 입력')">평가 입력</h1>
+                    th:text="${mapping.relationTypeCode() == 'SELF'} ? (${evalType == 'COMPETENCY'} ? '역량 자가평가' : '성과 자가평가') : (${evalType == 'COMPETENCY'} ? '역량 평가 입력' : '성과 평가 입력')">평가 입력</h1>
                 <span class="badge px-3 py-2 fs-6"
                       th:classappend="${evalType == 'COMPETENCY'} ? 'bg-success' : 'bg-primary'"
                       th:text="${mapping.evaluateeName()}">피평가자</span>
             </div>
             <a href="#" class="btn-back"
-               hx-get="/eval/performance" hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML show:window:top" hx-push-url="true">
+               th:attr="hx-get=@{/eval/performance(evalType=${evalType})}" hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML show:window:top" hx-push-url="true">
                 <i class="bi bi-arrow-left"></i> 목록으로 돌아가기
             </a>
         </div>
@@ -273,7 +273,7 @@
                     </div>
                     <div class="eval-textarea" style="min-height: 60px; background: rgba(255,255,255,0.03);" 
                          th:with="hasSelfEval=${selfEvalMap != null and selfEvalMap.containsKey(element.elementId()) and !#strings.isEmpty(selfEvalMap.get(element.elementId()))}"
-                         th:text="${hasSelfEval ? selfEvalMap.get(element.elementId()) : (${evalType == 'COMPETENCY'} ? '제출된 역량 기술이 없습니다.' : '제출된 실적 기록이 없습니다.')}"
+                         th:text="${hasSelfEval ? selfEvalMap.get(element.elementId()) : (evalType == 'COMPETENCY' ? '제출된 역량 기술이 없습니다.' : '제출된 실적 기록이 없습니다.')}"
                          th:classappend="${!hasSelfEval ? 'empty-comment' : ''}">
                     </div>
                 </div>
@@ -298,15 +298,13 @@
                             <i class="bi bi-chat-left-text-fill"></i>
                             <span th:text="${mapping.relationTypeCode() == 'SELF'}
                                            ? (${evalType == 'COMPETENCY'} ? '본인 역량 서술 (구체적인 근거 작성)' : '본인 성과 서술 (구체적인 근거 작성)')
-                                           : (${evalType == 'COMPETENCY'} ? '최종 코멘트 (역량 평가 사유 및 피드백)' : '최종 코멘트 (평가 사유 및 피드백)')">코멘트</span>
+                                           : (evalType == 'COMPETENCY' ? '최종 코멘트 (역량 평가 사유 및 피드백)' : '최종 코멘트 (평가 사유 및 피드백)')">코멘트</span>
                         </div>
-                        <textarea class="eval-textarea" style="min-height: 100px;"
-                                  th:name="'comment_' + ${element.elementId()}"
+                        <textarea class="eval-textarea" th:name="'comment_' + ${element.elementId()}"
                                   th:placeholder="${mapping.relationTypeCode() == 'SELF'}
-                                                   ? (${evalType == 'COMPETENCY'} ? '해당 역량 항목에서 본인의 강점, 노력, 성장 과정 등을 상세히 서술해주세요.' : '본인의 실적과 목표 달성 과정, 기여도 등을 상세히 서술해주세요.')
-                                                   : (${evalType == 'COMPETENCY'} ? '제출된 역량 서술을 바탕으로 전문성, 협업, 문제해결 능력 중심으로 피드백을 작성해주세요.' : '제출된 실적을 바탕으로 구체적인 피드백을 작성해주세요.')"
-                                  th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ?
-                                             savedMap.get(element.elementId()).getComments() : ''}"></textarea>
+                                                  ? (${evalType == 'COMPETENCY'} ? '이 역량에 대해 본인이 보여준 구체적인 행동과 성과를 서술하세요.' : '이 목표에 대한 본인의 구체적인 실적과 기여도를 서술하세요.')
+                                                  : (evalType == 'COMPETENCY' ? '제출된 역량 서술을 바탕으로 전문성, 협업, 문제해결 능력 중심으로 피드백을 작성해주세요.' : '제출된 실적을 바탕으로 구체적인 피드백을 작성해주세요.')"
+                                  th:readonly="${submitted}" required th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getComments() : ''}"></textarea>
                     </div>
                 </div>
             </div>
