@@ -89,6 +89,35 @@ class EmployeeControllerTest {
     }
 
     @Test
+    @DisplayName("사원 목록 조회 - 공백 파라미터 입력 시 null로 전처리하여 검색한다")
+    void listEmployees_WithBlankParams_ShouldPreprocessToNull() throws Exception {
+        // given
+        doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(0)).run();
+            return null;
+        }).when(virtualThreadExecutor).execute(any());
+
+        EmployeePageDTO mockPage = EmployeePageDTO.of(List.of(), 1, 10, 0L);
+        // null이 전달되는지 검증하기 위해 eq(null) 또는 isNull() 사용
+        given(employeeService.searchEmployeesPage(isNull(), any(), isNull(), anyInt(), anyInt())).willReturn(mockPage);
+        given(departmentService.getAllDepartments()).willReturn(List.of());
+        given(positionService.getAllPositions()).willReturn(List.of());
+        given(employeeService.countActiveEmployees()).willReturn(0L);
+        given(employeeService.countThisYearHired()).willReturn(0L);
+        given(employeeService.countLockedEmployees()).willReturn(0L);
+
+        // when & then
+        mockMvc.perform(get("/employees")
+                        .param("searchName", "   ")
+                        .param("searchStatus", ""))
+                .andExpect(status().isOk())
+                .andExpect(view().name("employees/list"));
+
+        // 70행(검색)과 90행(전체 카운트)에서 총 2회 호출됨
+        verify(employeeService, org.mockito.Mockito.times(2)).searchEmployeesPage(isNull(), any(), isNull(), anyInt(), anyInt());
+    }
+
+    @Test
     @DisplayName("신규 사원 등록 성공 - 유효한 데이터 입력 시 목록으로 리다이렉트된다")
     void createEmployee_Success_ShouldRedirect() throws Exception {
         // given
@@ -224,5 +253,206 @@ class EmployeeControllerTest {
                 .andExpect(flash().attributeExists("successMessage"));
 
         verify(employeeService).unlockAccount(1001L);
+    }
+
+    @Test
+    @DisplayName("잠금된 사원 목록 조회 - 정상 호출 시 잠금 목록 뷰를 반환한다")
+    void lockedEmployees_ShouldReturnLockedView() throws Exception {
+        // given
+        given(employeeService.getLockedEmployees()).willReturn(List.of());
+        given(employeeService.countLockedEmployees()).willReturn(0L);
+        given(employeeService.searchEmployeesPage(null, null, null, 1, 1))
+                .willReturn(EmployeePageDTO.of(List.of(), 1, 1, 0L));
+        given(employeeService.countActiveEmployees()).willReturn(10L);
+        given(employeeService.countThisYearHired()).willReturn(1L);
+
+        // when & then
+        mockMvc.perform(get("/employees/locked"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("employees/locked"))
+                .andExpect(model().attributeExists("lockedEmployees", "lockedCount", "totalEmployeeCount"));
+    }
+
+    @Test
+    @DisplayName("신규 사원 등록 폼 조회 - 정상 호출 시 등록 폼 뷰와 초기 데이터를 반환한다")
+    void newEmployeeForm_ShouldReturnFormView() throws Exception {
+        // given
+        given(departmentService.getAllDepartments()).willReturn(List.of());
+        given(positionService.getAllPositions()).willReturn(List.of());
+        given(roleService.getAllRoles()).willReturn(List.of());
+        given(employeeService.getNextEmpId()).willReturn(1005L);
+
+        // when & then
+        mockMvc.perform(get("/employees/new"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("employees/form"))
+                .andExpect(model().attributeExists("employee", "departments", "positions", "roles"))
+                .andExpect(model().attribute("isNew", true))
+                .andExpect(model().attribute("nextEmpId", 1005L));
+    }
+
+    @Test
+    @DisplayName("사원 등록 실패 - 잘못된 전화번호 양식 입력 시 에러 메시지가 표시된다")
+    void createEmployee_Fail_InvalidPhone_ShouldShowError() throws Exception {
+        // when & then
+        mockMvc.perform(post("/employees")
+                        .param("name", "홍길동")
+                        .param("email", "hong@example.com")
+                        .param("phone", "01012345678") // 하이픈 없음
+                        .param("deptId", "1")
+                        .param("positionId", "2")
+                        .param("hireDate", "2024-01-01")
+                        .param("password", "password123"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errorMessage", org.hamcrest.Matchers.containsString("전화번호 양식이 올바르지 않습니다")));
+    }
+
+    @Test
+    @DisplayName("사원 등록 성공 - roleIds가 null일 때 빈 리스트로 처리된다")
+    void createEmployee_Success_WithNullRoleIds_ShouldUseEmptyList() throws Exception {
+        // given
+        EmployeeDTO savedDto = EmployeeDTO.builder().empId(1002L).build();
+        given(employeeService.registerEmployee(any(EmployeeDTO.class), eq(List.of()))).willReturn(savedDto);
+
+        // when & then
+        mockMvc.perform(post("/employees")
+                        .param("name", "이몽룡")
+                        .param("email", "lee@example.com")
+                        .param("phone", "010-1111-2222")
+                        .param("deptId", "1")
+                        .param("positionId", "2")
+                        .param("hireDate", "2024-01-01")
+                        .param("password", "password123"))
+                        // roleIds 파라미터 제외
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/employees"));
+
+        verify(employeeService).registerEmployee(any(EmployeeDTO.class), eq(List.of()));
+    }
+
+    @Test
+    @DisplayName("사원 정보 수정 성공 - roleIds가 빈 리스트일 때 단일 인자 updateEmployee가 호출된다")
+    void updateEmployee_Success_WithEmptyRoleIds_ShouldCallSingleArgMethod() throws Exception {
+        // when & then
+        mockMvc.perform(post("/employees/1001")
+                        .param("name", "홍길동수정")
+                        .param("email", "update@example.com")
+                        .param("phone", "010-9999-9999")
+                        .param("deptId", "2")
+                        .param("positionId", "3")
+                        .param("statusCode", "ACTIVE")
+                        .param("hireDate", "2024-01-01")
+                        .param("version", "1")
+                        .param("roleIds", "")) // 빈 문자열 (빈 리스트로 변환됨)
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/employees"));
+
+        verify(employeeService).updateEmployee(any(EmployeeDTO.class));
+    }
+
+    @Test
+    @DisplayName("비밀번호 초기화 실패 - 서비스 예외 발생 시 에러 메시지가 표시된다")
+    void resetPassword_Fail_ServiceException_ShouldShowError() throws Exception {
+        // given
+        given(employeeService.getEmployeeById(1001L)).willThrow(new RuntimeException("조회 실패"));
+
+        // when & then
+        mockMvc.perform(post("/employees/1001/reset-password"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errorMessage", org.hamcrest.Matchers.containsString("비밀번호 초기화 중 오류가 발생했습니다")));
+    }
+
+    @Test
+    @DisplayName("계정 잠금 해제 실패 - 서비스 예외 발생 시 에러 메시지가 표시된다")
+    void unlockAccount_Fail_ServiceException_ShouldShowError() throws Exception {
+        // given
+        org.mockito.Mockito.doThrow(new RuntimeException("잠금 해제 실패"))
+                .when(employeeService).unlockAccount(1001L);
+
+        // when & then
+        mockMvc.perform(post("/employees/1001/unlock"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errorMessage", org.hamcrest.Matchers.containsString("계정 잠금 해제 중 오류가 발생했습니다")));
+    }
+
+    @Test
+    @DisplayName("사원 등록 실패 - 일반 예외 발생 시 catch 블록에서 처리된다")
+    void createEmployee_Fail_GeneralException_ShouldShowError() throws Exception {
+        // given
+        given(employeeService.registerEmployee(any(EmployeeDTO.class), anyList()))
+                .willThrow(new RuntimeException("DB 오류"));
+
+        // when & then
+        mockMvc.perform(post("/employees")
+                        .param("name", "장보고")
+                        .param("email", "jang@example.com")
+                        .param("phone", "010-5555-5555")
+                        .param("deptId", "1")
+                        .param("positionId", "2")
+                        .param("hireDate", "2024-01-01")
+                        .param("password", "password123"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errorMessage", org.hamcrest.Matchers.containsString("사원 등록 중 오류가 발생했습니다")));
+    }
+
+    @Test
+    @DisplayName("사원 등록 실패 - 전화번호가 null일 때 에러 메시지가 표시된다")
+    void createEmployee_Fail_NullPhone_ShouldShowError() throws Exception {
+        // when & then
+        mockMvc.perform(post("/employees")
+                        .param("name", "성춘향")
+                        .param("email", "sung@example.com")
+                        // .param("phone", ...) // phone 파라미터 누락
+                        .param("deptId", "1")
+                        .param("positionId", "2")
+                        .param("hireDate", "2024-01-01")
+                        .param("password", "password123"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errorMessage", org.hamcrest.Matchers.containsString("전화번호 양식이 올바르지 않습니다")));
+    }
+
+    @Test
+    @DisplayName("사원 등록 실패 - 이메일이 null일 때 에러 메시지가 표시된다")
+    void createEmployee_Fail_NullEmail_ShouldShowError() throws Exception {
+        // when & then
+        mockMvc.perform(post("/employees")
+                        .param("name", "변학도")
+                        // .param("email", ...) // email 파라미터 누락
+                        .param("phone", "010-7777-8888")
+                        .param("deptId", "1")
+                        .param("positionId", "2")
+                        .param("hireDate", "2024-01-01")
+                        .param("password", "password123"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errorMessage", org.hamcrest.Matchers.containsString("이메일 양식이 올바르지 않습니다")));
+    }
+
+    @Test
+    @DisplayName("사원 목록 조회 - 정상 검색어 입력 시 트리밍하여 검색한다")
+    void listEmployees_WithValidParams_ShouldSearchWithTrimmedName() throws Exception {
+        // given
+        doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(0)).run();
+            return null;
+        }).when(virtualThreadExecutor).execute(any());
+
+        EmployeePageDTO mockPage = EmployeePageDTO.of(List.of(), 1, 10, 0L);
+        // "  홍길동  " -> "홍길동"으로 트리밍되어 전달되는지 확인
+        given(employeeService.searchEmployeesPage(eq("홍길동"), any(), eq("ACTIVE"), anyInt(), anyInt())).willReturn(mockPage);
+        // 전체 사원 수 조회를 위한 mock 추가 (컨트롤러 89-91행 대응)
+        given(employeeService.searchEmployeesPage(isNull(), isNull(), isNull(), anyInt(), anyInt())).willReturn(mockPage);
+        given(departmentService.getAllDepartments()).willReturn(List.of());
+        given(positionService.getAllPositions()).willReturn(List.of());
+        given(employeeService.countActiveEmployees()).willReturn(0L);
+        given(employeeService.countThisYearHired()).willReturn(0L);
+        given(employeeService.countLockedEmployees()).willReturn(0L);
+
+        // when & then
+        mockMvc.perform(get("/employees")
+                        .param("searchName", "  홍길동  ")
+                        .param("searchStatus", "ACTIVE"))
+                .andExpect(status().isOk());
+
+        verify(employeeService).searchEmployeesPage(eq("홍길동"), any(), eq("ACTIVE"), anyInt(), anyInt());
     }
 }

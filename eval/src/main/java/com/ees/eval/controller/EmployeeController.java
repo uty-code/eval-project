@@ -171,14 +171,14 @@ public class EmployeeController {
      */
     @PostMapping
     public String createEmployee(
-            @RequestParam("name") String name,
-            @RequestParam("email") String email,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "email", required = false) String email,
             @RequestParam(value = "phone", required = false) String phone,
-            @RequestParam("deptId") Long deptId,
-            @RequestParam("positionId") Long positionId,
-            @RequestParam("hireDate") LocalDate hireDate,
+            @RequestParam(value = "deptId", required = false) Long deptId,
+            @RequestParam(value = "positionId", required = false) Long positionId,
+            @RequestParam(value = "hireDate", required = false) LocalDate hireDate,
             @RequestParam(value = "retireDate", required = false) LocalDate retireDate,
-            @RequestParam("password") String password,
+            @RequestParam(value = "password", required = false) String password,
             @RequestParam(value = "roleIds", required = false) List<Long> roleIds,
             RedirectAttributes redirectAttributes) {
         try {
@@ -242,15 +242,15 @@ public class EmployeeController {
     @PostMapping("/{empId}")
     public String updateEmployee(
             @PathVariable Long empId,
-            @RequestParam("name") String name,
-            @RequestParam("email") String email,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "email", required = false) String email,
             @RequestParam(value = "phone", required = false) String phone,
-            @RequestParam("deptId") Long deptId,
-            @RequestParam("positionId") Long positionId,
-            @RequestParam("statusCode") String statusCode,
-            @RequestParam("hireDate") LocalDate hireDate,
+            @RequestParam(value = "deptId", required = false) Long deptId,
+            @RequestParam(value = "positionId", required = false) Long positionId,
+            @RequestParam(value = "statusCode", required = false) String statusCode,
+            @RequestParam(value = "hireDate", required = false) LocalDate hireDate,
             @RequestParam(value = "retireDate", required = false) LocalDate retireDate,
-            @RequestParam("version") Integer version,
+            @RequestParam(value = "version", required = false) Integer version,
             @RequestParam(value = "roleIds", required = false) List<Long> roleIds,
             RedirectAttributes redirectAttributes) {
         try {

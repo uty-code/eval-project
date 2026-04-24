@@ -245,6 +245,9 @@ public class PerformanceEvaluationController {
                     score = new java.math.BigDecimal(scoreStr.trim());
                 } catch (Exception e) {
                     log.warn("[평가제출] 점수 파싱 실패: elementId={}, scoreStr={}", elementId, scoreStr);
+                    String currentEvalType = params.getOrDefault("evalType", "PERFORMANCE");
+                    redirectAttributes.addFlashAttribute("errorMessage", "잘못된 점수 형식입니다.");
+                    return "redirect:/eval/performance/form?mappingId=" + mappingId + "&evalType=" + currentEvalType;
                 }
             }
 
