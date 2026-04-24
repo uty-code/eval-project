@@ -166,7 +166,14 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
             Long evaluateeId = emp.getEmpId();
 
             // 1. 본인 평가(SELF) 매핑 생성
-            count += safeInsertMapping(periodId, evaluateeId, evaluateeId, "SELF");            boolean isLeader = false;
+            // 임원(ROLE_EXECUTIVE), 시스템 관리자(ROLE_ADMIN) 역할의 사원은 자가 평가 대상에서 제외
+            List<String> empRoles = employeeMapper.findRoleNamesByEmpId(evaluateeId);
+            boolean isExcludedFromSelf = empRoles.stream()
+                    .anyMatch(role -> "ROLE_EXECUTIVE".equals(role) || "ROLE_ADMIN".equals(role));
+            if (!isExcludedFromSelf) {
+                count += safeInsertMapping(periodId, evaluateeId, evaluateeId, "SELF");
+            }
+            boolean isLeader = false;
             if (emp.getDeptId() != null) {
                 java.util.Optional<Long> leaderIdOpt = employeeMapper.findDeptLeaderByDeptId(emp.getDeptId());
                 if (leaderIdOpt.isPresent() && leaderIdOpt.get().equals(evaluateeId)) {

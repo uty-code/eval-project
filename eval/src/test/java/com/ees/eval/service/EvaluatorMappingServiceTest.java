@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * EvaluatorMappingService의 통합 테스트 클래스입니다.
  * 중복 체크, 자기평가 검증, 일괄 매핑, 내 평가 목록/나를 평가하는 사람 조회를 검증합니다.
+ * 시드 데이터와의 격리를 위해 테스트 전용 부서를 생성하여 사용합니다.
  */
 @SpringBootTest
 @Transactional
@@ -33,22 +34,41 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
     @Autowired
     private EmployeeService employeeService;
 
+    @Autowired
+    private DepartmentService departmentService;
+
     /** 테스트용 차수 ID */
     private Long testPeriodId;
 
-    /** 테스트용 사원 ID (A: 팀장, B: 사원, C: 사원) */
+    /** 테스트 전용 부서 ID (시드 데이터와 격리) */
+    private Long testDeptId;
+
+    /** 테스트용 사원 ID (A: ROLE_MANAGER, B: ROLE_USER, C: ROLE_USER, D: ROLE_EXECUTIVE, E: ROLE_ADMIN) */
     private Long empIdA;
     private Long empIdB;
     private Long empIdC;
+    private Long empIdD;
+    private Long empIdE;
     private String nameA;
     private String nameB;
     private String nameC;
+    private String nameD;
+    private String nameE;
 
     /**
-     * 각 테스트 전에 차수 1건 + 사원 3명을 미리 등록합니다.
+     * 각 테스트 전에 전용 부서 + 차수 1건 + 사원 3명을 미리 등록합니다.
+     * 시드 데이터(eval-data.sql)와의 간섭을 방지하기 위해 별도의 부서를 생성합니다.
      */
     @BeforeEach
     void setUp() {
+        // 테스트 전용 부서 생성 (시드 데이터와 격리)
+        com.ees.eval.dto.DepartmentDTO testDept = departmentService.createDepartment(
+                com.ees.eval.dto.DepartmentDTO.builder()
+                        .deptName("매핑테스트부서")
+                        .parentDeptId(null)  // 최상위 부서 (EXECUTIVE 매핑 검증에도 활용)
+                        .build());
+        testDeptId = testDept.deptId();
+
         // 평가 차수 생성
         EvaluationPeriodDTO period = periodService.createPeriod(
                 EvaluationPeriodDTO.builder()
@@ -58,10 +78,10 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
                         .build());
         testPeriodId = period.periodId();
 
-        // 사원 A (팀장)
+        // 사원 A (ROLE_MANAGER 권한)
         EmployeeDTO empA = employeeService.registerEmployee(
                 EmployeeDTO.builder()
-                        .deptId(1L).positionId(3L) // 과장
+                        .deptId(testDeptId).positionId(3L) // 과장
                         .password("passA!")
                         .name("김팀장").email("managerA@ees.com")
                         .hireDate(LocalDate.of(2020, 3, 1)).build(),
@@ -69,27 +89,49 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
         empIdA = empA.empId();
         nameA = empA.name();
 
-        // 사원 B
+        // 사원 B (ROLE_USER 권한)
         EmployeeDTO empB = employeeService.registerEmployee(
                 EmployeeDTO.builder()
-                        .deptId(1L).positionId(1L) // 사원
+                        .deptId(testDeptId).positionId(1L) // 사원
                         .password("passB!")
                         .name("이사원").email("memberB@ees.com")
                         .hireDate(LocalDate.of(2024, 5, 1)).build(),
-                List.of(3L)); // ROLE_USER
+                List.of(1L)); // ROLE_USER
         empIdB = empB.empId();
         nameB = empB.name();
 
-        // 사원 C
+        // 사원 C (ROLE_USER 권한)
         EmployeeDTO empC = employeeService.registerEmployee(
                 EmployeeDTO.builder()
-                        .deptId(1L).positionId(1L)
+                        .deptId(testDeptId).positionId(1L)
                         .password("passC!")
                         .name("박사원").email("memberC@ees.com")
                         .hireDate(LocalDate.of(2025, 1, 1)).build(),
-                List.of(3L));
+                List.of(1L)); // ROLE_USER
         empIdC = empC.empId();
         nameC = empC.name();
+
+        // 사원 D (ROLE_EXECUTIVE 권한 - 최상위 부서이므로 임원 권한 부여 가능)
+        EmployeeDTO empD = employeeService.registerEmployee(
+                EmployeeDTO.builder()
+                        .deptId(testDeptId).positionId(6L) // 이사
+                        .password("passD!")
+                        .name("윤임원").email("execD@ees.com")
+                        .hireDate(LocalDate.of(2018, 1, 1)).build(),
+                List.of(3L)); // ROLE_EXECUTIVE
+        empIdD = empD.empId();
+        nameD = empD.name();
+
+        // 사원 E (ROLE_ADMIN 권한 - 시스템 관리자)
+        EmployeeDTO empE = employeeService.registerEmployee(
+                EmployeeDTO.builder()
+                        .deptId(testDeptId).positionId(1L)
+                        .password("passE!")
+                        .name("관리자E").email("adminE@ees.com")
+                        .hireDate(LocalDate.of(2019, 1, 1)).build(),
+                List.of(4L)); // ROLE_ADMIN
+        empIdE = empE.empId();
+        nameE = empE.name();
     }
 
     /**
@@ -138,27 +180,71 @@ class EvaluatorMappingServiceTest extends com.ees.eval.support.AbstractMssqlTest
     }
 
     /**
-     * 자기 자신을 SUPERIOR/PEER로 매핑하면 예외가 발생하고,
-     * SELF는 허용되는지 검증합니다.
+     * SELF가 아닌 유형(SUPERIOR 등)으로 자기 자신을 매핑하면 예외가 발생하고,
+     * SELF 유형은 본인 매핑이 허용되는지 검증합니다.
      */
     @Test
-    @DisplayName("자기평가 검증 - 모든 유형에 대해 본인 매핑 차단")
+    @DisplayName("자기평가 검증 - SELF 허용, 기타 유형 본인 매핑 차단")
     void selfMappingValidationTest() {
-        // SELF 포함 모든 유형 → 차단
-        assertThatThrownBy(() -> mappingService.createMapping(
+        // SELF 유형으로 본인 매핑 → 허용 (일반 사원인 empIdB)
+        EvaluatorMappingDTO selfMapping = mappingService.createMapping(
                 EvaluatorMappingDTO.builder()
                         .periodId(testPeriodId).evaluateeId(empIdB)
-                        .evaluatorId(empIdB).relationTypeCode("SELF").build()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("자기 자신을 평가자로 지정할 수 없습니다");
+                        .evaluatorId(empIdB).relationTypeCode("SELF").build());
+        assertThat(selfMapping.mappingId()).isNotNull();
+        assertThat(selfMapping.relationTypeCode()).isEqualTo("SELF");
 
-        // SUPERIOR → 차단
+        // SUPERIOR 유형으로 본인 매핑 → 차단
         assertThatThrownBy(() -> mappingService.createMapping(
                 EvaluatorMappingDTO.builder()
                         .periodId(testPeriodId).evaluateeId(empIdB)
                         .evaluatorId(empIdB).relationTypeCode("SUPERIOR").build()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("자기 자신을 평가자로 지정할 수 없습니다");
+    }
+
+    /**
+     * 자동 매핑 생성 시 임원(ROLE_EXECUTIVE)과 시스템 관리자(ROLE_ADMIN) 역할의 사원은
+     * SELF(자기평가) 매핑이 생성되지 않는지 검증합니다.
+     * 부서장(ROLE_MANAGER)과 일반 사원(ROLE_USER)은 SELF 매핑이 정상 생성되어야 합니다.
+     */
+    @Test
+    @DisplayName("자동 매핑 - 임원/시스템관리자 SELF 제외, 부서장/일반사원 허용")
+    void autoGenerateMappings_excludesExecutiveAndAdminFromSelfTest() {
+        // when: 테스트 전용 부서 대상 자동 매핑 생성 (시드 데이터와 격리)
+        mappingService.autoGenerateMappings(testPeriodId, testDeptId, null);
+
+        // then: empIdA(ROLE_MANAGER, 부서장)의 매핑 목록에 SELF가 있어야 함
+        List<EvaluatorMappingDTO> aEvaluators = mappingService.getMyEvaluators(testPeriodId, empIdA);
+        boolean aHasSelf = aEvaluators.stream()
+                .anyMatch(m -> "SELF".equals(m.relationTypeCode()));
+        assertThat(aHasSelf)
+                .as("ROLE_MANAGER 역할의 부서장(%d)에게도 SELF 매핑이 생성되어야 합니다", empIdA)
+                .isTrue();
+
+        // then: empIdB(ROLE_USER)의 매핑 목록에도 SELF가 있어야 함
+        List<EvaluatorMappingDTO> bEvaluators = mappingService.getMyEvaluators(testPeriodId, empIdB);
+        boolean bHasSelf = bEvaluators.stream()
+                .anyMatch(m -> "SELF".equals(m.relationTypeCode()));
+        assertThat(bHasSelf)
+                .as("ROLE_USER 역할의 사원(%d)에게는 SELF 매핑이 생성되어야 합니다", empIdB)
+                .isTrue();
+
+        // then: empIdD(ROLE_EXECUTIVE, 임원)의 매핑 목록에 SELF가 없어야 함
+        List<EvaluatorMappingDTO> dEvaluators = mappingService.getMyEvaluators(testPeriodId, empIdD);
+        boolean dHasSelf = dEvaluators.stream()
+                .anyMatch(m -> "SELF".equals(m.relationTypeCode()));
+        assertThat(dHasSelf)
+                .as("ROLE_EXECUTIVE 역할의 임원(%d)에게는 SELF 매핑이 생성되지 않아야 합니다", empIdD)
+                .isFalse();
+
+        // then: empIdE(ROLE_ADMIN, 시스템 관리자)의 매핑 목록에 SELF가 없어야 함
+        List<EvaluatorMappingDTO> eEvaluators = mappingService.getMyEvaluators(testPeriodId, empIdE);
+        boolean eHasSelf = eEvaluators.stream()
+                .anyMatch(m -> "SELF".equals(m.relationTypeCode()));
+        assertThat(eHasSelf)
+                .as("ROLE_ADMIN 역할의 시스템 관리자(%d)에게는 SELF 매핑이 생성되지 않아야 합니다", empIdE)
+                .isFalse();
     }
 
     /**
