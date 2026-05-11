@@ -47,15 +47,7 @@ public class InterviewController {
                 .collect(Collectors.toList());
         model.addAttribute("periods", periods);
 
-        EvaluationPeriodDTO selectedPeriod = null;
-        if (periodId != null) {
-            selectedPeriod = periodService.getPeriodById(periodId);
-        } else if (!periods.isEmpty()) {
-            selectedPeriod = periods.stream()
-                    .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
-                    .findFirst()
-                    .orElse(periods.get(0));
-        }
+        EvaluationPeriodDTO selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
 
         if (selectedPeriod != null) {
             model.addAttribute("selectedPeriod", selectedPeriod);

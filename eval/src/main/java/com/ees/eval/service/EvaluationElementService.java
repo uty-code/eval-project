@@ -87,4 +87,19 @@ public interface EvaluationElementService {
      * @return 항목 DTO 리스트
      */
     List<EvaluationElementDTO> getAllElementsByPeriodId(Long periodId);
+
+    /**
+     * 부서 전용 평가요소를 조회하되, 결과가 없으면 전사 공통(deptId=null)으로 폴백합니다.
+     *
+     * @param periodId 대상 차수 식별자
+     * @param deptId   대상 부서 식별자 (null이면 전사 공통)
+     * @return 항목 DTO 리스트
+     */
+    default List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId) {
+        if (deptId != null) {
+            List<EvaluationElementDTO> elements = getElementsByPeriodId(periodId, deptId);
+            if (!elements.isEmpty()) return elements;
+        }
+        return getElementsByPeriodId(periodId, null);
+    }
 }

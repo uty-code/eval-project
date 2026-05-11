@@ -11,6 +11,7 @@ import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.EvaluationMapper;
 import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationPeriodService;
+import com.ees.eval.service.EvaluationService;
 import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.EvaluatorMappingService;
 import lombok.RequiredArgsConstructor;
@@ -41,20 +42,12 @@ public class MyEvaluationController {
     private final EvaluatorMappingService mappingService;
     private final EvaluationElementService elementService;
     private final EvaluationTypeWeightService typeWeightService;
+    private final EvaluationService evaluationService;
     private final EvaluationMapper evaluationMapper;
     private final EmployeeMapper employeeMapper;
     private final DepartmentMapper departmentMapper;
 
-    /**
-     * 사용자의 부서에 맞는 평가요소를 조회합니다.
-     * 부서 전용 설정이 없으면 전사 공통(dept_id IS NULL)으로 폴백합니다.
-     */
-    private List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId) {
-        if (deptId != null) {
-            return elementService.getElementsByPeriodId(periodId, deptId);
-        }
-        return elementService.getElementsByPeriodId(periodId, null);
-    }
+
 
     /**
      * 나의 자가평가 메인 페이지
@@ -79,15 +72,7 @@ public class MyEvaluationController {
         List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
         model.addAttribute("periods", periods);
 
-        EvaluationPeriodDTO selectedPeriod = null;
-        if (periodId != null) {
-            selectedPeriod = periodService.getPeriodById(periodId);
-        } else if (!periods.isEmpty()) {
-            selectedPeriod = periods.stream()
-                    .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
-                    .findFirst()
-                    .orElse(periods.isEmpty() ? null : periods.get(0));
-        }
+        EvaluationPeriodDTO selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
 
         if (selectedPeriod != null) {
             model.addAttribute("selectedPeriod", selectedPeriod);
@@ -123,7 +108,7 @@ public class MyEvaluationController {
 
                 if (!submittedElementIds.isEmpty()) {
                     Long myDeptIdForElements = (currentEmp != null) ? currentEmp.getDeptId() : null;
-                    List<EvaluationElementDTO> allElements = getElementsWithFallback(selectedPeriod.periodId(),
+                    List<EvaluationElementDTO> allElements = elementService.getElementsWithFallback(selectedPeriod.periodId(),
                             myDeptIdForElements);
                     selfPerfSubmitted = allElements.stream()
                             .filter(el -> "PERFORMANCE".equals(el.elementTypeCode()))
@@ -152,7 +137,7 @@ public class MyEvaluationController {
             model.addAttribute("targetRole", targetRole);
 
             // 해당 차수의 평가요소 조회
-            List<EvaluationElementDTO> allElements = getElementsWithFallback(selectedPeriod.periodId(), myDeptId);
+            List<EvaluationElementDTO> allElements = elementService.getElementsWithFallback(selectedPeriod.periodId(), myDeptId);
             
             List<EvaluationElementDTO> perfElements = allElements.stream()
                     .filter(e -> "PERFORMANCE".equals(e.elementTypeCode()))
@@ -239,7 +224,7 @@ public class MyEvaluationController {
         model.addAttribute("evalType", evalType);
 
         // 해당 차수의 평가요소 필터링 - 부서 전용 → 전사 공통 폴백
-        List<EvaluationElementDTO> allElements = getElementsWithFallback(mapping.periodId(), evaluateeDeptId);
+        List<EvaluationElementDTO> allElements = elementService.getElementsWithFallback(mapping.periodId(), evaluateeDeptId);
         final String finalEvalType = evalType;
         List<EvaluationElementDTO> elements = allElements.stream()
                 .filter(e -> finalEvalType.equals(e.elementTypeCode()))
@@ -320,57 +305,14 @@ public class MyEvaluationController {
             return "redirect:/eval/my-evaluation/form?mappingId=" + mappingId;
         }
 
-        // elementId 추출 및 데이터 그룹화
-        java.util.Set<Long> elementIds = new java.util.HashSet<>();
-        params.keySet().forEach(key -> {
-            if (key.startsWith("comment_") || key.startsWith("score_")) {
-                try {
-                    elementIds.add(Long.parseLong(key.substring(key.indexOf("_") + 1)));
-                } catch (Exception ignore) {
-                }
-            }
-        });
-
-        for (Long elementId : elementIds) {
-            String comment = params.get("comment_" + elementId);
-            String scoreStr = params.get("score_" + elementId);
-
-            Integer score = null;
-            if (scoreStr != null && !scoreStr.trim().isEmpty()) {
-                try {
-                    score = Integer.valueOf(scoreStr.trim());
-                } catch (Exception e) {
-                    log.warn("[자가평가 제출] 점수 파싱 실패: elementId={}, scoreStr={}", elementId, scoreStr);
-                    String currentEvalType = params.getOrDefault("evalType", "PERFORMANCE");
-                    redirectAttributes.addFlashAttribute("errorMessage", "잘못된 점수 형식입니다.");
-                    return "redirect:/eval/my-evaluation/form?mappingId=" + mappingId + "&evalType=" + currentEvalType;
-                }
-            }
-
-            final Integer finalScore = score;
-
-            evaluationMapper.findByMappingIdAndElementId(mappingId, elementId)
-                    .ifPresentOrElse(
-                            existing -> {
-                                existing.setScore(finalScore);
-                                existing.setReason(comment);
-                                existing.setConfirmStatusCode("SUBMITTED");
-                                existing.preUpdate();
-                                evaluationMapper.update(existing);
-                            },
-                            () -> {
-                                Evaluation eval = Evaluation.builder()
-                                        .mappingId(mappingId)
-                                        .elementId(elementId)
-                                        .confirmStatusCode("SUBMITTED")
-                                        .build();
-                                eval.setScore(finalScore);
-                                eval.setReason(comment);
-                                eval.prePersist();
-                                eval.setCreatedBy(empId);
-                                eval.setUpdatedBy(empId);
-                                evaluationMapper.insert(eval);
-                            });
+        // 평가 데이터 Upsert 처리
+        try {
+            evaluationService.upsertEvaluations(mappingId, params, empId);
+        } catch (NumberFormatException e) {
+            log.warn("[자가평가 제출] 점수 파싱 실패: mappingId={}", mappingId);
+            String currentEvalType = params.getOrDefault("evalType", "PERFORMANCE");
+            redirectAttributes.addFlashAttribute("errorMessage", "잘못된 점수 형식입니다.");
+            return "redirect:/eval/my-evaluation/form?mappingId=" + mappingId + "&evalType=" + currentEvalType;
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "자가평가가 성공적으로 제출되었습니다.");

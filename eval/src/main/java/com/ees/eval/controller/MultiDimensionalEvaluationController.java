@@ -11,6 +11,7 @@ import com.ees.eval.mapper.EvaluationMapper;
 import com.ees.eval.mapper.EvaluatorMappingMapper;
 import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationPeriodService;
+import com.ees.eval.service.EvaluationService;
 import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.EvaluatorMappingService;
 import lombok.RequiredArgsConstructor;
@@ -41,19 +42,12 @@ public class MultiDimensionalEvaluationController {
     private final EvaluatorMappingService mappingService;
     private final EvaluationElementService elementService;
     private final EvaluationTypeWeightService typeWeightService;
+    private final EvaluationService evaluationService;
     private final EvaluationMapper evaluationMapper;
     private final EmployeeMapper employeeMapper;
     private final EvaluatorMappingMapper evaluatorMappingMapper;
 
-    /**
-     * 피평가자의 부서에 맞는 평가요소를 조회합니다.
-     */
-    private List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId) {
-        if (deptId != null) {
-            return elementService.getElementsByPeriodId(periodId, deptId);
-        }
-        return elementService.getElementsByPeriodId(periodId, null);
-    }
+
 
     /**
      * 다면평가 대상 목록 페이지
@@ -69,15 +63,7 @@ public class MultiDimensionalEvaluationController {
         List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
         model.addAttribute("periods", periods);
 
-        EvaluationPeriodDTO selectedPeriod = null;
-        if (periodId != null) {
-            selectedPeriod = periodService.getPeriodById(periodId);
-        } else if (!periods.isEmpty()) {
-            selectedPeriod = periods.stream()
-                    .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
-                    .findFirst()
-                    .orElse(periods.isEmpty() ? null : periods.get(0));
-        }
+        EvaluationPeriodDTO selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
 
         if (selectedPeriod != null) {
             model.addAttribute("selectedPeriod", selectedPeriod);
@@ -215,7 +201,7 @@ public class MultiDimensionalEvaluationController {
         model.addAttribute("mapping", mapping);
 
         // 다면평가 요소(MULTI_DIMENSIONAL)만 필터링
-        List<EvaluationElementDTO> allElements = getElementsWithFallback(mapping.periodId(), evaluateeDeptId);
+        List<EvaluationElementDTO> allElements = elementService.getElementsWithFallback(mapping.periodId(), evaluateeDeptId);
         List<EvaluationElementDTO> elements = allElements.stream()
                 .filter(e -> "MULTI_DIMENSIONAL".equals(e.elementTypeCode()))
                 .collect(Collectors.toList());
@@ -282,53 +268,13 @@ public class MultiDimensionalEvaluationController {
             return "redirect:/eval/multi-dimensional/form?mappingId=" + mappingId;
         }
 
-        // 데이터 저장 로직 (PerformanceEvaluationController와 유사)
-        java.util.Set<Long> elementIds = new java.util.HashSet<>();
-        params.keySet().forEach(key -> {
-            if (key.startsWith("comment_") || key.startsWith("score_")) {
-                try {
-                    elementIds.add(Long.parseLong(key.substring(key.indexOf("_") + 1)));
-                } catch (Exception ignore) {}
-            }
-        });
-
-        for (Long elementId : elementIds) {
-            String comment = params.get("comment_" + elementId);
-            String scoreStr = params.get("score_" + elementId);
-
-            Integer score = null;
-            if (scoreStr != null && !scoreStr.trim().isEmpty()) {
-                try {
-                    score = Integer.valueOf(scoreStr.trim());
-                } catch (Exception e) {}
-            }
-
-            final Integer finalScore = score;
-            final String finalComment = (comment != null) ? comment.trim() : "";
-
-            evaluationMapper.findByMappingIdAndElementId(mappingId, elementId)
-                .ifPresentOrElse(
-                    existing -> {
-                        existing.setReason(finalComment);
-                        existing.setScore(finalScore);
-                        existing.setConfirmStatusCode("SUBMITTED");
-                        existing.preUpdate();
-                        evaluationMapper.update(existing);
-                    },
-                    () -> {
-                        Evaluation eval = Evaluation.builder()
-                            .mappingId(mappingId)
-                            .elementId(elementId)
-                            .confirmStatusCode("SUBMITTED")
-                            .build();
-                        eval.setReason(finalComment);
-                        eval.setScore(finalScore);
-                        eval.prePersist();
-                        eval.setCreatedBy(empId);
-                        eval.setUpdatedBy(empId);
-                        evaluationMapper.insert(eval);
-                    }
-                );
+        // 평가 데이터 Upsert 처리
+        try {
+            evaluationService.upsertEvaluations(mappingId, params, empId);
+        } catch (NumberFormatException e) {
+            log.warn("[다면평가 제출] 점수 파싱 실패: mappingId={}", mappingId);
+            redirectAttributes.addFlashAttribute("errorMessage", "잘못된 점수 형식입니다.");
+            return "redirect:/eval/multi-dimensional/form?mappingId=" + mappingId;
         }
 
         EvaluatorMappingDTO submitMapping = mappingService.getMappingById(mappingId);
