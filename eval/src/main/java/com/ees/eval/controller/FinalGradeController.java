@@ -102,6 +102,8 @@ public class FinalGradeController {
                 model.addAttribute("evaluateeSelfSubmittedMap", selfSubmittedMap);
                 model.addAttribute("teamWeightValidMap", weightValidMap);
             }
+        } else {
+            model.addAttribute("infoMessage", "진행 중인 평가 차수가 없습니다.");
         }
 
         return "eval/final-grade/list";

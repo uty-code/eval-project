@@ -93,6 +93,8 @@ public class EvaluationElementController {
             model.addAttribute("leaderTotalWeight", leaderTotal);
             model.addAttribute("isMemberValid", memberTotal.compareTo(new BigDecimal("100.00")) == 0);
             model.addAttribute("isLeaderValid", leaderTotal.compareTo(new BigDecimal("100.00")) == 0);
+        } else {
+            model.addAttribute("infoMessage", "등록된 평가 차수가 없습니다.");
         }
 
         model.addAttribute("periods", periods);

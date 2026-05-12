@@ -259,9 +259,11 @@ public class PerformanceEvaluationController {
             model.addAttribute("selfWeightValid", selfWeightValid);
 
             // 평가 시작 전(PLANNED) 알림 처리
-            if ("PLANNED".equals(selectedPeriod.statusCode())) {
+            if (selectedPeriod != null && "PLANNED".equals(selectedPeriod.statusCode())) {
                 model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
             }
+        } else {
+            model.addAttribute("infoMessage", "진행 중인 평가 차수가 없습니다.");
         }
 
         return "eval/performance/list";

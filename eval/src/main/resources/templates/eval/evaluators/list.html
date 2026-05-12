@@ -68,6 +68,11 @@
             <span th:text="${errorMessage}"></span>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
+        
+        <!-- 정보 메시지 -->
+        <div th:if="${infoMessage}" class="ees-card p-4 text-center mb-4" style="color:rgba(255,255,255,.5)">
+            <i class="bi bi-info-circle me-1"></i> <span th:text="${infoMessage}"></span>
+        </div>
 
         <!-- 필터링 안내 (부서장/임원 전용) -->
         <div th:if="${isFiltered}"
