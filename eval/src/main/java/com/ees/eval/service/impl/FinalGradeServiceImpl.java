@@ -111,7 +111,11 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             // [최적화] 평가 요소 부서별 캐싱
             Long elemCacheKey = deptId != null ? deptId : -1L;
             List<EvaluationElementDTO> allElements = elementCacheByDeptId.computeIfAbsent(elemCacheKey,
-                    k -> getElementsWithFallback(periodId, deptId, globalElements));
+                    k -> {
+                        if (deptId == null) return globalElements;
+                        List<EvaluationElementDTO> deptElements = elementService.getElementsByPeriodId(periodId, deptId);
+                        return deptElements.isEmpty() ? globalElements : deptElements;
+                    });
             List<EvaluationElementDTO> requiredElements = allElements.stream()
                     .filter(e -> requiredTypes.contains(e.elementTypeCode()))
                     .collect(Collectors.toList());
@@ -138,11 +142,6 @@ public class FinalGradeServiceImpl implements FinalGradeService {
         }).collect(Collectors.toList());
     }
 
-    private List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId, List<EvaluationElementDTO> globalElements) {
-        if (deptId == null) return globalElements;
-        List<EvaluationElementDTO> elements = elementService.getElementsByPeriodId(periodId, deptId);
-        return elements.isEmpty() ? globalElements : elements;
-    }
 
     private boolean isAllSubmitted(List<EvaluationElementDTO> elements, List<Evaluation> evaluations) {
         if (elements.isEmpty()) return false;

@@ -335,4 +335,21 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
         period.preUpdate();
         periodMapper.update(period);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public EvaluationPeriodDTO resolveSelectedPeriod(Long periodId, List<EvaluationPeriodDTO> periods) {
+        if (periodId != null) {
+            return getPeriodById(periodId);
+        }
+        if (periods == null || periods.isEmpty()) {
+            return null;
+        }
+        return periods.stream()
+                .filter(p -> STATUS_IN_PROGRESS.equals(p.statusCode()))
+                .findFirst()
+                .orElse(periods.get(0));
+    }
 }

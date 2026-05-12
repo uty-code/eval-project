@@ -94,8 +94,7 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
             return null;
         }
 
-        // 5. 평가 요소 조회
-        List<EvaluationElementDTO> allElements = getElementsWithFallback(periodId, deptId);
+        List<EvaluationElementDTO> allElements = elementService.getElementsWithFallback(periodId, deptId);
 
         // 6. 제출된 평가를 elementId 기준으로 매핑
         Map<Long, Evaluation> evalByElementId = submittedEvals.stream()
@@ -171,14 +170,5 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
         return weightedSum.divide(totalWeight, 10, RoundingMode.HALF_UP)
                           .multiply(BigDecimal.valueOf(100))
                           .setScale(2, RoundingMode.HALF_UP);
-    }
-
-
-    private List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId) {
-        if (deptId != null) {
-            List<EvaluationElementDTO> elements = elementService.getElementsByPeriodId(periodId, deptId);
-            if (!elements.isEmpty()) return elements;
-        }
-        return elementService.getElementsByPeriodId(periodId, null);
     }
 }

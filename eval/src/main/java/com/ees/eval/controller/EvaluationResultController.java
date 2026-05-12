@@ -67,15 +67,7 @@ public class EvaluationResultController {
                 .collect(Collectors.toList());
         model.addAttribute("periods", periods);
 
-        EvaluationPeriodDTO selectedPeriod;
-        if (periodId != null) {
-            selectedPeriod = periodService.getPeriodById(periodId);
-        } else {
-            selectedPeriod = periods.stream()
-                    .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
-                    .findFirst()
-                    .orElse(periods.isEmpty() ? null : periods.get(0));
-        }
+        EvaluationPeriodDTO selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
         model.addAttribute("selectedPeriod", selectedPeriod);
 
         if (selectedPeriod == null) {
@@ -151,18 +143,8 @@ public class EvaluationResultController {
                 .filter(p -> !"PLANNED".equals(p.statusCode()))
                 .collect(Collectors.toList());
 
-        EvaluationPeriodDTO selectedPeriod = null;
-        if (periodId != null && periodId > 0) {
-            selectedPeriod = periodService.getPeriodById(periodId);
-        }
-        
-        // periodId가 0이거나 조회가 안된 경우 진행 중인 차수 선택
-        if (selectedPeriod == null) {
-            selectedPeriod = periods.stream()
-                    .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
-                    .findFirst()
-                    .orElse(periods.isEmpty() ? null : periods.get(0));
-        }
+        EvaluationPeriodDTO selectedPeriod = periodService.resolveSelectedPeriod(
+                (periodId != null && periodId > 0) ? periodId : null, periods);
 
         if (selectedPeriod == null) {
             log.warn("No evaluation period found for excel download. periodId={}", periodId);

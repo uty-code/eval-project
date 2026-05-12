@@ -90,4 +90,13 @@ public interface EvaluationPeriodService {
      * @return 전체 차수 수
      */
     long countAll();
+
+    /**
+     * 요청 파라미터의 periodId가 있으면 해당 차수를, 없으면 후보 목록에서 IN_PROGRESS 차수를 자동 선택합니다.
+     *
+     * @param periodId 요청된 차수 ID (nullable)
+     * @param periods  후보 차수 목록
+     * @return 선택된 차수 DTO (없으면 null)
+     */
+    EvaluationPeriodDTO resolveSelectedPeriod(Long periodId, List<EvaluationPeriodDTO> periods);
 }

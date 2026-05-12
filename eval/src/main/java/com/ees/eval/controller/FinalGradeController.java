@@ -13,6 +13,7 @@ import com.ees.eval.mapper.FinalGradeMapper;
 import com.ees.eval.mapper.EvaluatorMappingMapper;
 import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationPeriodService;
+import com.ees.eval.service.EvaluationService;
 import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.EvaluatorMappingService;
 import com.ees.eval.service.FinalGradeService;
@@ -44,6 +45,7 @@ public class FinalGradeController {
     private final EvaluatorMappingService mappingService;
     private final EvaluationElementService elementService;
     private final EvaluationTypeWeightService typeWeightService;
+    private final EvaluationService evaluationService;
     private final EvaluationMapper evaluationMapper;
     private final EvaluatorMappingMapper evaluatorMappingMapper;
     private final EmployeeMapper employeeMapper;
@@ -52,12 +54,7 @@ public class FinalGradeController {
     private final FinalGradeMapper finalGradeMapper;
     private final com.ees.eval.service.ScoreCalculationService scoreCalculationService;
 
-    private List<EvaluationElementDTO> getElementsWithFallback(Long periodId, Long deptId) {
-        if (deptId != null) {
-            return elementService.getElementsByPeriodId(periodId, deptId);
-        }
-        return elementService.getElementsByPeriodId(periodId, null);
-    }
+
 
     @GetMapping
     public String list(@RequestParam(name = "periodId", required = false) Long periodId,
@@ -73,15 +70,7 @@ public class FinalGradeController {
         List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
         model.addAttribute("periods", periods);
 
-        EvaluationPeriodDTO selectedPeriod;
-        if (periodId != null) {
-            selectedPeriod = periodService.getPeriodById(periodId);
-        } else {
-            selectedPeriod = periods.stream()
-                .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
-                .findFirst()
-                .orElse(periods.isEmpty() ? null : periods.get(0));
-        }
+        EvaluationPeriodDTO selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
         model.addAttribute("selectedPeriod", selectedPeriod);
 
         if (selectedPeriod != null) {
@@ -149,7 +138,7 @@ public class FinalGradeController {
         model.addAttribute("mappingId", mappingId);
         model.addAttribute("isLeader", isLeader);
 
-        List<EvaluationElementDTO> allElements = getElementsWithFallback(mapping.periodId(), evaluateeDeptId);
+        List<EvaluationElementDTO> allElements = elementService.getElementsWithFallback(mapping.periodId(), evaluateeDeptId);
         
         List<EvaluationElementDTO> performanceElements = isLeader ? List.of() : allElements.stream()
             .filter(e -> "PERFORMANCE".equals(e.elementTypeCode()))
@@ -277,55 +266,12 @@ public class FinalGradeController {
             return "redirect:/eval/final-grade/form?mappingId=" + mappingId;
         }
 
-        Set<Long> elementIds = new java.util.HashSet<>();
-        params.keySet().forEach(key -> {
-            if (key.startsWith("comment_") || key.startsWith("score_")) {
-                try {
-                    elementIds.add(Long.parseLong(key.substring(key.indexOf("_") + 1)));
-                } catch (Exception ignore) {}
-            }
-        });
-
-        for (Long elementId : elementIds) {
-            String comment = params.get("comment_" + elementId);
-            String scoreStr = params.get("score_" + elementId);
-
-            Integer score = null;
-            if (scoreStr != null && !scoreStr.trim().isEmpty()) {
-                try {
-                    score = Integer.valueOf(scoreStr.trim());
-                } catch (Exception e) {
-                    redirectAttributes.addFlashAttribute("errorMessage", "잘못된 점수 형식입니다.");
-                    return "redirect:/eval/final-grade/form?mappingId=" + mappingId;
-                }
-            }
-
-            final Integer finalScore = score;
-            final String finalComment = (comment != null) ? comment.trim() : "";
-
-            evaluationMapper.findByMappingIdAndElementId(mappingId, elementId)
-                .ifPresentOrElse(
-                    existing -> {
-                        existing.setReason(finalComment);
-                        existing.setScore(finalScore);
-                        existing.setConfirmStatusCode("SUBMITTED");
-                        existing.preUpdate();
-                        evaluationMapper.update(existing);
-                    },
-                    () -> {
-                        Evaluation eval = Evaluation.builder()
-                            .mappingId(mappingId)
-                            .elementId(elementId)
-                            .confirmStatusCode("SUBMITTED")
-                            .build();
-                        eval.setReason(finalComment);
-                        eval.setScore(finalScore);
-                        eval.prePersist();
-                        eval.setCreatedBy(empId);
-                        eval.setUpdatedBy(empId);
-                        evaluationMapper.insert(eval);
-                    }
-                );
+        // 평가 데이터 Upsert 처리
+        try {
+            evaluationService.upsertEvaluations(mappingId, params, empId);
+        } catch (NumberFormatException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "잘못된 점수 형식입니다.");
+            return "redirect:/eval/final-grade/form?mappingId=" + mappingId;
         }
 
         // 모든 항목 저장 완료 후 → 종합 점수 계산 및 final_grades_51에 확정 저장
