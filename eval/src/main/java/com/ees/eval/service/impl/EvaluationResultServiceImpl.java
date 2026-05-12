@@ -111,9 +111,25 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
         // 8. 전체 부서장 ID 벌크 조회 (N+1 완벽 방지)
         Set<Long> allLeaderIds = new HashSet<>(departmentMapper.findAllLeaderIds());
 
-        // 9. 평가 요소 벌크 조회 및 부서별 그룹핑 (N+1 완벽 방지)
-        Map<Long, List<EvaluationElementDTO>> elementsByDept = elementService.getAllElementsByPeriodId(periodId).stream()
-                .collect(Collectors.groupingBy(e -> e.deptId() != null ? e.deptId() : -1L));
+        // 9. 평가 요소 벌크 조회 및 부서별 그룹핑 (대상 부서 + 공통 항목만 조회)
+        List<Long> deptIdsForElements = evaluateeIds.stream()
+                .map(employeeMap::get)
+                .filter(Objects::nonNull)
+                .map(Employee::getDeptId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        List<EvaluationElementDTO> allElements =
+                elementService.getElementsByPeriodIdAndDeptIds(periodId, deptIdsForElements);
+        List<EvaluationElementDTO> commonElements = new ArrayList<>();
+        Map<Long, List<EvaluationElementDTO>> elementsByDept = new HashMap<>();
+        for (EvaluationElementDTO element : allElements) {
+            if (element.deptId() == null) {
+                commonElements.add(element);
+            } else {
+                elementsByDept.computeIfAbsent(element.deptId(), k -> new ArrayList<>()).add(element);
+            }
+        }
 
         // 10. 결과 DTO 조립
         List<EvaluationResultDTO> results = new ArrayList<>();
@@ -125,10 +141,11 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
             boolean isLeader = allLeaderIds.contains(empId);
 
             // 평가 요소 조회 (메모리 Map 활용 - 부서 전용 없으면 공통으로 폴백)
-            Long deptIdKey = emp.getDeptId() != null ? emp.getDeptId() : -1L;
-            List<EvaluationElementDTO> elements = elementsByDept.get(deptIdKey);
-            if (deptIdKey != -1L && (elements == null || elements.isEmpty())) {
-                elements = elementsByDept.getOrDefault(-1L, Collections.emptyList());
+            List<EvaluationElementDTO> elements = emp.getDeptId() == null
+                    ? commonElements
+                    : elementsByDept.get(emp.getDeptId());
+            if (emp.getDeptId() != null && (elements == null || elements.isEmpty())) {
+                elements = commonElements;
             }
             if (elements == null) elements = Collections.emptyList();
 

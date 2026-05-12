@@ -86,4 +86,14 @@ public interface EvaluationElementMapper {
      * @return 전체 항목 리스트
      */
     List<EvaluationElement> findAllByPeriodId(@Param("periodId") Long periodId);
+
+    /**
+     * 특정 차수의 공통 항목과 지정된 부서들의 전용 항목을 한 번에 조회합니다.
+     *
+     * @param periodId 대상 차수 식별자
+     * @param deptIds  조회할 부서 ID 리스트
+     * @return 공통 및 대상 부서의 항목 리스트
+     */
+    List<EvaluationElement> findByPeriodIdAndDeptIds(@Param("periodId") Long periodId,
+                                                     @Param("deptIds") List<Long> deptIds);
 }

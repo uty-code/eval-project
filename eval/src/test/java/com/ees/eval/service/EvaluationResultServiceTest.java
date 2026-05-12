@@ -82,8 +82,14 @@ class EvaluationResultServiceTest {
     /** 테스트용 평가 요소 생성 헬퍼 */
     private EvaluationElementDTO createElement(Long elementId, String typeCode,
                                                 BigDecimal maxScore, BigDecimal weight) {
+        return createElement(elementId, deptId, typeCode, maxScore, weight);
+    }
+
+    /** 테스트용 평가 요소 생성 헬퍼 */
+    private EvaluationElementDTO createElement(Long elementId, Long elementDeptId, String typeCode,
+                                                BigDecimal maxScore, BigDecimal weight) {
         return new EvaluationElementDTO(
-                elementId, periodId, deptId, typeCode,
+                elementId, periodId, elementDeptId, typeCode,
                 "요소_" + elementId, maxScore, weight,
                 "n", 0, null, null, null, null);
     }
@@ -123,7 +129,7 @@ class EvaluationResultServiceTest {
                     .willReturn(List.of(mgrMapping, execMapping));
 
             given(employeeMapper.findByIds(anyList())).willReturn(List.of(staff));
-            given(departmentMapper.countDepartmentsByLeaderId(empId)).willReturn(0); // 일반사원
+            given(departmentMapper.findAllLeaderIds()).willReturn(Collections.emptyList()); // 일반사원
 
             // FinalGrade가 있는 경우 (최종 확정됨)
             FinalGrade fg = new FinalGrade();
@@ -135,7 +141,7 @@ class EvaluationResultServiceTest {
                     new BigDecimal("100"), new BigDecimal("50"));
             EvaluationElementDTO elem2 = createElement(2L, "PERFORMANCE",
                     new BigDecimal("100"), new BigDecimal("50"));
-            given(elementService.getElementsByPeriodId(eq(periodId), any()))
+            given(elementService.getElementsByPeriodIdAndDeptIds(eq(periodId), anyList()))
                     .willReturn(List.of(elem1, elem2));
 
             // 1차(MANAGER) 평가 점수: 90, 94
@@ -171,14 +177,14 @@ class EvaluationResultServiceTest {
             given(mappingMapper.findAllByPeriodId(periodId)).willReturn(List.of(mgrMapping));
 
             given(employeeMapper.findByIds(anyList())).willReturn(List.of(staff));
-            given(departmentMapper.countDepartmentsByLeaderId(empId)).willReturn(0);
+            given(departmentMapper.findAllLeaderIds()).willReturn(Collections.emptyList());
 
             // FinalGrade 없음 (아직 최종 확정 안됨)
             given(finalGradeMapper.findByPeriodId(periodId)).willReturn(Collections.emptyList());
 
             EvaluationElementDTO elem = createElement(1L, "PERFORMANCE",
                     new BigDecimal("100"), new BigDecimal("100"));
-            given(elementService.getElementsByPeriodId(eq(periodId), any()))
+            given(elementService.getElementsByPeriodIdAndDeptIds(eq(periodId), anyList()))
                     .willReturn(List.of(elem));
 
             Evaluation mgrEval = createEvaluation(100L, 1L, 90, "SUBMITTED");
@@ -200,6 +206,37 @@ class EvaluationResultServiceTest {
         }
 
         @Test
+        @DisplayName("should_use_common_elements_when_부서전용_항목이_없을때")
+        void should_use_common_elements_when_dept_specific_missing() {
+            Employee staff = createEmployee(empId, deptId, "이관리", "대리");
+
+            EvaluatorMapping mgrMapping = createMapping(100L, empId, "MANAGER");
+            given(mappingMapper.findAllByPeriodId(periodId)).willReturn(List.of(mgrMapping));
+
+            given(employeeMapper.findByIds(anyList())).willReturn(List.of(staff));
+            given(departmentMapper.findAllLeaderIds()).willReturn(Collections.emptyList());
+            given(finalGradeMapper.findByPeriodId(periodId)).willReturn(Collections.emptyList());
+
+            EvaluationElementDTO commonElem = createElement(1L, null, "PERFORMANCE",
+                    new BigDecimal("100"), new BigDecimal("100"));
+            given(elementService.getElementsByPeriodIdAndDeptIds(eq(periodId), anyList()))
+                    .willReturn(List.of(commonElem));
+
+            Evaluation mgrEval = createEvaluation(100L, 1L, 90, "SUBMITTED");
+            given(evaluationMapper.findByMappingIds(anyList()))
+                    .willReturn(List.of(mgrEval));
+
+            // when
+            List<EvaluationResultDTO> results = resultService.getResults(periodId, null);
+
+            // then
+            assertThat(results).hasSize(1);
+            EvaluationResultDTO r = results.get(0);
+            assertThat(r.mbo1stScore()).isEqualByComparingTo(new BigDecimal("90"));
+            assertThat(r.mboStatus()).isEqualTo("1차평가완료");
+        }
+
+        @Test
         @DisplayName("should_set_status_2차평가완료_when_EXECUTIVE_평가_제출됨")
         void should_set_status_correctly() {
             Employee staff = createEmployee(empId, deptId, "이관리", "대리");
@@ -208,12 +245,12 @@ class EvaluationResultServiceTest {
             given(mappingMapper.findAllByPeriodId(periodId)).willReturn(List.of(execMapping));
 
             given(employeeMapper.findByIds(anyList())).willReturn(List.of(staff));
-            given(departmentMapper.countDepartmentsByLeaderId(empId)).willReturn(0);
+            given(departmentMapper.findAllLeaderIds()).willReturn(Collections.emptyList());
             given(finalGradeMapper.findByPeriodId(periodId)).willReturn(Collections.emptyList());
 
             EvaluationElementDTO elem = createElement(1L, "PERFORMANCE",
                     new BigDecimal("100"), new BigDecimal("100"));
-            given(elementService.getElementsByPeriodId(eq(periodId), any()))
+            given(elementService.getElementsByPeriodIdAndDeptIds(eq(periodId), anyList()))
                     .willReturn(List.of(elem));
 
             Evaluation execEval = createEvaluation(200L, 1L, 90, "SUBMITTED");
@@ -248,7 +285,7 @@ class EvaluationResultServiceTest {
                     .willReturn(List.of(sub1, sub2, execMapping));
 
             given(employeeMapper.findByIds(anyList())).willReturn(List.of(leader));
-            given(departmentMapper.countDepartmentsByLeaderId(empId)).willReturn(1); // 부서장
+            given(departmentMapper.findAllLeaderIds()).willReturn(List.of(empId)); // 부서장
 
             FinalGrade fg = new FinalGrade();
             fg.setEmpId(empId); fg.setPeriodId(periodId); fg.setTotalScore(85); fg.setFinalGradeCode("A");
@@ -257,7 +294,7 @@ class EvaluationResultServiceTest {
             // 평가 요소: MULTI_DIMENSIONAL 1개 (만점 100, 가중치 100)
             EvaluationElementDTO multiElem = createElement(10L, "MULTI_DIMENSIONAL",
                     new BigDecimal("100"), new BigDecimal("100"));
-            given(elementService.getElementsByPeriodId(eq(periodId), any()))
+            given(elementService.getElementsByPeriodIdAndDeptIds(eq(periodId), anyList()))
                     .willReturn(List.of(multiElem));
 
             // SUBORDINATE 1: 점수 80, SUBORDINATE 2: 점수 90 → 평균 85
@@ -292,12 +329,15 @@ class EvaluationResultServiceTest {
             given(mappingMapper.findAllByPeriodId(periodId)).willReturn(List.of(mapping));
 
             given(employeeMapper.findByIds(anyList())).willReturn(List.of(leader));
-            given(departmentMapper.countDepartmentsByLeaderId(empId)).willReturn(1);
+            given(departmentMapper.findAllLeaderIds()).willReturn(List.of(empId));
             given(finalGradeMapper.findByPeriodId(periodId)).willReturn(Collections.emptyList());
-            given(elementService.getElementsByPeriodId(eq(periodId), any()))
-                    .willReturn(Collections.emptyList());
+            EvaluationElementDTO elem = createElement(1L, "PERFORMANCE",
+                    new BigDecimal("100"), new BigDecimal("100"));
+            given(elementService.getElementsByPeriodIdAndDeptIds(eq(periodId), anyList()))
+                    .willReturn(List.of(elem));
+            Evaluation eval = createEvaluation(100L, 1L, 90, "SUBMITTED");
             given(evaluationMapper.findByMappingIds(anyList()))
-                    .willReturn(Collections.emptyList());
+                    .willReturn(List.of(eval));
 
             // when
             List<EvaluationResultDTO> results = resultService.getResults(periodId, null);
@@ -323,12 +363,15 @@ class EvaluationResultServiceTest {
         given(mappingMapper.findAllByPeriodId(periodId)).willReturn(List.of(m1, m2));
 
         given(employeeMapper.findByIds(anyList())).willReturn(List.of(emp1, emp2));
-        given(departmentMapper.countDepartmentsByLeaderId(anyLong())).willReturn(0);
+        given(departmentMapper.findAllLeaderIds()).willReturn(Collections.emptyList());
         given(finalGradeMapper.findByPeriodId(periodId)).willReturn(Collections.emptyList());
-        given(elementService.getElementsByPeriodId(eq(periodId), any()))
-                .willReturn(Collections.emptyList());
+        EvaluationElementDTO elem = createElement(1L, 10L, "PERFORMANCE",
+                new BigDecimal("100"), new BigDecimal("100"));
+        given(elementService.getElementsByPeriodIdAndDeptIds(eq(periodId), anyList()))
+                .willReturn(List.of(elem));
+        Evaluation eval = createEvaluation(100L, 1L, 90, "SUBMITTED");
         given(evaluationMapper.findByMappingIds(anyList()))
-                .willReturn(Collections.emptyList());
+                .willReturn(List.of(eval));
 
         // when — deptId=10 필터
         List<EvaluationResultDTO> results = resultService.getResults(periodId, 10L);

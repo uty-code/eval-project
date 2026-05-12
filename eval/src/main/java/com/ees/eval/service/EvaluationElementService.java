@@ -102,4 +102,13 @@ public interface EvaluationElementService {
         }
         return getElementsByPeriodId(periodId, null);
     }
+
+    /**
+     * 특정 차수의 공통 항목과 지정된 부서들의 전용 항목을 한 번에 조회합니다.
+     *
+     * @param periodId 대상 차수 식별자
+     * @param deptIds  조회할 부서 ID 리스트
+     * @return 항목 DTO 리스트
+     */
+    List<EvaluationElementDTO> getElementsByPeriodIdAndDeptIds(Long periodId, List<Long> deptIds);
 }

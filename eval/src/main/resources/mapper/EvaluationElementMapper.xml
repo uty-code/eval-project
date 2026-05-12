@@ -153,4 +153,39 @@
         order by dept_id asc, element_type_code asc
     </select>
 
+    <!-- 특정 차수의 공통 항목과 지정된 부서들의 전용 항목을 한 번에 조회 -->
+    <select id="findByPeriodIdAndDeptIds" resultType="com.ees.eval.domain.EvaluationElement">
+        select
+            element_id        as ELEMENT_ID,
+            period_id         as PERIOD_ID,
+            dept_id           as DEPT_ID,
+            element_type_code as ELEMENT_TYPE_CODE,
+            element_name      as ELEMENT_NAME,
+            max_score         as MAX_SCORE,
+            weight            as WEIGHT,
+            is_deleted        as IS_DELETED,
+            version           as VERSION,
+            created_at        as CREATED_AT,
+            created_by        as CREATED_BY,
+            updated_at        as UPDATED_AT,
+            updated_by        as UPDATED_BY
+        from evaluation_elements_51
+        where period_id = #{periodId}
+          and is_deleted = 'n'
+          and (
+              dept_id is null
+              <if test="deptIds != null and deptIds.size() > 0">
+                  or dept_id in
+                  <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">
+                      #{deptId}
+                  </foreach>
+              </if>
+          )
+        order by
+            case when dept_id is null then 0 else 1 end,
+            dept_id asc,
+            element_type_code asc,
+            element_id asc
+    </select>
+
 </mapper>
