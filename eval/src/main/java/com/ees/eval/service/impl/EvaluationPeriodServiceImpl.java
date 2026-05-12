@@ -185,6 +185,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "eval-periods", allEntries = true)
     public void deletePeriod(Long periodId) {
         Long currentUserId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         int updatedRows = periodMapper.softDelete(periodId, currentUserId, LocalDateTime.now());
@@ -318,6 +319,7 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "eval-periods", allEntries = true)
     public void resetPeriod(Long periodId) {
         // 1. 차수 조회
         EvaluationPeriod period = periodMapper.findById(periodId)
