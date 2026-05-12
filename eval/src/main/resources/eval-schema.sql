@@ -12,6 +12,7 @@ EXEC sp_executesql @drop_constraints_sql;
 ';
 
 -- 이전 _51 테이블의 외래 키 제약 조건만 삭제 (다른 팀 테이블 보호)
+drop table if exists api_logs_51;
 drop table if exists evaluation_type_weights_51;
 drop table if exists evidences_51;
 drop table if exists login_logs_51;

@@ -61,14 +61,22 @@
                 </form>
             </div>
         </div>
+        
+        <!-- 정보 메시지 -->
+        <div th:if="${infoMessage}" class="ees-card p-4 text-center mb-4" style="color:rgba(255,255,255,.5)">
+            <i class="bi bi-info-circle me-1"></i> <span th:text="${infoMessage}"></span>
+        </div>
 
         <!-- 수정 불가 알림 배너 -->
-        <div th:if="${editable != null && !editable}" class="alert alert-warning bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning d-flex align-items-center mb-4" role="alert">
+        <div th:if="${selectedPeriod != null && editable != null && !editable}" class="alert alert-warning bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning d-flex align-items-center mb-4" role="alert">
             <i class="bi bi-lock-fill fs-5 me-2"></i>
             <div>
                 <strong>읽기 전용</strong> &mdash; 평가가 시작된 차수의 평가요소는 변경할 수 없습니다.
             </div>
         </div>
+
+        <th:block th:if="${selectedPeriod != null}">
+
 
         <!-- 유형별 가중치 설정 바 -->
         <div class="row g-4 mb-5">
@@ -242,6 +250,8 @@
                 </div>
             </div>
         </div>
+
+        </th:block>
 
         <script th:inline="javascript">
             (function() {

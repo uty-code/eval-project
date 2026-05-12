@@ -98,15 +98,16 @@
             <div th:text="${errorMessage}"></div>
         </div>
 
+        <!-- 정보 메시지 -->
+        <div th:if="${infoMessage}"
+            class="ees-card p-4 text-center mb-4"
+            style="color:rgba(255,255,255,.5)">
+            <i class="bi bi-info-circle me-1"></i>
+            <span th:text="${infoMessage}"></span>
+        </div>
+
         <div sec:authorize="hasAnyRole('EXECUTIVE', 'ADMIN')" th:if="${selectedPeriod != null}">
-            
-            <div th:if="${infoMessage}"
-                class="alert alert-info bg-info bg-opacity-10 border-info border-opacity-25 text-info alert-dismissible fade show mb-4"
-                role="alert" style="border-radius: 0.75rem;">
-                <i class="bi bi-info-circle-fill me-2"></i>
-                <span th:text="${infoMessage}"></span>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+
 
             <div th:if="${selectedPeriod.statusCode() != 'PLANNED'}">
                 <h5 class="text-white fw-bold mb-3 mt-2"><i class="bi bi-people-fill text-primary me-2"></i>최종 등급 확정 대상자</h5>
@@ -218,18 +219,9 @@
                 </div>
             </div>
 
-            <div th:if="${tasks == null || tasks.isEmpty()}" class="ees-card p-5 text-center text-muted">
-                <i class="bi bi-clipboard-x fs-1 mb-3 d-block opacity-25 text-info"></i>
-                <h5 class="fw-bold text-white mb-2">확정 대상자가 없습니다</h5>
-                <p class="mb-0">선택한 차수에 본인이 2차 평가자로 지정된 인원이 없습니다.</p>
             </div>
+        </div>
 
-            <!-- 평가 시작 전인 경우의 대체 화면 -->
-            <div th:if="${selectedPeriod.statusCode() == 'PLANNED'}" class="ees-card p-5 text-center text-muted">
-                <i class="bi bi-clock-history fs-1 mb-3 d-block opacity-25 text-info"></i>
-                <h5 class="fw-bold text-white mb-2">평가 준비 중</h5>
-                <p class="mb-0">현재 차수는 평가 항목 구성 및 정합성 검토 중입니다.<br>평가가 시작되면 대상자 리스트가 활성화됩니다.</p>
-            </div>
         <div id="page-scripts">
             <script>
                 // 수동 탭 전환 및 URL 업데이트
