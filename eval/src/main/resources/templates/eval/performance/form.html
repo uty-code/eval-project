@@ -194,7 +194,7 @@
                         </div>
                         <textarea class="eval-textarea" th:name="'comment_' + ${element.elementId()}"
                                   placeholder="평가 사유 및 피드백을 입력해주세요."
-                                  th:readonly="${submitted}" required th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
+                                  required th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
                     </div>
                     
                     <!-- 피평가자(본인)일 때는 코멘트 필드를 숨기거나 처리 (요청에 따라 점수만 작성) -->

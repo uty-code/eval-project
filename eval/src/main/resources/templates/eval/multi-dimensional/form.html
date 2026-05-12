@@ -175,7 +175,7 @@
                         </div>
                         <textarea class="eval-textarea" th:name="'comment_' + ${element.elementId()}"
                                   placeholder="부서장의 역량 및 리더십에 대한 구체적인 피드백을 입력해주세요."
-                                  th:readonly="${submitted}" required th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
+                                  required th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
                     </div>
 
                     <!-- 본인일 경우 코멘트 숨김 처리 -->
