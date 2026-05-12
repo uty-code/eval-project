@@ -9,7 +9,7 @@ server:
 
 spring:
   profiles:
-    active: dev  # 기본값은 로컬용 dev
+    active: dev
   threads:
     virtual:
       enabled: true
@@ -77,3 +77,24 @@ spring:
     # 비밀번호는 보안상 Azure Web App의 환경변수(DB_PASSWORD)에서 가져옵니다.
     password: ${DB_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+---
+# [local] 로컬 테스트 환경 - Docker SQL Server
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:sqlserver://localhost:1433;databaseName=EES_LOCAL;encrypt=true;trustServerCertificate=true;
+    username: sa
+    password: EesLocal@2026!
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:eval-schema.sql,classpath:db/migration/V2__Add_pwd_change_required.sql
+      continue-on-error: true
+  docker:
+    compose:
+      enabled: true
+      lifecycle-management: start_only
