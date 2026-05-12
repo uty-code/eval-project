@@ -210,3 +210,106 @@ window.confirmStart = function () {
     const form = document.getElementById('startForm-' + window.currentStartPeriodId);
     if (form) form.submit();
 };
+// HTMX 커스텀 확인 모달 연동
+document.addEventListener('htmx:confirm', function (evt) {
+    // hx-confirm 속성이 없는 요청(사이드바 네비게이션 등)은 그냥 통과
+    if (!evt.detail.question) return;
+
+    // 1. 브라우저 기본 confirm 방지
+    evt.preventDefault();
+
+    // 2. 모달 요소 가져오기
+    const modalElement = document.getElementById('eesConfirmModal');
+    const messageElement = document.getElementById('eesConfirmModalMessage');
+    const confirmBtn = document.getElementById('eesConfirmModalBtn');
+    const iconEl = document.getElementById('eesConfirmModalIcon');
+    const titleEl = document.getElementById('eesConfirmModalLabel');
+    const subEl = document.getElementById('eesConfirmModalSub');
+    const subTextEl = document.getElementById('eesConfirmModalSubText');
+
+    if (!modalElement || !messageElement || !confirmBtn) return;
+
+    // 3. 트리거 요소의 data-confirm-* 속성 읽기
+    const trigger = evt.detail.elt;
+    const title = trigger?.getAttribute('data-confirm-title') || '확인';
+    const icon = trigger?.getAttribute('data-confirm-icon') || 'bi-exclamation-circle';
+    const iconColor = trigger?.getAttribute('data-confirm-icon-color') || 'text-warning';
+    const btnText = trigger?.getAttribute('data-confirm-btn') || '확인';
+    const btnClass = trigger?.getAttribute('data-confirm-btn-class') || 'btn-danger';
+    const subText = trigger?.getAttribute('data-confirm-sub') || '';
+
+    // 4. 모달 내용 세팅
+    titleEl.textContent = title;
+
+    iconEl.className = `bi ${icon} ${iconColor}`;
+
+    messageElement.textContent = evt.detail.question;
+
+    // 확인 버튼 텍스트·색상 세팅
+    confirmBtn.textContent = btnText;
+    confirmBtn.className = `btn ees-confirm-action-btn ${btnClass}`;
+
+    // 서브텍스트 (선택적 경고 문구)
+    if (subText) {
+        subTextEl.textContent = subText;
+        subEl.classList.remove('d-none');
+    } else {
+        subEl.classList.add('d-none');
+    }
+
+    // 5. 모달 표시
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    modal.show();
+
+    // 6. 확인 버튼 클릭 시 HTMX 요청 실행 (true = confirm 재검사 건너뜀)
+    confirmBtn.onclick = function () {
+        modal.hide();
+        evt.detail.issueRequest(true);
+    };
+});
+
+// ── Final Grade 탭 초기화 ──
+// HTMX swap 후에는 inline <script>가 재실행되지 않으므로
+// htmx:afterSettle 이벤트에서 탭 이벤트를 바인딩한다.
+function initFinalGradeTabs() {
+    const tabButtons = document.querySelectorAll('#page-content .nav-link-custom[data-target]');
+    if (tabButtons.length === 0) return; // final-grade 페이지가 아니면 무시
+
+    tabButtons.forEach(function (button) {
+        // 중복 바인딩 방지
+        if (button.dataset.tabInitialized) return;
+        button.dataset.tabInitialized = 'true';
+
+        button.addEventListener('click', function () {
+            // 1. 모든 탭 버튼 / 컨텐츠 비활성화
+            tabButtons.forEach(function (btn) { btn.classList.remove('active'); });
+            document.querySelectorAll('#page-content .tab-pane').forEach(function (pane) {
+                pane.classList.remove('show', 'active');
+            });
+
+            // 2. 클릭된 탭 활성화
+            this.classList.add('active');
+            const targetPane = document.querySelector(this.getAttribute('data-target'));
+            if (targetPane) {
+                targetPane.classList.add('show', 'active');
+            }
+
+            // 3. URL 파라미터 업데이트 (뒤로 가기 시 탭 유지)
+            const tabType = this.id === 'staff-tab' ? 'staff' : 'leader';
+            const params = new URLSearchParams(window.location.search);
+            params.set('tab', tabType);
+            history.pushState({ tab: tabType }, '', window.location.pathname + '?' + params.toString());
+        });
+    });
+}
+
+// HTMX swap 완료 후 실행 (사이드바 내비게이션 포함 모든 swap)
+document.addEventListener('htmx:afterSettle', function () {
+    initFinalGradeTabs();
+});
+
+// 최초 하드 로딩 시에도 실행
+document.addEventListener('DOMContentLoaded', function () {
+    initFinalGradeTabs();
+});
+

@@ -1,0 +1,171 @@
+<!-- Generic Confirmation Modal -->
+<div th:fragment="confirm-modal" class="modal fade" id="eesConfirmModal" tabindex="-1" aria-labelledby="eesConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered ees-confirm-dialog">
+        <div class="modal-content ees-confirm-content">
+
+            <!-- Header -->
+            <div class="modal-header ees-confirm-header">
+                <div class="d-flex align-items-center gap-2">
+                    <i id="eesConfirmModalIcon" class="bi bi-exclamation-circle text-warning"></i>
+                    <h6 class="modal-title fw-bold mb-0 text-white" id="eesConfirmModalLabel">확인</h6>
+                </div>
+                <button type="button" class="btn-close btn-close-white ees-confirm-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Divider -->
+            <div class="ees-confirm-divider"></div>
+
+            <!-- Body -->
+            <div class="modal-body ees-confirm-body">
+                <p id="eesConfirmModalMessage" class="mb-0 text-white ees-confirm-message">
+                    이 작업을 진행하시겠습니까?
+                </p>
+                <p id="eesConfirmModalSub" class="mb-0 mt-2 ees-confirm-sub d-none">
+                    <i class="bi bi-exclamation-circle-fill me-1"></i>
+                    <span id="eesConfirmModalSubText"></span>
+                </p>
+            </div>
+
+            <!-- Divider -->
+            <div class="ees-confirm-divider"></div>
+
+            <!-- Footer -->
+            <div class="modal-footer ees-confirm-footer">
+                <button type="button" class="btn ees-confirm-cancel-btn" data-bs-dismiss="modal">취소</button>
+                <button type="button" id="eesConfirmModalBtn" class="btn ees-confirm-action-btn btn-danger">확인</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ── Confirm Modal Layout ── */
+    .ees-confirm-dialog {
+        max-width: 400px;
+    }
+
+    .ees-confirm-content {
+        background: rgba(10, 14, 26, 0.96);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 14px !important;
+        overflow: hidden;
+        box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.04);
+    }
+
+    .ees-confirm-header {
+        background: rgba(255, 255, 255, 0.03);
+        border-bottom: none !important;
+        padding: 0.9rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .ees-confirm-header #eesConfirmModalIcon {
+        font-size: 1.05rem;
+    }
+
+    .ees-confirm-header .modal-title {
+        font-size: 0.95rem;
+        letter-spacing: -0.01em;
+    }
+
+    .ees-confirm-close {
+        opacity: 0.4;
+        font-size: 0.7rem;
+        transition: opacity 0.2s;
+    }
+    .ees-confirm-close:hover {
+        opacity: 0.8;
+    }
+
+    .ees-confirm-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.07);
+        margin: 0 1.25rem;
+    }
+
+    .ees-confirm-body {
+        padding: 1.1rem 1.25rem;
+    }
+
+    .ees-confirm-message {
+        font-size: 0.875rem;
+        line-height: 1.6;
+        opacity: 0.9;
+        white-space: pre-line;
+    }
+
+    .ees-confirm-sub {
+        font-size: 0.775rem;
+        color: #f87171;
+        line-height: 1.5;
+    }
+
+    .ees-confirm-footer {
+        border-top: none !important;
+        background: rgba(0, 0, 0, 0.15);
+        padding: 0.8rem 1.25rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    .ees-confirm-cancel-btn {
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0.4rem 1.1rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    .ees-confirm-cancel-btn:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.85);
+        border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .ees-confirm-action-btn {
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding: 0.4rem 1.2rem;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.2s;
+    }
+    .ees-confirm-action-btn.btn-danger {
+        background: #dc2626;
+        box-shadow: 0 2px 12px rgba(220, 38, 38, 0.4);
+    }
+    .ees-confirm-action-btn.btn-danger:hover {
+        background: #b91c1c;
+        box-shadow: 0 4px 16px rgba(220, 38, 38, 0.5);
+    }
+    .ees-confirm-action-btn.btn-success {
+        background: #059669;
+        box-shadow: 0 2px 12px rgba(5, 150, 105, 0.4);
+    }
+    .ees-confirm-action-btn.btn-success:hover {
+        background: #047857;
+    }
+    .ees-confirm-action-btn.btn-warning {
+        background: #d97706;
+        color: #fff;
+        box-shadow: 0 2px 12px rgba(217, 119, 6, 0.4);
+    }
+    .ees-confirm-action-btn.btn-warning:hover {
+        background: #b45309;
+    }
+    .ees-confirm-action-btn.btn-primary {
+        background: #4f46e5;
+        box-shadow: 0 2px 12px rgba(79, 70, 229, 0.4);
+    }
+    .ees-confirm-action-btn.btn-primary:hover {
+        background: #4338ca;
+    }
+</style>

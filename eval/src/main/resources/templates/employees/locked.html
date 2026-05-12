@@ -234,22 +234,41 @@
 
         <!-- Unlock Confirm Modal -->
         <div class="modal fade" id="unlockConfirmModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content bg-dark text-white border-secondary">
-                    <div class="modal-header border-secondary border-opacity-50">
-                        <h5 class="modal-title"><i class="bi bi-shield-exclamation text-warning me-2"></i>계정 잠금 해제</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-dialog modal-dialog-centered ees-confirm-dialog">
+                <div class="modal-content ees-confirm-content">
+
+                    <!-- Header -->
+                    <div class="modal-header ees-confirm-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-exclamation text-warning"></i>
+                            <h6 class="modal-title fw-bold mb-0 text-white">계정 잠금 해제</h6>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white ees-confirm-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <p>선택한 사원의 계정 잠금을 해제하시겠습니까?</p>
-                        <p class="text-danger small mb-0"><i class="bi bi-info-circle me-1"></i>실패 횟수가 0으로 초기화되며, 비밀번호는 사번으로 초기화됩니다.</p>
+
+                    <!-- Divider -->
+                    <div class="ees-confirm-divider"></div>
+
+                    <!-- Body -->
+                    <div class="modal-body ees-confirm-body">
+                        <p class="mb-0 text-white ees-confirm-message">선택한 사원의 계정 잠금을 해제하시겠습니까?</p>
+                        <p class="mb-0 mt-2 ees-confirm-sub">
+                            <i class="bi bi-exclamation-circle-fill me-1"></i>
+                            실패 횟수가 0으로 초기화되며, 비밀번호는 사번으로 초기화됩니다.
+                        </p>
                     </div>
-                    <div class="modal-footer border-secondary border-opacity-50">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                        <button type="button" class="btn btn-danger" id="btn-confirm-unlock" data-bs-dismiss="modal">
+
+                    <!-- Divider -->
+                    <div class="ees-confirm-divider"></div>
+
+                    <!-- Footer -->
+                    <div class="modal-footer ees-confirm-footer">
+                        <button type="button" class="btn ees-confirm-cancel-btn" data-bs-dismiss="modal">취소</button>
+                        <button type="button" class="btn ees-confirm-action-btn btn-danger" id="btn-confirm-unlock" data-bs-dismiss="modal">
                             잠금 해제
                         </button>
                     </div>
+
                 </div>
             </div>
         </div>

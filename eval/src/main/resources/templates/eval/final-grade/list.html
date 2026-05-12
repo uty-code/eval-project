@@ -223,31 +223,7 @@
         </div>
 
         <div id="page-scripts">
-            <script>
-                // 수동 탭 전환 및 URL 업데이트
-                document.querySelectorAll('.nav-link-custom').forEach(button => {
-                    button.addEventListener('click', function() {
-                        // 1. 모든 버튼 및 컨텐츠 비활성화
-                        document.querySelectorAll('.nav-link-custom').forEach(btn => btn.classList.remove('active'));
-                        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
-
-                        // 2. 현재 클릭된 버튼 및 대상 컨텐츠 활성화
-                        this.classList.add('active');
-                        const targetSelector = this.getAttribute('data-target');
-                        const targetPane = document.querySelector(targetSelector);
-                        if (targetPane) {
-                            targetPane.classList.add('show', 'active');
-                        }
-
-                        // 3. URL 업데이트
-                        const tabType = this.id === 'staff-tab' ? 'staff' : 'leader';
-                        const currentParams = new URLSearchParams(window.location.search);
-                        currentParams.set('tab', tabType);
-                        const newUrl = window.location.pathname + '?' + currentParams.toString();
-                        history.pushState({ tab: tabType }, '', newUrl);
-                    });
-                });
-            </script>
+            <!-- 탭 초기화 스크립트는 eval-integrity.js의 htmx:afterSettle 핸들러로 이전됨 -->
         </div>
     </div>
 </body>
