@@ -3,19 +3,19 @@ package com.ees.eval.config;
 import com.ees.eval.security.CustomAccessDeniedHandler;
 import com.ees.eval.security.CustomAuthenticationEntryPoint;
 import com.ees.eval.security.EesAuthenticationFailureHandler;
+import com.ees.eval.security.EesAuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * Spring Security 관련 정책 및 빈(Bean) 등록을 담당하는 설정 클래스입니다.
- * 암호화 방식(BCrypt) 및 HTTP 접근 제어 설정을 정의합니다.
+ * HTTP 접근 제어 설정을 정의합니다.
+ * PasswordEncoder 빈은 PasswordEncoderConfig에서 별도 관리됩니다.
  */
 @Configuration
 @EnableWebSecurity
@@ -24,19 +24,9 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final EesAuthenticationFailureHandler authenticationFailureHandler;
+    private final EesAuthenticationSuccessHandler authenticationSuccessHandler;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
-
-    /**
-     * 사원 패스워드 암호화를 위한 BCrypt 인코더를 빈으로 등록합니다.
-     * 강도 높은 해시 알고리즘을 사용하여 보안성을 확보합니다.
-     *
-     * @return BCryptPasswordEncoder 인스턴스
-     */
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
 
     /**
      * HTTP 보안 필터 체인을 설정합니다. 
@@ -64,7 +54,7 @@ public class SecurityConfig {
             )
             .formLogin(form -> form
                 .loginPage("/login")             // 커스텀 로그인 페이지 경로
-                .defaultSuccessUrl("/dashboard", true)   // 로그인 성공 시 이동할 기본 경로
+                .successHandler(authenticationSuccessHandler) // 로그인 성공 시 비밀번호 변경 필요 여부 체크
                 .failureHandler(authenticationFailureHandler) // 커스텀 실패 처리기 등록
                 .permitAll()
             )
@@ -79,3 +69,4 @@ public class SecurityConfig {
         return http.build();
     }
 }
+

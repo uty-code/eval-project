@@ -1,10 +1,13 @@
 package com.ees.eval.controller;
 
 import com.ees.eval.dto.EmployeeDTO;
+import com.ees.eval.security.CustomUserDetails;
 import com.ees.eval.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,6 +41,11 @@ public class SettingsController {
             Long empId = Long.parseLong(authentication.getName());
             EmployeeDTO employee = employeeService.getEmployeeById(empId);
             model.addAttribute("employee", employee);
+
+            // 비밀번호 변경 필요 여부를 뷰에 전달
+            if (authentication.getPrincipal() instanceof CustomUserDetails user) {
+                model.addAttribute("pwdChangeRequired", user.isPwdChangeRequired());
+            }
         } catch (Exception e) {
             log.error("프로필 조회 실패: {}", e.getMessage());
         }
@@ -84,6 +92,26 @@ public class SettingsController {
             }
             Long empId = Long.parseLong(authentication.getName());
             employeeService.changePassword(empId, currentPassword, newPassword);
+
+            // 비밀번호 변경 성공 → 세션의 CustomUserDetails 갱신 (pwdChangeRequired 해제)
+            if (authentication.getPrincipal() instanceof CustomUserDetails currentUser) {
+                CustomUserDetails updatedUser = new CustomUserDetails(
+                        currentUser.getUsername(),
+                        currentUser.getPassword(), // Spring Security에서 이미 인증 완료된 상태
+                        currentUser.isEnabled(),
+                        currentUser.isAccountNonExpired(),
+                        currentUser.isCredentialsNonExpired(),
+                        currentUser.isAccountNonLocked(),
+                        currentUser.getAuthorities(),
+                        "n" // 비밀번호 변경 완료 → 강제 변경 플래그 해제
+                );
+                SecurityContextHolder.getContext().setAuthentication(
+                        new UsernamePasswordAuthenticationToken(
+                                updatedUser, null, updatedUser.getAuthorities()
+                        )
+                );
+            }
+
             redirectAttributes.addFlashAttribute("pwSuccessMessage", "비밀번호가 성공적으로 변경되었습니다.");
         } catch (IllegalArgumentException e) {
             log.warn("비밀번호 변경 실패: {}", e.getMessage());
@@ -95,3 +123,4 @@ public class SettingsController {
         return "redirect:/settings/profile";
     }
 }
+

@@ -6,7 +6,6 @@ import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.LoginLogMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -20,6 +19,9 @@ import java.util.List;
  * 데이터베이스에 등록된 사원(employees) 정보를 기반으로 인증 처리를 수행합니다.
  * 사원의 username으로 조회하고, employee_roles를 통해 권한을 로드합니다.
  * 계정 잠금 여부는 login_logs_51 테이블의 연속 실패 횟수로 판단합니다.
+ *
+ * 비밀번호 변경 필요 여부는 EesAuthenticationSuccessHandler에서
+ * 원본 비밀번호와 사번의 단순 문자열 비교로 판단합니다. (BCrypt 오버헤드 없음)
  */
 @Service
 @RequiredArgsConstructor
@@ -34,7 +36,7 @@ public class CustomUserDetailsService implements UserDetailsService {
      * UserDetails 객체를 생성합니다.
      *
      * @param username 로그인 시 입력한 사용자 아이디
-     * @return Spring Security 인증용 UserDetails 객체
+     * @return Spring Security 인증용 CustomUserDetails 객체
      * @throws UsernameNotFoundException 해당 username의 사원이 존재하지 않을 경우 발생
      */
     @Override
@@ -75,13 +77,16 @@ public class CustomUserDetailsService implements UserDetailsService {
         boolean isAdmin = roleNames.contains("ROLE_ADMIN");
         boolean accountNonLocked = isAdmin || recentFailures < 5;
 
-        return new User(
+        // pwdChangeRequired는 'n'으로 초기화 — 실제 판단은 EesAuthenticationSuccessHandler에서 수행
+        return new CustomUserDetails(
                 String.valueOf(employee.getEmpId()),
                 employee.getPassword(),
                 true, // enabled
                 true, // accountNonExpired
                 true, // credentialsNonExpired
                 accountNonLocked,
-                authorities);
+                authorities,
+                "n");
     }
 }
+
