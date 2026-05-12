@@ -45,6 +45,7 @@ eval/build/
 
 # 4. Others
 *.log
+*.log.gz
 bin/
 /nbproject/private/
 /nbbuild/
