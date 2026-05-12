@@ -7,6 +7,20 @@
 version: '3.8'
 
 services:
+  # ── 로컬 테스트용 SQL Server ──
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ees_mssql_local
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "EesLocal@2026!"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - ees_mssql_data:/var/opt/mssql
+
   jenkins:
     image: jenkins/jenkins:lts-jdk21
     container_name: jenkins

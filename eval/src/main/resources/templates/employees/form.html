@@ -30,11 +30,11 @@
             <div class="col-lg-8">
                 <!-- Form Card -->
                 <div class="ees-card p-4 p-md-5">
-                    <form th:action="@{${isNew ? '/employees' : '/employees/' + employee.empId()}}" method="post"
+                    <form th:action="@{${isNew ? '/employees' : '/employees/' + employee.empId}}" method="post"
                         id="employee-form" class="needs-validation">
 
-                        <input type="hidden" th:if="${!isNew}" name="empId" th:value="${employee.empId()}">
-                        <input type="hidden" th:if="${!isNew}" name="version" th:value="${employee.version()}">
+                        <input type="hidden" th:if="${!isNew}" name="empId" th:value="${employee.empId}">
+                        <input type="hidden" th:if="${!isNew}" name="version" th:value="${employee.version}">
 
                         <div class="row g-4">
                             <!-- Account Info Section -->
@@ -52,7 +52,7 @@
                                         <label class="form-label text-muted small fw-semibold">사번 (아이디)</label>
                                         <input type="text"
                                             class="form-control bg-dark bg-opacity-10 border-0 text-white-50"
-                                            th:value="${employee.empId()}" readonly disabled>
+                                            th:value="${employee.empId}" readonly disabled>
                                     </div>
 
                                     <div class="col-md-6" th:if="${isNew}">
@@ -77,14 +77,14 @@
                                                 class="text-danger">*</span></label>
                                         <input type="text"
                                             class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
-                                            id="name" name="name" th:value="${employee.name()}" required>
+                                            id="name" name="name" th:value="${employee.name}" required>
                                     </div>
                                     <div class="col-md-4">
                                         <label for="email" class="form-label text-muted small fw-semibold">이메일 <span
                                                 class="text-danger">*</span></label>
                                         <input type="email"
                                             class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
-                                            id="email" name="email" th:value="${employee.email()}"
+                                            id="email" name="email" th:value="${employee.email}"
                                             pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
                                             title="올바른 이메일 형식을 입력하세요. (예: example@domain.com)"
                                             placeholder="example@domain.com" required>
@@ -94,7 +94,7 @@
                                                 class="text-danger">*</span></label>
                                         <input type="text"
                                             class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
-                                            id="phone" name="phone" th:value="${employee.phone()}"
+                                            id="phone" name="phone" th:value="${employee.phone}"
                                             placeholder="010-0000-0000" pattern="^010-[0-9]{4}-[0-9]{4}$"
                                             title="전화번호 양식은 010-0000-0000 이어야 합니다." maxlength="13" required>
                                     </div>
@@ -117,17 +117,17 @@
                                             <option value="">부서 선택</option>
                                             <th:block th:each="dept : ${departments}">
                                                 <!-- 상위부서 (본부): parentDeptId == null -->
-                                                <option th:if="${dept.parentDeptId() == null}"
-                                                    th:value="${dept.deptId()}"
-                                                    th:text="'🏢 ' + ${dept.deptName()}"
-                                                    th:selected="${employee.deptId() == dept.deptId()}"
+                                                <option th:if="${dept.parentDeptId == null}"
+                                                    th:value="${dept.deptId}"
+                                                    th:text="'🏢 ' + ${dept.deptName}"
+                                                    th:selected="${employee.deptId == dept.deptId}"
                                                     style="font-weight: 700; color: #a5b4fc;">
                                                 </option>
                                                 <!-- 하위부서 (팀): parentDeptId != null -->
-                                                <option th:unless="${dept.parentDeptId() == null}"
-                                                    th:value="${dept.deptId()}"
-                                                    th:text="'　└ ' + ${dept.deptName()}"
-                                                    th:selected="${employee.deptId() == dept.deptId()}"
+                                                <option th:unless="${dept.parentDeptId == null}"
+                                                    th:value="${dept.deptId}"
+                                                    th:text="'　└ ' + ${dept.deptName}"
+                                                    th:selected="${employee.deptId == dept.deptId}"
                                                     style="color: #94a3b8;">
                                                 </option>
                                             </th:block>
@@ -140,9 +140,9 @@
                                             class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
                                             required>
                                             <option value="">직급 선택</option>
-                                            <option th:each="pos : ${positions}" th:value="${pos.positionId()}"
-                                                th:text="${pos.positionName()}"
-                                                th:selected="${employee.positionId() == pos.positionId()}">
+                                            <option th:each="pos : ${positions}" th:value="${pos.positionId}"
+                                                th:text="${pos.positionName}"
+                                                th:selected="${employee.positionId == pos.positionId}">
                                             </option>
                                         </select>
                                     </div>
@@ -153,14 +153,14 @@
                                             class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
                                             required>
                                             <option value="EMPLOYED"
-                                                th:selected="${employee.statusCode() == 'EMPLOYED'}">재직</option>
+                                                th:selected="${employee.statusCode == 'EMPLOYED'}">재직</option>
                                             <option value="ON_LEAVE" th:if="${!isNew}"
-                                                th:selected="${employee.statusCode() == 'ON_LEAVE' or employee.statusCode() == 'LEAVE'}">
+                                                th:selected="${employee.statusCode == 'ON_LEAVE' or employee.statusCode == 'LEAVE'}">
                                                 휴직</option>
                                             <option value="RETIRED" th:if="${!isNew and #authorization.expression('hasRole(''ROLE_ADMIN'')')}"
-                                                th:selected="${employee.statusCode() == 'RETIRED'}">
+                                                th:selected="${employee.statusCode == 'RETIRED'}">
                                                 퇴사</option>
-                                            <option value="PENDING" th:if="${employee.statusCode() == 'PENDING'}"
+                                            <option value="PENDING" th:if="${employee.statusCode == 'PENDING'}"
                                                 th:selected="true">승인 대기</option>
                                         </select>
                                     </div>
@@ -170,7 +170,7 @@
                                         <input type="date"
                                             class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
                                             id="hireDate" name="hireDate"
-                                            th:value="${employee.hireDate() != null ? #temporals.format(employee.hireDate(), 'yyyy-MM-dd') : ''}"
+                                            th:value="${employee.hireDate != null ? #temporals.format(employee.hireDate, 'yyyy-MM-dd') : ''}"
                                             required>
                                     </div>
                                 </div>
@@ -193,16 +193,16 @@
                                     <div class="d-flex flex-wrap gap-4">
                                         <!-- ROLE_MANAGER는 부서 관리에서만 지정 가능하므로 숨김 처리 -->
                                         <div class="form-check" th:each="role : ${roles}"
-                                            th:if="${role.roleName() != 'ROLE_MANAGER'}">
+                                            th:if="${role.roleName != 'ROLE_MANAGER'}">
                                             <input class="form-check-input bg-dark border-secondary" type="radio"
-                                                name="roleIds" th:value="${role.roleId()}"
-                                                th:id="'role-' + ${role.roleId()}"
-                                                th:checked="${isNew ? roleStat.first : employee.roleNames().contains(role.roleName())}">
+                                                name="roleIds" th:value="${role.roleId}"
+                                                th:id="'role-' + ${role.roleId}"
+                                                th:checked="${isNew ? roleStat.first : employee.roleNames.contains(role.roleName)}">
                                             <label class="form-check-label text-white-50"
-                                                th:for="'role-' + ${role.roleId()}">
+                                                th:for="'role-' + ${role.roleId}">
                                                 <span
-                                                    th:text="${role.roleName() == 'ROLE_ADMIN' ? '관리자 (ADMIN)' :
-                                                              (role.roleName() == 'ROLE_EXECUTIVE' ? '임원 (EXECUTIVE)' : '일반 사원 (USER)')}"></span>
+                                                    th:text="${role.roleName == 'ROLE_ADMIN' ? '관리자 (ADMIN)' :
+                                                              (role.roleName == 'ROLE_EXECUTIVE' ? '임원 (EXECUTIVE)' : '일반 사원 (USER)')}"></span>
                                             </label>
                                         </div>
                                     </div>
@@ -246,7 +246,7 @@
                                 잠금 해제 시 실패 기록이 초기화됩니다.
                             </p>
                         </div>
-                        <form th:action="@{'/employees/' + ${employee.empId()} + '/unlock'}" method="post">
+                        <form th:action="@{'/employees/' + ${employee.empId} + '/unlock'}" method="post">
                             <button type="submit" class="btn btn-outline-danger px-4"
                                 onclick="return confirm('계정 잠금을 해제하시겠습니까?')">
                                 <i class="bi bi-unlock-fill me-2"></i>잠금 해제

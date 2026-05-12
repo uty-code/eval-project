@@ -507,3 +507,9 @@ where e.emp_id in (1041, 1042)
     and r.role_name = 'ROLE_EXECUTIVE';
 
 -- ==========================================
+-- [로그인 실패 로그 추가 - 1021번 계정 잠금 테스트용]
+insert into login_logs_51 (emp_id, login_input, result_code, is_failure, created_at) values (1021, '1021', 'INVALID_PASSWORD', 'y', getdate());
+insert into login_logs_51 (emp_id, login_input, result_code, is_failure, created_at) values (1021, '1021', 'INVALID_PASSWORD', 'y', getdate());
+insert into login_logs_51 (emp_id, login_input, result_code, is_failure, created_at) values (1021, '1021', 'INVALID_PASSWORD', 'y', getdate());
+insert into login_logs_51 (emp_id, login_input, result_code, is_failure, created_at) values (1021, '1021', 'INVALID_PASSWORD', 'y', getdate());
+insert into login_logs_51 (emp_id, login_input, result_code, is_failure, created_at) values (1021, '1021', 'INVALID_PASSWORD', 'y', getdate());

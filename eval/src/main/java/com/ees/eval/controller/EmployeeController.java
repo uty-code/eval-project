@@ -336,17 +336,29 @@ public class EmployeeController {
     @PostMapping("/{empId}/unlock")
     public String unlockAccount(
             @PathVariable Long empId,
+            @RequestHeader(value = "HX-Request", required = false) boolean htmxRequest,
+            Model model,
             RedirectAttributes redirectAttributes) {
         try {
             employeeService.unlockAccount(empId);
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "계정 잠금이 해제되었습니다. 해당 사원은 다시 로그인할 수 있습니다.");
+            String msg = "계정 잠금이 해제되었습니다. 해당 사원은 다시 로그인할 수 있습니다.";
+            if (htmxRequest) {
+                model.addAttribute("successMessage", msg);
+                lockedEmployees(model); // 데이터 채우기
+                return "employees/locked :: content";
+            }
+            redirectAttributes.addFlashAttribute("successMessage", msg);
         } catch (Exception e) {
             log.error("계정 잠금 해제 실패 (empId={}): {}", empId, e.getMessage());
-            redirectAttributes.addFlashAttribute("errorMessage",
-                    "계정 잠금 해제 중 오류가 발생했습니다: " + e.getMessage());
+            String errorMsg = "계정 잠금 해제 중 오류가 발생했습니다: " + e.getMessage();
+            if (htmxRequest) {
+                model.addAttribute("errorMessage", errorMsg);
+                lockedEmployees(model); // 데이터 채우기
+                return "employees/locked :: content";
+            }
+            redirectAttributes.addFlashAttribute("errorMessage", errorMsg);
         }
-        return "redirect:/employees";
+        return "redirect:/employees/locked";
     }
 
     private void validateEmail(String email) {
