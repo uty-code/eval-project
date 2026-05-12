@@ -26,6 +26,18 @@
             </div>
         </div>
 
+        <!-- 비밀번호 강제 변경 안내 배너 -->
+        <div th:if="${pwdChangeRequired}"
+            class="alert border-0 mb-4 d-flex align-items-center gap-3"
+            style="background:rgba(245,158,11,0.15);color:#fbbf24;border-left:3px solid #fbbf24!important;border-left-style:solid!important;"
+            role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-3"></i>
+            <div>
+                <strong class="d-block mb-1">비밀번호 변경이 필요합니다.</strong>
+                <small class="opacity-75">보안을 위해 초기 비밀번호를 반드시 변경해 주세요. 변경 전까지 다른 메뉴 이용이 제한됩니다.</small>
+            </div>
+        </div>
+
         <!-- 공통 알림 메시지 -->
         <div th:if="${successMessage}"
             class="alert border-0 mb-4 d-flex align-items-center gap-2"
@@ -340,7 +352,8 @@
             // 비밀번호 에러가 있으면 자동으로 열기
             (function() {
                 const hasErr = /*[[${pwErrorMessage != null || pwSuccessMessage != null}]]*/ false;
-                if (hasErr) togglePasswordSection();
+                const pwdRequired = /*[[${pwdChangeRequired}]]*/ false;
+                if (hasErr || pwdRequired) togglePasswordSection();
             })();
 
             // 눈 아이콘 토글
