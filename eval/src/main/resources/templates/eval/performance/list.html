@@ -185,7 +185,8 @@
                           hx-target="#eval-table-container" 
                           hx-select="#eval-table-container"
                           hx-swap="outerHTML" 
-                          hx-push-url="true">
+                          hx-push-url="true"
+                          hx-sync="this:replace">
                         <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
                         
                         <div class="row g-3 align-items-end">
@@ -300,7 +301,8 @@
                         <button class="btn btn-sm btn-outline-secondary text-white border-0"
                                 th:classappend="${!pageData.hasPrevious()} ? 'disabled'"
                                 th:attr="hx-get=@{/eval/performance(periodId=${selectedPeriod.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() - 1})}"
-                                hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true">
+                                hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true"
+                                hx-sync="this:replace">
                             <i class="bi bi-chevron-left"></i>
                         </button>
                         
@@ -309,14 +311,16 @@
                                 th:class="${i == pageData.currentPage()} ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-secondary text-white border-0'"
                                 th:text="${i}"
                                 th:attr="hx-get=@{/eval/performance(periodId=${selectedPeriod.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${i})}"
-                                hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true">
+                                hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true"
+                                hx-sync="this:replace">
                         </button>
                         
                         <!-- 다음 페이지 -->
                         <button class="btn btn-sm btn-outline-secondary text-white border-0"
                                 th:classappend="${!pageData.hasNext()} ? 'disabled'"
                                 th:attr="hx-get=@{/eval/performance(periodId=${selectedPeriod.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() + 1})}"
-                                hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true">
+                                hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true"
+                                hx-sync="this:replace">
                             <i class="bi bi-chevron-right"></i>
                         </button>
                     </div>
