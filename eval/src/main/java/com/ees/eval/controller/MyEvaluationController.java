@@ -197,11 +197,9 @@ public class MyEvaluationController {
             return "redirect:/eval/my-evaluation";
         }
 
-        // 차수 상태 검증 (PLANNED 상태에서는 진입 차단)
-        EvaluationPeriodDTO period = periodService.getPeriodById(mapping.periodId());
-        if ("PLANNED".equals(period.statusCode())) {
-            log.warn("[MyEvaluation] getForm - Period is in PLANNED status, blocking access. periodId: {}", mapping.periodId());
-            redirectAttributes.addFlashAttribute("errorMessage", "평가 시작 전입니다. 평가 기간에 다시 접속해 주세요.");
+        // 평가 기간 유효성 검증 (상태 + 날짜)
+        if (!periodService.isPeriodActive(mapping.periodId())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "평가 기간이 아니거나 이미 종료되었습니다.");
             return "redirect:/eval/my-evaluation?periodId=" + mapping.periodId();
         }
 
@@ -280,10 +278,9 @@ public class MyEvaluationController {
             return "redirect:/eval/my-evaluation";
         }
 
-        // 차수 상태 검증
-        EvaluationPeriodDTO period = periodService.getPeriodById(mapping.periodId());
-        if ("PLANNED".equals(period.statusCode())) {
-            redirectAttributes.addFlashAttribute("errorMessage", "평가 시작 전입니다.");
+        // 평가 기간 유효성 검증 (상태 + 날짜)
+        if (!periodService.isPeriodActive(mapping.periodId())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "평가 기간이 아니거나 이미 종료되었습니다.");
             return "redirect:/eval/my-evaluation?periodId=" + mapping.periodId();
         }
 
@@ -378,6 +375,12 @@ public class MyEvaluationController {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "유형별 가중치 합계가 100%가 아니어서 평가를 제출할 수 없습니다.");
             return "redirect:/eval/my-evaluation/wizard?mappingId=" + mappingId;
+        }
+
+        // 평가 기간 유효성 검증 (제출 시점 재확인)
+        if (!periodService.isPeriodActive(submitMapping.periodId())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "평가 기간이 종료되어 제출할 수 없습니다.");
+            return "redirect:/eval/my-evaluation?periodId=" + submitMapping.periodId();
         }
 
         // SELF만 허용
