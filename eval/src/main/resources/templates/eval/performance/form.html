@@ -1,244 +1,268 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'performance-eval', ~{::style}, ~{})}">
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'performance-eval', ~{::style}, ~{})}">
+
 <head>
     <title th:text="${evalType == 'COMPETENCY'} ? '역량평가 작성 - EES' : '성과평가 작성 - EES'">평가 작성 - EES</title>
     <style></style>
 </head>
+
 <body>
-<div id="page-content" class="container-fluid py-4" th:fragment="content">
-    <style>
-        .eval-form-container { max-width: 1200px; margin: 0 auto; }
-        .eval-card {
-            background: #1a1f2c;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-            border: 1px solid rgba(255,255,255,0.08);
-            padding: 32px;
-            margin-bottom: 24px;
-            position: relative;
-        }
-        .eval-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-        .eval-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #f8fafc;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .eval-title i { color: #818cf8; font-size: 1.4rem; }
-        .weight-badge {
-            background-color: rgba(255,255,255,0.03);
-            color: #94a3b8;
-            border: 1px solid rgba(255,255,255,0.1);
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 6px 14px;
-            border-radius: 6px;
-        }
-        .field-label {
-            color: #818cf8;
-            font-size: 0.85rem;
-            font-weight: 700;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .eval-textarea {
-            width: 100%;
-            border: 1px solid rgba(255,255,255,0.1);
-            background-color: #242b3d;
-            border-radius: 8px;
-            padding: 18px;
-            font-size: 1rem;
-            color: #f8fafc;
-            min-height: 100px;
-            resize: vertical;
-            transition: all 0.2s;
-        }
-        .eval-textarea:focus {
-            outline: none;
-            border-color: #818cf8;
-            box-shadow: 0 0 0 3px rgba(129,140,248,0.15);
-        }
-        .eval-textarea:read-only {
-            background-color: rgba(255,255,255,0.02);
-            border-color: rgba(255,255,255,0.05);
-            color: #94a3b8;
-            cursor: default;
-            resize: none;
-        }
-        .score-input {
-            font-size: 2rem !important;
-            font-weight: 800 !important;
-            text-align: center;
-            min-height: 80px !important;
-        }
-        .header-section {
-            background: #1a1f2c;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 32px;
-            border: 1px solid rgba(255,255,255,0.08);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-    </style>
-    <div class="eval-form-container">
-
-        <!-- 상단 헤더 -->
-        <div class="d-flex justify-content-between align-items-center mb-5 mt-2">
-            <div class="d-flex align-items-center gap-3">
-                <h1 class="text-white fw-bold fs-2 mb-0" 
-                    th:text="${mapping.relationTypeCode() == 'SELF'} ? '자가평가 작성' : '평가 작성'">평가 입력</h1>
-                <span class="badge bg-indigo-500 px-4 py-2 fs-6 rounded-pill"
-                      style="background-color: #6366f1;"
-                      th:text="${mapping.evaluateeName()}">피평가자</span>
-            </div>
-            <a href="#" class="btn btn-outline-light border-opacity-25 px-4 py-2"
-               th:attr="hx-get=@{/eval/performance(evalType=${evalType})}" hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML show:window:top" hx-push-url="true">
-                <i class="bi bi-arrow-left me-2"></i> 목록으로 돌아가기
-            </a>
-        </div>
-
-        <!-- 제출 완료 배너 -->
-        <div th:if="${submitted and not isLocked}" class="alert alert-success bg-opacity-10 border-success border-opacity-25 text-success mb-4 d-flex align-items-center gap-3 py-3">
-            <i class="bi bi-patch-check-fill fs-4"></i>
-            <span class="fw-bold">평가가 제출된 상태입니다. 내용을 수정하여 재제출할 수 있습니다.</span>
-        </div>
-
-        <!-- 평가 잠금 배너 -->
-        <div th:if="${isLocked}" class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4 d-flex align-items-center gap-3 py-3">
-            <i class="bi bi-lock-fill fs-4"></i>
-            <div>
-                <strong th:text="${lockedBy}">상위 평가자</strong>가 평가를 완료하여 더 이상 내용을 수정할 수 없습니다.
-            </div>
-        </div>
-
-        <!-- 평가요소 없을 때 -->
-        <div th:if="${elements == null || elements.isEmpty()}" class="eval-card text-center py-5">
-            <i class="bi bi-exclamation-circle fs-1 text-warning mb-3 d-block"></i>
-            <h5 class="text-white fw-bold">등록된 평가요소가 없습니다.</h5>
-        </div>
-
-        <!-- 평가 폼 -->
-        <form th:if="${elements != null && !elements.isEmpty()}" id="evaluationForm"
-              th:action="@{/eval/performance/submit}" method="post">
-            <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
-            <input type="hidden" name="mappingId" th:value="${mappingId}">
-            <input type="hidden" name="evalType" th:value="${evalType}">
-
-            <div th:each="element : ${elements}" class="eval-card">
-                <div class="eval-card-header">
-                    <div class="eval-title">
-                        <i class="bi bi-check2-square"></i>
-                        <span th:text="${element.elementName()}">성과 항목</span>
-                    </div>
-                    <div class="weight-badge">
-                        가중치 <span th:text="${element.weight() + '%'}">40%</span>
-                    </div>
-                </div>
-
-                <!-- 피평가자가 작성한 자가평가 점수 영역 (평가자 시점) -->
-                <div th:if="${mapping.relationTypeCode() != 'SELF'}" class="mb-4">
-                    <div class="field-label">
-                        <i class="bi bi-person-badge"></i> 대상자의 자가 평가 (제출된 실적 기록)
-                    </div>
-                    <div class="eval-textarea" readonly 
-                         th:with="hasSelfEval=${selfEvalMap != null and selfEvalMap.containsKey(element.elementId()) and (selfEvalMap.get(element.elementId()).getScore() != null or selfEvalMap.get(element.elementId()).getReason() != null)}"
-                         th:text="${hasSelfEval ? (selfEvalMap.get(element.elementId()).getScore() != null ? selfEvalMap.get(element.elementId()).getScore() + '점' : '') + (selfEvalMap.get(element.elementId()).getScore() != null and selfEvalMap.get(element.elementId()).getReason() != null ? ' - ' : '') + (selfEvalMap.get(element.elementId()).getReason() != null ? selfEvalMap.get(element.elementId()).getReason() : '') : '작성된 자가 평가 내용이 없습니다.'}"
-                         th:style="${!hasSelfEval ? 'color: #64748b; font-style: italic;' : ''}">
-                    </div>
-                </div>
-
-                <!-- 1차 평가자(MANAGER) 평가 내용 (2차 평가자 시점) -->
-                <div th:if="${mapping.relationTypeCode() == 'EXECUTIVE'}" class="mb-4">
-                    <div class="field-label">
-                        <i class="bi bi-person-check"></i> 1차 평가자 코멘트 및 점수
-                    </div>
-                    <div class="eval-textarea" readonly 
-                         th:with="hasManagerEval=${managerEvalMap != null and managerEvalMap.containsKey(element.elementId()) and (managerEvalMap.get(element.elementId()).getScore() != null or managerEvalMap.get(element.elementId()).getReason() != null)}"
-                         th:text="${hasManagerEval ? (managerEvalMap.get(element.elementId()).getScore() != null ? managerEvalMap.get(element.elementId()).getScore() + '점' : '') + (managerEvalMap.get(element.elementId()).getScore() != null and managerEvalMap.get(element.elementId()).getReason() != null ? ' - ' : '') + (managerEvalMap.get(element.elementId()).getReason() != null ? managerEvalMap.get(element.elementId()).getReason() : '') : '작성된 1차 평가 내용이 없습니다.'}"
-                         th:style="${!hasManagerEval ? 'color: #64748b; font-style: italic;' : ''}">
-                    </div>
-                </div>
-
-                <!-- 평가 입력 영역 -->
-                <div class="row g-4">
-                    <!-- 점수 입력 (본인/평가자 공통) -->
-                    <div class="col-md-3">
-                        <div class="field-label">
-                            <i class="bi bi-award"></i> 
-                            <span th:text="${mapping.relationTypeCode() == 'SELF' ? '자가 평가 점수 (0~100점)' : '최종 평가 점수 (0~100점)'}">최종 평가 점수</span>
-                        </div>
-                        <input type="number" class="eval-textarea score-input"
-                               th:name="'score_' + ${element.elementId()}"
-                               th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
-                               th:data-weight="${element.weight()}"
-                               th:data-max="${element.maxScore()}"
-                               oninput="calculateTotalConvertedScore()"
-                               min="0" th:max="${element.maxScore()}" step="1" 
-                               required>
-                    </div>
-
-                    <!-- 코멘트 영역 (평가자만 노출) -->
-                    <div th:if="${mapping.relationTypeCode() != 'SELF'}" class="col-md-9">
-                        <div class="field-label">
-                            <i class="bi bi-chat-left-text"></i> 최종 코멘트 (평가 사유 및 피드백)
-                        </div>
-                        <textarea class="eval-textarea" th:name="'comment_' + ${element.elementId()}"
-                                  placeholder="평가 사유 및 피드백을 입력해주세요."
-                                  required th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
-                    </div>
-                    
-                    <!-- 피평가자(본인)일 때는 코멘트 필드를 숨기거나 처리 (요청에 따라 점수만 작성) -->
-                    <input th:if="${mapping.relationTypeCode() == 'SELF'}" type="hidden" 
-                           th:name="'comment_' + ${element.elementId()}" value="자가평가 점수 제출">
-                </div>
-            </div>
-
-            <!-- 하단 플로팅 버튼 영역 -->
-            <div class="d-flex justify-content-end align-items-center mt-4 mb-5 gap-3">
-                <div class="total-score-display text-info fw-bold fs-5 px-4 py-2" style="background: rgba(13,202,240,0.1); border-radius: 8px; border: 1px solid rgba(13,202,240,0.2);">
-                    총 환산점수: <span id="totalConvertedScore">0.0</span>점
-                </div>
-                <button type="submit" form="evaluationForm" class="btn btn-primary btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg" 
-                        style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none;">
-                    <i class="bi bi-check2-circle me-2"></i>
-                    평가 저장 및 제출
-                </button>
-            </div>
-            </fieldset>
-        </form>
-
-        <script>
-            function calculateTotalConvertedScore() {
-                let total = 0;
-                document.querySelectorAll('.score-input').forEach(function(input) {
-                    let score = parseFloat(input.value) || 0;
-                    let weight = parseFloat(input.getAttribute('data-weight')) || 0;
-                    let maxScore = parseFloat(input.getAttribute('data-max')) || 100;
-                    
-                    if (score > maxScore) score = maxScore;
-                    
-                    total += (score / maxScore) * weight;
-                });
-                const displayEl = document.getElementById('totalConvertedScore');
-                if (displayEl) {
-                    displayEl.innerText = total.toFixed(1);
-                }
+    <div id="page-content" class="container-fluid py-4" th:fragment="content">
+        <style>
+            .eval-form-container {
+                max-width: 1200px;
+                margin: 0 auto;
             }
 
-            calculateTotalConvertedScore();
-        </script>
+            .eval-card {
+                background: #1a1f2c;
+                border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                padding: 32px;
+                margin-bottom: 24px;
+                position: relative;
+            }
+
+            .eval-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 24px;
+            }
+
+            .eval-title {
+                font-size: 1.25rem;
+                font-weight: 700;
+                color: #f8fafc;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .eval-title i {
+                color: #818cf8;
+                font-size: 1.4rem;
+            }
+
+            .weight-badge {
+                background-color: rgba(255, 255, 255, 0.03);
+                color: #94a3b8;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                font-size: 0.85rem;
+                font-weight: 600;
+                padding: 6px 14px;
+                border-radius: 6px;
+            }
+
+            .field-label {
+                color: #818cf8;
+                font-size: 0.85rem;
+                font-weight: 700;
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .eval-textarea {
+                width: 100%;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                background-color: #242b3d;
+                border-radius: 8px;
+                padding: 18px;
+                font-size: 1rem;
+                color: #f8fafc;
+                min-height: 100px;
+                resize: vertical;
+                transition: all 0.2s;
+            }
+
+            .eval-textarea:focus {
+                outline: none;
+                border-color: #818cf8;
+                box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15);
+            }
+
+            .eval-textarea:read-only {
+                background-color: rgba(255, 255, 255, 0.02);
+                border-color: rgba(255, 255, 255, 0.05);
+                color: #94a3b8;
+                cursor: default;
+                resize: none;
+            }
+
+            .score-input {
+                font-size: 2rem !important;
+                font-weight: 800 !important;
+                text-align: center;
+                min-height: 80px !important;
+            }
+
+            .header-section {
+                background: #1a1f2c;
+                border-radius: 12px;
+                padding: 24px;
+                margin-bottom: 32px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            }
+        </style>
+        <div class="eval-form-container">
+
+            <!-- 상단 헤더 -->
+            <div class="d-flex justify-content-between align-items-center mb-5 mt-2">
+                <div class="d-flex align-items-center gap-3">
+                    <h1 class="text-white fw-bold fs-2 mb-0"
+                        th:text="${mapping.relationTypeCode() == 'SELF'} ? '자가평가 작성' : '평가 작성'">평가 입력</h1>
+                    <span class="badge bg-indigo-500 px-4 py-2 fs-6 rounded-pill" style="background-color: #6366f1;"
+                        th:text="${mapping.evaluateeName()}">피평가자</span>
+                </div>
+                <a href="#" class="btn btn-outline-light border-opacity-25 px-4 py-2"
+                    th:attr="hx-get=@{/eval/performance(evalType=${evalType})}" hx-target="#page-content"
+                    hx-select="#page-content" hx-swap="outerHTML show:window:top" hx-push-url="true">
+                    <i class="bi bi-arrow-left me-2"></i> 목록으로 돌아가기
+                </a>
+            </div>
+
+            <!-- 제출 완료 배너 -->
+            <div th:if="${submitted and not isLocked}"
+                class="alert alert-success bg-opacity-10 border-success border-opacity-25 text-success mb-4 d-flex align-items-center gap-3 py-3">
+                <i class="bi bi-patch-check-fill fs-4"></i>
+                <span class="fw-bold">평가가 제출된 상태입니다. 내용을 수정하여 재제출할 수 있습니다.</span>
+            </div>
+
+            <!-- 평가 잠금 배너 -->
+            <div th:if="${isLocked}"
+                class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4 d-flex align-items-center gap-3 py-3">
+                <i class="bi bi-lock-fill fs-4"></i>
+                <div>
+                    <strong th:text="${lockedBy}">상위 평가자</strong>가 평가를 완료하여 더 이상 내용을 수정할 수 없습니다.
+                </div>
+            </div>
+
+            <!-- 평가요소 없을 때 -->
+            <div th:if="${elements == null || elements.isEmpty()}" class="eval-card text-center py-5">
+                <i class="bi bi-exclamation-circle fs-1 text-warning mb-3 d-block"></i>
+                <h5 class="text-white fw-bold">등록된 평가요소가 없습니다.</h5>
+            </div>
+
+            <!-- 평가 폼 -->
+            <form th:if="${elements != null && !elements.isEmpty()}" id="evaluationForm"
+                th:action="@{/eval/performance/submit}" method="post">
+                <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
+                    <input type="hidden" name="mappingId" th:value="${mappingId}">
+                    <input type="hidden" name="evalType" th:value="${evalType}">
+
+                    <div th:each="element : ${elements}" class="eval-card">
+                        <div class="eval-card-header">
+                            <div class="eval-title">
+                                <i class="bi bi-check2-square"></i>
+                                <span th:text="${element.elementName()}">성과 항목</span>
+                            </div>
+                            <div class="weight-badge">
+                                가중치 <span th:text="${element.weight() + '%'}">40%</span>
+                            </div>
+                        </div>
+
+                        <!-- 피평가자가 작성한 자가평가 점수 영역 (평가자 시점) -->
+                        <div th:if="${mapping.relationTypeCode() != 'SELF'}" class="mb-4">
+                            <div class="field-label">
+                                <i class="bi bi-person-badge"></i> 대상자의 자가 평가 (제출된 실적 기록)
+                            </div>
+                            <div class="eval-textarea" readonly
+                                th:with="hasSelfEval=${selfEvalMap != null and selfEvalMap.containsKey(element.elementId()) and (selfEvalMap.get(element.elementId()).getScore() != null or selfEvalMap.get(element.elementId()).getReason() != null)}"
+                                th:text="${hasSelfEval ? (selfEvalMap.get(element.elementId()).getScore() != null ? selfEvalMap.get(element.elementId()).getScore() + '점' : '') + (selfEvalMap.get(element.elementId()).getScore() != null and selfEvalMap.get(element.elementId()).getReason() != null ? ' - ' : '') + (selfEvalMap.get(element.elementId()).getReason() != null ? selfEvalMap.get(element.elementId()).getReason() : '') : '작성된 자가 평가 내용이 없습니다.'}"
+                                th:style="${!hasSelfEval ? 'color: #64748b; font-style: italic;' : ''}">
+                            </div>
+                        </div>
+
+                        <!-- 1차 평가자(MANAGER) 평가 내용 (2차 평가자 시점) -->
+                        <div th:if="${mapping.relationTypeCode() == 'EXECUTIVE'}" class="mb-4">
+                            <div class="field-label">
+                                <i class="bi bi-person-check"></i> 1차 평가자 코멘트 및 점수
+                            </div>
+                            <div class="eval-textarea" readonly
+                                th:with="hasManagerEval=${managerEvalMap != null and managerEvalMap.containsKey(element.elementId()) and (managerEvalMap.get(element.elementId()).getScore() != null or managerEvalMap.get(element.elementId()).getReason() != null)}"
+                                th:text="${hasManagerEval ? (managerEvalMap.get(element.elementId()).getScore() != null ? managerEvalMap.get(element.elementId()).getScore() + '점' : '') + (managerEvalMap.get(element.elementId()).getScore() != null and managerEvalMap.get(element.elementId()).getReason() != null ? ' - ' : '') + (managerEvalMap.get(element.elementId()).getReason() != null ? managerEvalMap.get(element.elementId()).getReason() : '') : '작성된 1차 평가 내용이 없습니다.'}"
+                                th:style="${!hasManagerEval ? 'color: #64748b; font-style: italic;' : ''}">
+                            </div>
+                        </div>
+
+                        <!-- 평가 입력 영역 -->
+                        <div class="row g-4">
+                            <!-- 점수 입력 (본인/평가자 공통) -->
+                            <div class="col-md-3">
+                                <div class="field-label">
+                                    <i class="bi bi-award"></i>
+                                    <span
+                                        th:text="${mapping.relationTypeCode() == 'SELF' ? '자가 평가 점수 (0~100점)' : '최종 평가 점수 (0~100점)'}">최종
+                                        평가 점수</span>
+                                </div>
+                                <input type="number" class="eval-textarea score-input"
+                                    th:name="'score_' + ${element.elementId()}"
+                                    th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                                    th:data-weight="${element.weight()}" th:data-max="${element.maxScore()}"
+                                    oninput="calculateTotalConvertedScore()" min="0" th:max="${element.maxScore()}"
+                                    step="1" required>
+                            </div>
+
+                            <!-- 코멘트 영역 (평가자만 노출) -->
+                            <div th:if="${mapping.relationTypeCode() != 'SELF'}" class="col-md-9">
+                                <div class="field-label">
+                                    <i class="bi bi-chat-left-text"></i> 최종 코멘트 (평가 사유 및 피드백)
+                                </div>
+                                <textarea class="eval-textarea" th:name="'comment_' + ${element.elementId()}"
+                                    placeholder="평가 사유 및 피드백을 입력해주세요." th:readonly="${submitted}" required
+                                    th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
+                            </div>
+
+                            <!-- 피평가자(본인)일 때는 코멘트 필드를 숨기거나 처리 (요청에 따라 점수만 작성) -->
+                            <input th:if="${mapping.relationTypeCode() == 'SELF'}" type="hidden"
+                                th:name="'comment_' + ${element.elementId()}" value="자가평가 점수 제출">
+                        </div>
+                    </div>
+
+                    <!-- 하단 플로팅 버튼 영역 -->
+                    <div class="d-flex justify-content-end align-items-center mt-4 mb-5 gap-3">
+                        <div class="total-score-display text-info fw-bold fs-5 px-4 py-2"
+                            style="background: rgba(13,202,240,0.1); border-radius: 8px; border: 1px solid rgba(13,202,240,0.2);">
+                            총 환산점수: <span id="totalConvertedScore">0.0</span>점
+                        </div>
+                        <button type="submit" form="evaluationForm"
+                            class="btn btn-primary btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg"
+                            style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none;">
+                            <i class="bi bi-check2-circle me-2"></i>
+                            평가 저장 및 제출
+                        </button>
+                    </div>
+                </fieldset>
+            </form>
+
+            <script>
+                function calculateTotalConvertedScore() {
+                    let total = 0;
+                    document.querySelectorAll('.score-input').forEach(function (input) {
+                        let score = parseFloat(input.value) || 0;
+                        let weight = parseFloat(input.getAttribute('data-weight')) || 0;
+                        let maxScore = parseFloat(input.getAttribute('data-max')) || 100;
+
+                        if (score > maxScore) score = maxScore;
+
+                        total += (score / maxScore) * weight;
+                    });
+                    const displayEl = document.getElementById('totalConvertedScore');
+                    if (displayEl) {
+                        displayEl.innerText = total.toFixed(1);
+                    }
+                }
+
+                calculateTotalConvertedScore();
+            </script>
+        </div>
     </div>
-</div>
 
 </body>
+
 </html>

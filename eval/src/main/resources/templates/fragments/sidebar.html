@@ -81,14 +81,7 @@
                 sec:authorize="hasAnyRole('ADMIN', 'MANAGER')"
                 th:classappend="${activeMenu == 'performance-eval' ? 'active' : ''}">
                 <i class="bi bi-pencil-square"></i>
-                <span>성과/업무 평가</span>
-            </a>
-            <a class="nav-link" th:href="@{/eval/performance(evalType='COMPETENCY')}" hx-get="/eval/performance?evalType=COMPETENCY" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
-                sec:authorize="hasAnyRole('ADMIN', 'MANAGER')"
-                th:classappend="${activeMenu == 'competency-eval' ? 'active' : ''}">
-                <i class="bi bi-award-fill"></i>
-                <span>역량 평가 관리</span>
+                <span>성과/역량 평가</span>
             </a>
             <a class="nav-link" th:href="@{/eval/multi-dimensional}" hx-get="/eval/multi-dimensional" hx-target="#page-content"
                 hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"

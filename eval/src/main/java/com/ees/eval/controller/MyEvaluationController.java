@@ -264,6 +264,96 @@ public class MyEvaluationController {
     }
 
     /**
+     * 자가평가 통합 마법사 페이지
+     */
+    @GetMapping("/wizard")
+    public String getWizard(@RequestParam Long mappingId,
+            Model model,
+            @AuthenticationPrincipal UserDetails userDetails,
+            RedirectAttributes redirectAttributes) {
+
+        EvaluatorMappingDTO mapping = mappingService.getMappingById(mappingId);
+
+        // SELF만 허용
+        if (!"SELF".equals(mapping.relationTypeCode())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "자가평가만 이 페이지에서 진행할 수 있습니다.");
+            return "redirect:/eval/my-evaluation";
+        }
+
+        // 차수 상태 검증
+        EvaluationPeriodDTO period = periodService.getPeriodById(mapping.periodId());
+        if ("PLANNED".equals(period.statusCode())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "평가 시작 전입니다.");
+            return "redirect:/eval/my-evaluation?periodId=" + mapping.periodId();
+        }
+
+        // 가중치 검증
+        Employee evaluatee = employeeMapper.findById(mapping.evaluateeId()).orElse(null);
+        Long evaluateeDeptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
+        
+        boolean evaluateeIsLeader = departmentMapper.countDepartmentsByLeaderId(mapping.evaluateeId()) > 0;
+        String targetRole = evaluateeIsLeader ? "LEADER" : "STAFF";
+
+        if (!typeWeightService.isWeightSumValid(mapping.periodId(), evaluateeDeptId, targetRole)) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "[" + targetRole + "] 유형별 가중치 합계가 100%가 아닙니다.");
+            return "redirect:/eval/my-evaluation?periodId=" + mapping.periodId();
+        }
+
+        model.addAttribute("mapping", mapping);
+        model.addAttribute("evaluateeIsLeader", evaluateeIsLeader);
+
+        // 모든 평가요소 조회 및 분류
+        List<EvaluationElementDTO> allElements = elementService.getElementsWithFallback(mapping.periodId(), evaluateeDeptId);
+        
+        List<EvaluationElementDTO> perfElements = new java.util.ArrayList<>();
+        List<EvaluationElementDTO> compElements = new java.util.ArrayList<>();
+        List<EvaluationElementDTO> peerElements = new java.util.ArrayList<>();
+
+        if (evaluateeIsLeader) {
+            // 부서장은 다면평가만 수행
+            peerElements = allElements.stream()
+                    .filter(e -> "MULTI_DIMENSIONAL".equals(e.elementTypeCode()))
+                    .toList();
+        } else {
+            // 부서원은 성과 및 역량 평가 수행
+            perfElements = allElements.stream()
+                    .filter(e -> "PERFORMANCE".equals(e.elementTypeCode()))
+                    .toList();
+            compElements = allElements.stream()
+                    .filter(e -> "COMPETENCY".equals(e.elementTypeCode()))
+                    .toList();
+        }
+
+        model.addAttribute("perfElements", perfElements);
+        model.addAttribute("compElements", compElements);
+        model.addAttribute("peerElements", peerElements);
+        model.addAttribute("mappingId", mappingId);
+
+        // 기존 제출 데이터
+        java.util.Map<Long, Evaluation> savedMap = evaluationMapper
+                .findByMappingId(mappingId)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        Evaluation::getElementId,
+                        e -> e,
+                        (a, b) -> a));
+        model.addAttribute("savedMap", savedMap);
+
+        // 전체 제출 여부 (하나라도 SUBMITTED면 submitted로 간주하여 문구 표시)
+        boolean submitted = savedMap.values().stream()
+                .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
+        model.addAttribute("submitted", submitted);
+
+        // 잠금 상태
+        java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(mappingId);
+        model.addAttribute("isLocked", lockInfo.get("isLocked"));
+        model.addAttribute("lockedBy", lockInfo.get("lockedBy"));
+
+        return "eval/my-evaluation/wizard";
+    }
+
+    /**
      * 자가평가 제출
      */
 
@@ -285,10 +375,9 @@ public class MyEvaluationController {
         String targetRole = submitIsLeader ? "LEADER" : "STAFF";
 
         if (!typeWeightService.isWeightSumValid(submitMapping.periodId(), submitDeptId, targetRole)) {
-            String currentEvalType = params.getOrDefault("evalType", "PERFORMANCE");
             redirectAttributes.addFlashAttribute("errorMessage",
                     "유형별 가중치 합계가 100%가 아니어서 평가를 제출할 수 없습니다.");
-            return "redirect:/eval/my-evaluation/form?mappingId=" + mappingId + "&evalType=" + currentEvalType;
+            return "redirect:/eval/my-evaluation/wizard?mappingId=" + mappingId;
         }
 
         // SELF만 허용
@@ -302,7 +391,7 @@ public class MyEvaluationController {
         if ((Boolean) lockInfo.get("isLocked")) {
             redirectAttributes.addFlashAttribute("errorMessage", 
                 lockInfo.get("lockedBy") + "가 평가를 완료하여 더 이상 수정할 수 없습니다.");
-            return "redirect:/eval/my-evaluation/form?mappingId=" + mappingId;
+            return "redirect:/eval/my-evaluation/wizard?mappingId=" + mappingId;
         }
 
         // 평가 데이터 Upsert 처리
@@ -310,9 +399,8 @@ public class MyEvaluationController {
             evaluationService.upsertEvaluations(mappingId, params, empId);
         } catch (NumberFormatException e) {
             log.warn("[자가평가 제출] 점수 파싱 실패: mappingId={}", mappingId);
-            String currentEvalType = params.getOrDefault("evalType", "PERFORMANCE");
             redirectAttributes.addFlashAttribute("errorMessage", "잘못된 점수 형식입니다.");
-            return "redirect:/eval/my-evaluation/form?mappingId=" + mappingId + "&evalType=" + currentEvalType;
+            return "redirect:/eval/my-evaluation/wizard?mappingId=" + mappingId;
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "자가평가가 성공적으로 제출되었습니다.");

@@ -28,38 +28,35 @@
                 <h1 class="fw-bold fs-3 mb-1">평가요소 관리</h1>
                 <p class="text-muted mb-0">평가 차수별 성과 및 역량 평가의 항목과 가중치를 구성하고 관리합니다.</p>
             </div>
-            <div class="col-md-8 text-md-end">
-                <form th:action="@{/eval/elements}" method="get"
-                    hx-get="/eval/elements" hx-target="#page-content"
-                    hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
-                    hx-indicator="#global-loader"
-                    class="d-inline-flex gap-2 align-items-center flex-wrap justify-content-end" id="filterForm">
-                    
-                    <label class="text-muted small text-nowrap">차수 선택:</label>
-                    <select name="periodId" class="form-select form-select-sm bg-dark text-white border-secondary"
-                        style="width: 200px;" onchange="this.form.requestSubmit()">
-                        <option th:each="p : ${periods}" th:value="${p.periodId()}" 
-                            th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
-                            th:selected="${selectedPeriod?.periodId() == p.periodId()}"></option>
-                    </select>
-
-                    <label class="text-muted small text-nowrap ms-2">부서:</label>
-                    <select name="deptId" class="form-select form-select-sm bg-dark text-white border-secondary"
-                        style="width: 150px;" onchange="this.form.requestSubmit()">
-                        <option value="">전사 공통</option>
-                        <th:block th:each="d : ${departments}">
-                            <option th:if="${d.parentDeptId() == null}" th:value="${d.deptId()}"
-                                th:text="'🏢 ' + ${d.deptName()}" th:selected="${selectedDeptId == d.deptId()}"
-                                style="font-weight: 700; color: #a5b4fc;">
-                            </option>
-                            <option th:unless="${d.parentDeptId() == null}" th:value="${d.deptId()}"
-                                th:text="'　└ ' + ${d.deptName()}" th:selected="${selectedDeptId == d.deptId()}"
-                                style="color: #94a3b8; padding-left: 1.5rem;">
-                            </option>
-                        </th:block>
-                    </select>
-                </form>
-            </div>
+        <!-- Filter Section (사원 관리 스타일 적용) -->
+        <div class="ees-card mb-4 p-3">
+            <form th:action="@{/eval/elements}" method="get"
+                hx-get="/eval/elements" hx-target="#page-content"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                hx-indicator="#global-loader" id="filterForm">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-semibold">평가 차수</label>
+                        <select name="periodId" class="form-select bg-dark text-white border-secondary"
+                            onchange="this.form.requestSubmit()">
+                            <option th:each="p : ${periods}" th:value="${p.periodId()}" 
+                                th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
+                                th:selected="${selectedPeriod?.periodId() == p.periodId()}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-semibold">부서</label>
+                        <div th:replace="~{fragments/dept-select :: deptSelect(
+                            ${departments}, ${selectedDeptId}, 'deptId', '전사 공통', true)}">
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex gap-2">
+                        <button type="submit" class="btn ees-btn-glass-primary flex-grow-1">
+                            <i class="bi bi-search me-1"></i>조회
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
         
         <!-- 정보 메시지 -->
