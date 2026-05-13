@@ -90,7 +90,7 @@
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h5 class="fw-bold mb-0">평가 확정 현황 (최근 완료)</h5>
                         <a href="/eval/result" hx-get="/eval/result" hx-target="#page-content" hx-select="#page-content"
-                            hx-swap="outerHTML" hx-push-url="true"
+                            hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                             class="btn btn-link text-primary text-decoration-none p-0 small">전체 보기</a>
                     </div>
                     <div class="table-responsive">
@@ -137,13 +137,13 @@
                     <h5 class="fw-bold mb-3">주요 기능</h5>
                     <div class="d-grid gap-2">
                         <a th:href="@{/eval/periods}" hx-get="/eval/periods" hx-target="#page-content"
-                            hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                            hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                             class="btn btn-outline-light text-start py-3 d-flex justify-content-between align-items-center">
                             <span>평가 차수 설정</span>
                             <i class="bi bi-calendar-event"></i>
                         </a>
                         <a th:href="@{/employees}" hx-get="/employees" hx-target="#page-content"
-                            hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                            hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                             class="btn btn-outline-light text-start py-3 d-flex justify-content-between align-items-center">
                             <span>사원 명부 관리</span>
                             <i class="bi bi-people"></i>

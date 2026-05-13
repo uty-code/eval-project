@@ -15,7 +15,7 @@
                th:hx-target="${target}" 
                th:hx-include="${include}"
                hx-swap="outerHTML"
-               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader"
+               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader" hx-sync="body:replace"
                aria-label="First">
                 <i class="bi bi-chevron-double-left"></i>
             </a>
@@ -28,7 +28,7 @@
                th:hx-target="${target}" 
                th:hx-include="${include}"
                hx-swap="outerHTML"
-               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader"
+               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader" hx-sync="body:replace"
                aria-label="Previous">
                 <i class="bi bi-chevron-left"></i>
             </a>
@@ -42,7 +42,7 @@
                th:hx-target="${target}" 
                th:hx-include="${include}"
                hx-swap="outerHTML"
-               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader"
+               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader" hx-sync="body:replace"
                th:text="${p}">1</a>
         </li>
 
@@ -53,7 +53,7 @@
                th:hx-target="${target}" 
                th:hx-include="${include}"
                hx-swap="outerHTML"
-               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader"
+               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader" hx-sync="body:replace"
                aria-label="Next">
                 <i class="bi bi-chevron-right"></i>
             </a>
@@ -66,7 +66,7 @@
                th:hx-target="${target}" 
                th:hx-include="${include}"
                hx-swap="outerHTML"
-               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader"
+               hx-select="#page-content" hx-push-url="true" hx-indicator="#global-loader" hx-sync="body:replace"
                aria-label="Last">
                 <i class="bi bi-chevron-double-right"></i>
             </a>

@@ -12,7 +12,7 @@
         <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">메인 메뉴</h6>
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/}" th:attr="hx-get=@{/}" hx-target="#page-content" hx-select="#page-content"
-                hx-swap="outerHTML" hx-push-url="true"
+                hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                 th:classappend="${activeMenu == 'dashboard' ? 'active' : ''}">
                 <i class="bi bi-speedometer2"></i>
                 <span>대시보드</span>
@@ -24,13 +24,13 @@
         <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">조직 및 인사 관리</h6>
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/departments}" hx-get="/departments" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                 th:classappend="${activeMenu == 'departments' ? 'active' : ''}">
                 <i class="bi bi-diagram-3-fill"></i>
                 <span>부서 관리</span>
             </a>
             <a class="nav-link" th:href="@{/employees}" hx-get="/employees" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                 th:classappend="${activeMenu == 'employees' ? 'active' : ''}">
                 <i class="bi bi-people-fill"></i>
                 <span>사원 관리</span>
@@ -44,21 +44,21 @@
         <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">평가 기준 설정</h6>
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/eval/periods}" hx-get="/eval/periods" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-history="false"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-history="false" hx-sync="body:replace"
                 sec:authorize="hasRole('ADMIN')"
                 th:classappend="${activeMenu == 'periods' ? 'active' : ''}">
                 <i class="bi bi-calendar-check-fill"></i>
                 <span>평가 차수 설정</span>
             </a>
             <a class="nav-link" th:href="@{/eval/elements}" hx-get="/eval/elements" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                 sec:authorize="hasRole('ADMIN')"
                 th:classappend="${activeMenu == 'elements' ? 'active' : ''}">
                 <i class="bi bi-list-check"></i>
                 <span>평가요소 관리</span>
             </a>
             <a class="nav-link" th:href="@{/eval/evaluators}" hx-get="/eval/evaluators" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-history="false"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-history="false" hx-sync="body:replace"
                 th:classappend="${activeMenu == 'evaluators' ? 'active' : ''}">
                 <i class="bi bi-person-lines-fill"></i>
                 <span>평가자 관리</span>
@@ -70,35 +70,35 @@
         <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">평가 수행 및 관리</h6>
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/eval/my-evaluation}" hx-get="/eval/my-evaluation" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                 sec:authorize="!hasRole('ADMIN')"
                 th:classappend="${activeMenu == 'my-evaluation' ? 'active' : ''}">
                 <i class="bi bi-person-workspace"></i>
                 <span>나의 자가평가</span>
             </a>
             <a class="nav-link" th:href="@{/eval/performance}" hx-get="/eval/performance" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                 sec:authorize="hasAnyRole('ADMIN', 'MANAGER')"
                 th:classappend="${activeMenu == 'performance-eval' ? 'active' : ''}">
                 <i class="bi bi-pencil-square"></i>
                 <span>성과/역량 평가</span>
             </a>
             <a class="nav-link" th:href="@{/eval/multi-dimensional}" hx-get="/eval/multi-dimensional" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                 sec:authorize="!hasAnyRole('MANAGER', 'EXECUTIVE')"
                 th:classappend="${activeMenu == 'multi-dimensional-eval' ? 'active' : ''}">
                 <i class="bi bi-people"></i>
                 <span>다면 평가</span>
             </a>
             <a class="nav-link" th:href="@{/eval/interview}" hx-get="/eval/interview" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                 th:classappend="${activeMenu == 'interview-mgmt' ? 'active' : ''}">
                 <i class="bi bi-chat-left-text-fill"></i>
                 <span sec:authorize="hasAnyRole('ADMIN', 'MANAGER', 'EXECUTIVE')">면담 관리</span>
                 <span sec:authorize="!hasAnyRole('ADMIN', 'MANAGER', 'EXECUTIVE')">나의 면담 결과</span>
             </a>
             <a class="nav-link" th:href="@{/eval/final-grade}" hx-get="/eval/final-grade" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                 sec:authorize="hasAnyRole('ADMIN', 'EXECUTIVE')"
                 th:classappend="${activeMenu == 'final-grade' ? 'active' : ''}">
                 <i class="bi bi-check-all"></i>
@@ -112,7 +112,7 @@
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/eval/result}"
                 hx-get="/eval/result" hx-target="#page-content" hx-select="#page-content"
-                hx-swap="outerHTML" hx-push-url="true"
+                hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                 th:classappend="${activeMenu == 'eval-result' ? 'active' : ''}">
                 <i class="bi bi-bar-chart-line-fill"></i>
                 <span>평가 결과 현황</span>

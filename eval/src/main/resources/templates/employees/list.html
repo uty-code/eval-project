@@ -109,16 +109,16 @@
             <!-- Custom Tab System (HTMX 기반 동적 교체) -->
             <div class="nav-tabs-custom mb-3">
                 <a href="javascript:void(0)" class="nav-link-custom active" hx-get="/employees"
-                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace">
                     <i class="bi bi-people-fill"></i> 사원 목록
                 </a>
                 <a href="javascript:void(0)" class="nav-link-custom" hx-get="/employees/pending"
-                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace">
                     <i class="bi bi-person-plus-fill"></i> 승인 대기
                     <span class="tab-badge" th:if="${pendingCount > 0}" th:text="${pendingCount}">0</span>
                 </a>
                 <a href="javascript:void(0)" class="nav-link-custom" hx-get="/employees/locked"
-                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace">
                     <i class="bi bi-lock-fill"></i> 계정 잠금
                     <span class="tab-badge" th:if="${lockedCount > 0}" th:text="${lockedCount}"
                         style="background:rgba(239,68,68,0.2);color:#f87171;">0</span>
@@ -129,7 +129,7 @@
             <div class="ees-card p-4 mb-4">
                 <form th:action="@{/employees}" method="get" id="search-form" hx-get="/employees"
                     hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
-                    hx-indicator="#global-loader" hx-trigger="submit">
+                    hx-indicator="#global-loader" hx-trigger="submit" hx-sync="body:replace">
                     <div class="row g-3 align-items-end">
                         <div class="col-md-4">
                             <label for="searchName" class="form-label text-muted small fw-semibold">사원 성명</label>
@@ -164,7 +164,7 @@
                             </button>
                             <a th:href="@{/employees}" class="btn btn-outline-secondary" id="btn-reset-search"
                                 hx-get="/employees" hx-target="#page-content" hx-select="#page-content"
-                                hx-push-url="true" hx-indicator="#global-loader" title="초기화">
+                                hx-push-url="true" hx-indicator="#global-loader" hx-sync="body:replace" title="초기화">
                                 <i class="bi bi-arrow-counterclockwise"></i>
                             </a>
                         </div>
