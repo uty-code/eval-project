@@ -185,10 +185,10 @@
 
             <!-- 평가 잠금 배너 -->
             <div th:if="${isLocked}"
-                class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4 d-flex align-items-center gap-3 py-3">
-                <i class="bi bi-lock-fill fs-4"></i>
+                class="alert alert-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4 d-flex align-items-center gap-3 py-3">
+                <i class="bi bi-eye-fill fs-4"></i>
                 <div>
-                    <strong th:text="${lockedBy}">상위 평가자</strong>가 평가를 완료하여 더 이상 내용을 수정할 수 없습니다.
+                    평가가 마감되어 조회만 가능합니다
                 </div>
             </div>
 
@@ -203,11 +203,12 @@
             </div>
 
             <form id="evaluationForm" th:action="@{/eval/performance/submit}" method="post">
-                <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
                 <input type="hidden" name="mappingId" th:value="${mappingId}">
+                <input type="hidden" id="isLockedFlag" th:value="${isLocked}">
 
                 <!-- ====== STEP 1: 성과 평가 ====== -->
                 <div class="wizard-step active" id="step-1">
+                    <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
                     <h3 class="text-white mb-4"><i class="bi bi-bar-chart-fill text-primary me-2"></i>성과 평가 항목</h3>
 
                     <div th:if="${performanceElements == null || performanceElements.isEmpty()}"
@@ -282,6 +283,8 @@
                         <div class="total-score-display text-info fw-bold fs-5 px-4 py-2" style="background: rgba(13,202,240,0.1); border-radius: 8px; border: 1px solid rgba(13,202,240,0.2);">
                             성과 환산점수: <span id="totalConvertedScore_step1">0.0</span>점
                         </div>
+                        <!-- 다음 버튼은 fieldset 외부로 노출하여 disabled 방지 -->
+                        </fieldset>
                         <button type="button" class="btn btn-primary btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg"
                             style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none;"
                             onclick="nextStep()">
@@ -292,6 +295,7 @@
 
                 <!-- ====== STEP 2: 역량 평가 ====== -->
                 <div class="wizard-step" id="step-2">
+                    <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
                     <h3 class="text-white mb-4"><i class="bi bi-stars me-2" style="color:#34d399;"></i>역량 평가 항목</h3>
 
                     <div th:if="${competencyElements == null || competencyElements.isEmpty()}"
@@ -361,6 +365,7 @@
                             </div>
                         </div>
                     </div>
+                    </fieldset>
 
                     <div class="d-flex justify-content-between align-items-center mt-4 mb-5">
                         <button type="button"
@@ -372,29 +377,35 @@
                             <div class="total-score-display text-info fw-bold fs-5 px-4 py-2" style="background: rgba(13,202,240,0.1); border-radius: 8px; border: 1px solid rgba(13,202,240,0.2);">
                                 역량 환산점수: <span id="totalConvertedScore_step2">0.0</span>점
                             </div>
-                            <button type="submit" form="evaluationForm"
+                            <button th:if="${!isLocked}" type="submit" form="evaluationForm"
                                 class="btn btn-success btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg"
                                 style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
                                 <i class="bi bi-check2-circle me-2"></i> 평가 저장 및 제출
                             </button>
+                            <div th:if="${isLocked}" class="text-muted small">
+                                <i class="bi bi-info-circle me-1"></i> 마감된 평가는 수정할 수 없습니다.
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                </fieldset>
+                <!-- fieldset 종료 태그는 step-2 내에서 점수 입력까지만 감싸도록 위에서 이미 닫음 -->
             </form>
             <script>
                 function nextStep() {
+                    const isLocked = document.getElementById('isLockedFlag')?.value === 'true';
                     let step1 = document.getElementById('step-1');
                     if (step1) {
-                        let inputs = step1.querySelectorAll('input[required], textarea[required]');
                         let valid = true;
-                        for (let i of inputs) {
-                            if (!i.value || !i.value.trim()) {
-                                i.focus();
-                                i.reportValidity();
-                                valid = false;
-                                break;
+                        if (!isLocked) {
+                            let inputs = step1.querySelectorAll('input[required], textarea[required]');
+                            for (let i of inputs) {
+                                if (!i.value || !i.value.trim()) {
+                                    i.focus();
+                                    i.reportValidity();
+                                    valid = false;
+                                    break;
+                                }
                             }
                         }
 
