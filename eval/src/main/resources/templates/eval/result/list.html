@@ -167,11 +167,31 @@
                     </div>
                 </div>
                 <div class="grade-icons">
-                    <div class="grade-icon-item"><div class="grade-circle gc-s">S</div><div class="label">탁월</div><div class="range">(95~100)</div></div>
-                    <div class="grade-icon-item"><div class="grade-circle gc-a">A</div><div class="label">우수</div><div class="range">(85~94)</div></div>
-                    <div class="grade-icon-item"><div class="grade-circle gc-b">B</div><div class="label">양호</div><div class="range">(75~84)</div></div>
-                    <div class="grade-icon-item"><div class="grade-circle gc-c">C</div><div class="label">보통</div><div class="range">(60~74)</div></div>
-                    <div class="grade-icon-item"><div class="grade-circle gc-d">D</div><div class="label">미흡</div><div class="range">(0~59)</div></div>
+                    <div class="grade-icon-item">
+                        <div class="grade-circle gc-s">S</div>
+                        <div class="label">탁월</div>
+                        <div class="range" th:if="${gradeRatio != null}" th:text="'(' + ${gradeRatio.gradeSRatio()} + '%)'"></div>
+                    </div>
+                    <div class="grade-icon-item">
+                        <div class="grade-circle gc-a">A</div>
+                        <div class="label">우수</div>
+                        <div class="range" th:if="${gradeRatio != null}" th:text="'(' + ${gradeRatio.gradeARatio()} + '%)'"></div>
+                    </div>
+                    <div class="grade-icon-item">
+                        <div class="grade-circle gc-b">B</div>
+                        <div class="label">양호</div>
+                        <div class="range" th:if="${gradeRatio != null}" th:text="'(' + ${gradeRatio.gradeBRatio()} + '%)'"></div>
+                    </div>
+                    <div class="grade-icon-item">
+                        <div class="grade-circle gc-c">C</div>
+                        <div class="label">보통</div>
+                        <div class="range" th:if="${gradeRatio != null}" th:text="'(' + ${gradeRatio.gradeCRatio()} + '%)'"></div>
+                    </div>
+                    <div class="grade-icon-item">
+                        <div class="grade-circle gc-d">D</div>
+                        <div class="label">미흡</div>
+                        <div class="range" th:if="${gradeRatio != null}" th:text="'(' + ${gradeRatio.gradeDRatio()} + '%)'"></div>
+                    </div>
                 </div>
             </div>
         </div>

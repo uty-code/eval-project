@@ -281,13 +281,11 @@ public class FinalGradeController {
             Integer totalScore = scoreCalculationService.calculateTotalScore(
                     submitMapping.periodId(), submitMapping.evaluateeId());
             if (totalScore != null) {
-                String gradeCode = scoreCalculationService.determineGrade(totalScore);
                 finalGradeMapper.findByPeriodIdAndEmpId(
                         submitMapping.periodId(), submitMapping.evaluateeId())
                     .ifPresentOrElse(
                         existing -> {
                             existing.setTotalScore(totalScore);
-                            existing.setFinalGradeCode(gradeCode);
                             existing.setUpdatedAt(java.time.LocalDateTime.now());
                             existing.setUpdatedBy(empId);
                             finalGradeMapper.update(existing);
@@ -297,7 +295,7 @@ public class FinalGradeController {
                                     .periodId(submitMapping.periodId())
                                     .empId(submitMapping.evaluateeId())
                                     .totalScore(totalScore)
-                                    .finalGradeCode(gradeCode)
+                                    .finalGradeCode(null) // 실시간 재계산에서 부여됨
                                     .isDeleted("n")
                                     .version(0)
                                     .createdAt(java.time.LocalDateTime.now())
@@ -306,8 +304,15 @@ public class FinalGradeController {
                             finalGradeMapper.insert(fg);
                         }
                     );
-                log.info("[FinalGrade] 최종 등급 확정 완료 - empId={}, score={}, grade={}",
-                        submitMapping.evaluateeId(), totalScore, gradeCode);
+                log.info("[FinalGrade] 종합 점수 저장 완료 - empId={}, score={}",
+                        submitMapping.evaluateeId(), totalScore);
+                        
+                // 해당 부서 전체의 상대평가 랭킹 및 등급 실시간 재계산
+                if (submitDeptId != null) {
+                    scoreCalculationService.calculateRelativeGradesForDepartment(
+                            submitMapping.periodId(), submitDeptId);
+                    log.info("[FinalGrade] 부서 단위 상대평가 실시간 랭킹 산정 완료 - deptId={}", submitDeptId);
+                }
             }
         } catch (Exception e) {
             log.error("[FinalGrade] 종합 점수 계산 중 오류 - evaluateeId={}",

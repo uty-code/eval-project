@@ -9,6 +9,10 @@ import com.ees.eval.mapper.DepartmentMapper;
 import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.EvaluationMapper;
 import com.ees.eval.mapper.EvaluatorMappingMapper;
+import com.ees.eval.domain.FinalGrade;
+import com.ees.eval.dto.EvaluationGradeRatioDTO;
+import com.ees.eval.mapper.FinalGradeMapper;
+import com.ees.eval.service.EvaluationGradeRatioService;
 import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.ScoreCalculationService;
@@ -19,18 +23,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 평가 점수 산출 및 절대평가 등급 매핑을 담당하는 서비스 구현체입니다.
- *
- * <p>점수 산출 공식:</p>
- * <pre>
- * 종합점수 = Σ (유형별 가중치 × 유형 내 환산점수)
- * 유형 내 환산점수 = Σ (항목 점수 / 항목 만점 × 항목 가중치) / Σ(항목 가중치) × 100
- * </pre>
+ * 평가 점수 산출 및 등급 매핑을 담당하는 서비스 구현체입니다.
  */
 @Slf4j
 @Service
@@ -43,15 +43,8 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
     private final EvaluationElementService elementService;
     private final EvaluationTypeWeightService typeWeightService;
     private final DepartmentMapper departmentMapper;
-
-    @Override
-    public String determineGrade(int totalScore) {
-        if (totalScore >= 95) return "S";
-        if (totalScore >= 85) return "A";
-        if (totalScore >= 75) return "B";
-        if (totalScore >= 60) return "C";
-        return "D";
-    }
+    private final FinalGradeMapper finalGradeMapper;
+    private final EvaluationGradeRatioService gradeRatioService;
 
     @Override
     @Transactional(readOnly = true)
@@ -133,8 +126,8 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
         // 0~100 범위 제한
         finalScore = Math.max(0, Math.min(100, finalScore));
 
-        log.info("[ScoreCalc] periodId={}, empId={}, totalScore={}, grade={}", 
-                 periodId, empId, finalScore, determineGrade(finalScore));
+        log.info("[ScoreCalc] periodId={}, empId={}, totalScore={}", 
+                 periodId, empId, finalScore);
         return finalScore;
     }
 
@@ -170,5 +163,92 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
         return weightedSum.divide(totalWeight, 10, RoundingMode.HALF_UP)
                           .multiply(BigDecimal.valueOf(100))
                           .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    @Override
+    @Transactional
+    public void calculateRelativeGradesForDepartment(Long periodId, Long deptId) {
+        // 1. 해당 부서의 대상자 수 파악 (EXECUTIVE 매핑 기준)
+        List<Long> empIdsInDept = employeeMapper.findByDeptId(deptId).stream()
+                .map(Employee::getEmpId)
+                .collect(Collectors.toList());
+                
+        if (empIdsInDept.isEmpty()) return;
+
+        // 실제 평가 대상자로 등록된 인원만 대상 모수로 산정
+        List<EvaluatorMapping> mappings = mappingMapper.findByEvaluateeIds(periodId, empIdsInDept).stream()
+                .filter(m -> "EXECUTIVE".equals(m.getRelationTypeCode()))
+                .collect(Collectors.toList());
+                
+        int totalEligible = mappings.size();
+        if (totalEligible == 0) return;
+
+        // 2. 부서 비율 조회 및 TO(티오) 계산 (최대 잔여법)
+        EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatio(periodId, deptId);
+        double[] exact = {
+            totalEligible * ratio.gradeSRatio() / 100.0,
+            totalEligible * ratio.gradeARatio() / 100.0,
+            totalEligible * ratio.gradeBRatio() / 100.0,
+            totalEligible * ratio.gradeCRatio() / 100.0,
+            totalEligible * ratio.gradeDRatio() / 100.0
+        };
+        
+        int[] targets = new int[5];
+        double[] remainders = new double[5];
+        int assigned = 0;
+        for (int i = 0; i < 5; i++) {
+            targets[i] = (int) exact[i];
+            remainders[i] = exact[i] - targets[i];
+            assigned += targets[i];
+        }
+        
+        int remaining = totalEligible - assigned;
+        List<Integer> indices = new ArrayList<>(List.of(0, 1, 2, 3, 4));
+        indices.sort((i1, i2) -> Double.compare(remainders[i2], remainders[i1]));
+        for (int i = 0; i < remaining; i++) {
+            targets[indices.get(i)]++;
+        }
+        
+        // 3. 평가가 완료된(점수가 있는) 인원들만 가져와서 내림차순 정렬
+        List<FinalGrade> grades = finalGradeMapper.findByPeriodIdAndDeptId(periodId, deptId);
+        grades.removeIf(g -> g.getTotalScore() == null);
+        grades.sort(Comparator.comparing(FinalGrade::getTotalScore).reversed());
+        
+        // 4. 등급 부여 (동점자 동일 등급 처리 포함)
+        String[] gradeLabels = {"S", "A", "B", "C", "D"};
+        int currentGradeIdx = 0;
+        int currentGradeAssigned = 0;
+        Integer prevScore = null;
+        String prevGrade = null;
+        
+        for (FinalGrade fg : grades) {
+            String assignedGrade;
+            Integer score = fg.getTotalScore();
+            
+            // 동점자 처리: 이전 사람과 점수가 같으면 같은 등급 부여
+            if (prevScore != null && prevScore.equals(score)) {
+                assignedGrade = prevGrade;
+                currentGradeAssigned++;
+            } else {
+                // 다음 등급 TO 찾기
+                while (currentGradeIdx < 5 && currentGradeAssigned >= targets[currentGradeIdx]) {
+                    currentGradeIdx++;
+                    currentGradeAssigned = 0;
+                }
+                // 안전장치 (TO를 모두 소진했더라도 남은 사람에게 최하 등급 부여)
+                if (currentGradeIdx >= 5) currentGradeIdx = 4;
+                
+                assignedGrade = gradeLabels[currentGradeIdx];
+                currentGradeAssigned++;
+            }
+            
+            fg.setFinalGradeCode(assignedGrade);
+            finalGradeMapper.update(fg);
+            
+            prevScore = score;
+            prevGrade = assignedGrade;
+            
+            log.debug("[ScoreCalc] 상대평가 등급 부여 완료 - empId={}, score={}, grade={}", fg.getEmpId(), score, assignedGrade);
+        }
     }
 }

@@ -75,6 +75,60 @@
         <th:block th:if="${selectedPeriod != null}">
 
 
+        <!-- 등급 배분 비율 설정 바 -->
+        <div th:if="${gradeRatio != null}" class="row g-4 mb-4">
+            <div class="col-xl-12">
+                <div class="ees-card p-4 h-100">
+                    <div class="mb-3">
+                        <h5 class="fw-bold mb-1 text-white">상대평가 등급 배분 비율 설정</h5>
+                        <p class="text-secondary small mb-0">총 비율의 합이 정확히 100%가 되어야 합니다.</p>
+                    </div>
+                    <form hx-post="/eval/elements/grade-ratios" hx-target="#page-content" hx-swap="outerHTML">
+                        <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
+                        <input type="hidden" name="deptId" th:value="${selectedDeptId}">
+
+                        <div class="ees-weight-control-bar shadow-sm flex-wrap gap-3">
+                            <div class="weight-section" style="border-left: 4px solid #10B981;">
+                                <span class="weight-label me-2 fw-bold" style="color: #10B981;">S</span>
+                                <input type="number" name="gradeSRatio" th:value="${gradeRatio.gradeSRatio()}" class="weight-input ratio-input-sync" min="0" max="100" th:readonly="${!editable}" th:disabled="${!editable}">
+                                <span class="weight-unit">%</span>
+                            </div>
+                            <div class="weight-section" style="border-left: 4px solid #A855F7;">
+                                <span class="weight-label me-2 fw-bold" style="color: #A855F7;">A</span>
+                                <input type="number" name="gradeARatio" th:value="${gradeRatio.gradeARatio()}" class="weight-input ratio-input-sync" min="0" max="100" th:readonly="${!editable}" th:disabled="${!editable}">
+                                <span class="weight-unit">%</span>
+                            </div>
+                            <div class="weight-section" style="border-left: 4px solid #3B82F6;">
+                                <span class="weight-label me-2 fw-bold" style="color: #3B82F6;">B</span>
+                                <input type="number" name="gradeBRatio" th:value="${gradeRatio.gradeBRatio()}" class="weight-input ratio-input-sync" min="0" max="100" th:readonly="${!editable}" th:disabled="${!editable}">
+                                <span class="weight-unit">%</span>
+                            </div>
+                            <div class="weight-section" style="border-left: 4px solid #F59E0B;">
+                                <span class="weight-label me-2 fw-bold" style="color: #F59E0B;">C</span>
+                                <input type="number" name="gradeCRatio" th:value="${gradeRatio.gradeCRatio()}" class="weight-input ratio-input-sync" min="0" max="100" th:readonly="${!editable}" th:disabled="${!editable}">
+                                <span class="weight-unit">%</span>
+                            </div>
+                            <div class="weight-section" style="border-left: 4px solid #EF4444;">
+                                <span class="weight-label me-2 fw-bold" style="color: #EF4444;">D</span>
+                                <input type="number" name="gradeDRatio" th:value="${gradeRatio.gradeDRatio()}" class="weight-input ratio-input-sync" min="0" max="100" th:readonly="${!editable}" th:disabled="${!editable}">
+                                <span class="weight-unit">%</span>
+                            </div>
+                            
+                            <div class="weight-section ms-auto bg-dark border-0">
+                                <span class="weight-label text-muted me-2">합계:</span>
+                                <span class="ratio-total fw-bold text-white fs-5">100</span>
+                                <span class="weight-unit">%</span>
+                            </div>
+
+                            <button th:if="${editable}" type="submit" class="weight-save-btn ratio-save-btn ms-2">
+                                <i class="bi bi-check-lg"></i>저장
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- 유형별 가중치 설정 바 -->
         <div class="row g-4 mb-5">
             <div class="col-xl-8">
@@ -296,6 +350,43 @@
                             input.addEventListener('input', syncWeights);
                         });
                         validateWeights();
+                    }
+
+                    // 1.5 상대평가 등급 비율(S, A, B, C, D) 동기화 로직
+                    const ratioInputs = document.querySelectorAll('.ratio-input-sync');
+                    const ratioSaveBtn = document.querySelector('.ratio-save-btn');
+                    const ratioTotalSpan = document.querySelector('.ratio-total');
+
+                    if (ratioInputs.length === 5 && ratioSaveBtn) {
+                        function validateRatios() {
+                            let total = 0;
+                            ratioInputs.forEach(input => {
+                                let val = parseInt(input.value);
+                                if (isNaN(val)) val = 0;
+                                if (val > 100) { val = 100; input.value = 100; }
+                                if (val < 0) { val = 0; input.value = 0; }
+                                total += val;
+                            });
+
+                            if (ratioTotalSpan) ratioTotalSpan.textContent = total;
+
+                            if (total !== 100) {
+                                ratioSaveBtn.disabled = true;
+                                ratioSaveBtn.classList.add('opacity-50', 'btn-danger');
+                                ratioTotalSpan.classList.add('text-danger');
+                                ratioSaveBtn.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>100% 필수`;
+                            } else {
+                                ratioSaveBtn.disabled = false;
+                                ratioSaveBtn.classList.remove('opacity-50', 'btn-danger');
+                                ratioTotalSpan.classList.remove('text-danger');
+                                ratioSaveBtn.innerHTML = `<i class="bi bi-check-lg me-1"></i>저장`;
+                            }
+                        }
+
+                        ratioInputs.forEach(input => {
+                            input.addEventListener('input', validateRatios);
+                        });
+                        validateRatios();
                     }
 
                     // 2. 개별 문항 추가 시 잔여 가중치 계산 로직

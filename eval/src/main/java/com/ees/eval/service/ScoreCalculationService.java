@@ -15,14 +15,6 @@ package com.ees.eval.service;
 public interface ScoreCalculationService {
 
     /**
-     * 종합 점수를 기반으로 절대평가 등급 코드를 산출합니다.
-     *
-     * @param totalScore 종합 점수 (0~100)
-     * @return 등급 코드 (S/A/B/C/D)
-     */
-    String determineGrade(int totalScore);
-
-    /**
      * 특정 평가 차수에서 특정 사원의 종합 점수를 계산합니다.
      * 유형별 가중치(evaluation_type_weights_51)를 적용한 가중 합산 방식입니다.
      *
@@ -31,4 +23,13 @@ public interface ScoreCalculationService {
      * @return 종합 점수 (0~100), 평가 데이터가 없으면 null
      */
     Integer calculateTotalScore(Long periodId, Long empId);
+    
+    /**
+     * 특정 평가 차수, 특정 부서의 사원들을 대상으로 상대평가 등급 배분(최대 잔여법)을 수행하고
+     * final_grades_51 테이블에 등급을 업데이트합니다.
+     *
+     * @param periodId 평가 차수 ID
+     * @param deptId   부서 ID
+     */
+    void calculateRelativeGradesForDepartment(Long periodId, Long deptId);
 }

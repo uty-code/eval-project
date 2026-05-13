@@ -91,8 +91,8 @@ spring:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   sql:
     init:
-      mode: always
-      schema-locations: classpath:eval-schema.sql,classpath:db/migration/V2__Add_pwd_change_required.sql
+      mode: never
+      schema-locations: classpath:eval-schema.sql
       continue-on-error: true
   docker:
     compose:
