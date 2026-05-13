@@ -58,6 +58,10 @@ public class PerformanceEvaluationController {
     @GetMapping
     public String list(Model model,
             @RequestParam(required = false) Long periodId,
+            @RequestParam(required = false) Long filterDeptId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String filterStatus,
+            @RequestParam(defaultValue = "1") int page,
             @AuthenticationPrincipal UserDetails userDetails) {
 
         model.addAttribute("activeMenu", "performance-eval");
@@ -109,11 +113,10 @@ public class PerformanceEvaluationController {
             }
 
             // (C) 피평가자 사원 정보 일괄 조회 (1회)
-            java.util.Map<Long, Employee> evaluateeMap = new java.util.HashMap<>();
-            if (!teamEvaluateeIds.isEmpty()) {
-                evaluateeMap = employeeMapper.findByIds(teamEvaluateeIds).stream()
-                        .collect(java.util.stream.Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
-            }
+            final java.util.Map<Long, Employee> evaluateeMap = teamEvaluateeIds.isEmpty() ?
+                    java.util.Collections.emptyMap() :
+                    employeeMapper.findByIds(teamEvaluateeIds).stream()
+                            .collect(java.util.stream.Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
 
             // (D) 모든 관련 매핑의 평가 데이터 일괄 조회 (1회)
             java.util.Map<Long, java.util.List<Evaluation>> evalGroupMap = new java.util.HashMap<>();
@@ -188,18 +191,24 @@ public class PerformanceEvaluationController {
             model.addAttribute("selfPerfSubmitted", selfPerfSubmitted);
             model.addAttribute("selfCompSubmitted", selfCompSubmitted);
 
-            // ========== 팀원별 상태 계산 (메모리에서 — DB 호출 없음) ==========
-            java.util.Map<Long, Boolean> teamPerfSubmittedMap = new java.util.HashMap<>();
-            java.util.Map<Long, Boolean> teamCompSubmittedMap = new java.util.HashMap<>();
-            java.util.Map<Long, Boolean> evaluateeSelfSubmittedMap = new java.util.HashMap<>();
-            java.util.Map<Long, Boolean> teamWeightValidMap = new java.util.HashMap<>();
+            // ========== 팀원별 상태 계산 및 DTO 매핑 ==========
+            java.util.List<com.ees.eval.dto.PerformanceEvalRowDTO> rowList = new java.util.ArrayList<>();
+            
+            // 잠금 체크 사전 실행
+            java.util.List<Long> teamMappingIdList = teamTasks.stream()
+                    .map(EvaluatorMappingDTO::mappingId)
+                    .collect(java.util.stream.Collectors.toList());
+            java.util.Map<Long, Boolean> teamLockMap = mappingService.checkEvaluationLockBulk(
+                    teamMappingIdList, allMappingsByEvaluatee, evalGroupMap);
 
             for (EvaluatorMappingDTO task : teamTasks) {
                 Employee evaluatee = evaluateeMap.get(task.evaluateeId());
-                Long evaluateeDeptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
+                if (evaluatee == null) continue;
+                
+                Long evaluateeDeptId = evaluatee.getDeptId();
                 java.util.List<EvaluationElementDTO> elementsForTask = getCachedElements(elementCacheByDeptId, selectedPeriod.periodId(), evaluateeDeptId);
 
-                // 팀원 성과/역량 제출 여부 (메모리에서 확인)
+                // 팀원 평가 데이터 (Manager)
                 java.util.List<Evaluation> evals = evalGroupMap.getOrDefault(task.mappingId(), java.util.Collections.emptyList());
                 java.util.List<Long> submittedIds = evals.stream()
                         .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
@@ -212,38 +221,123 @@ public class PerformanceEvaluationController {
                 boolean compSubmitted = elementsForTask.stream()
                         .filter(el -> "COMPETENCY".equals(el.elementTypeCode()))
                         .anyMatch(el -> submittedIds.contains(el.elementId()));
-                teamPerfSubmittedMap.put(task.mappingId(), perfSubmitted);
-                teamCompSubmittedMap.put(task.mappingId(), compSubmitted);
 
-                // 피평가자의 자가평가 제출 여부 (메모리에서 확인)
+                // 점수 계산 (Manager)
+                java.math.BigDecimal managerPerfScore = calcScore(evals, elementsForTask, "PERFORMANCE");
+                java.math.BigDecimal managerCompScore = calcScore(evals, elementsForTask, "COMPETENCY");
+
+                // 피평가자의 자가평가 데이터 (Self)
                 com.ees.eval.domain.EvaluatorMapping selfMapping = selfMappingByEvaluateeMap.get(task.evaluateeId());
                 boolean selfSubmittedForTask = false;
+                java.math.BigDecimal selfPerfScore = null;
+                java.math.BigDecimal selfCompScore = null;
+                
                 if (selfMapping != null) {
                     java.util.List<Evaluation> selfEvalsForTask = evalGroupMap.getOrDefault(selfMapping.getMappingId(), java.util.Collections.emptyList());
                     selfSubmittedForTask = selfEvalsForTask.stream()
                             .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
+                    selfPerfScore = calcScore(selfEvalsForTask, elementsForTask, "PERFORMANCE");
+                    selfCompScore = calcScore(selfEvalsForTask, elementsForTask, "COMPETENCY");
                 }
-                evaluateeSelfSubmittedMap.put(task.mappingId(), selfSubmittedForTask);
 
-                // 가중치 유효성 (부서별 캐싱)
-                Long cacheKey = evaluateeDeptId != null ? evaluateeDeptId : -1L;
-                final Long finalEvaluateeDeptId = evaluateeDeptId;
-                boolean weightValid = weightValidCacheByDeptId.computeIfAbsent(cacheKey,
-                        k -> typeWeightService.isWeightSumValid(finalPeriodId, finalEvaluateeDeptId, "STAFF"));
-                teamWeightValidMap.put(task.mappingId(), weightValid);
+                // 가중치 유효성
+                boolean weightValid = weightValidCacheByDeptId.computeIfAbsent(
+                        evaluateeDeptId != null ? evaluateeDeptId : -1L,
+                        k -> typeWeightService.isWeightSumValid(finalPeriodId, evaluateeDeptId, "STAFF"));
+
+                // 평가 상태 통합 (완료, 진행중, 대기)
+                String evalStatus;
+                if (perfSubmitted && compSubmitted) evalStatus = "완료";
+                else if (perfSubmitted || compSubmitted) evalStatus = "진행중";
+                else evalStatus = "대기";
+
+                // CTA 상태 처리
+                boolean isLocked = teamLockMap.getOrDefault(task.mappingId(), false);
+                String ctaStatus;
+                if (isLocked) {
+                    ctaStatus = "LOCKED";
+                } else if (!weightValid) {
+                    ctaStatus = "WEIGHT_ERROR";
+                } else if (!selfSubmittedForTask) {
+                    ctaStatus = "WAITING"; // 자가평가 대기중
+                } else {
+                    ctaStatus = "PRIMARY"; // 평가 진행 가능
+                }
+
+                rowList.add(com.ees.eval.dto.PerformanceEvalRowDTO.builder()
+                        .mappingId(task.mappingId())
+                        .evaluateeId(task.evaluateeId())
+                        .deptName(evaluatee.getDeptName())
+                        .positionName(evaluatee.getPositionName())
+                        .titleName("팀원") // Employee 엔티티에는 Title 필드가 없으므로 기본값 처리
+                        .empId(evaluatee.getEmpId())
+                        .name(evaluatee.getName())
+                        .selfPerfScore(selfPerfScore)
+                        .managerPerfScore(managerPerfScore)
+                        .selfCompScore(selfCompScore)
+                        .managerCompScore(managerCompScore)
+                        .evalStatus(evalStatus)
+                        .ctaStatus(ctaStatus)
+                        .deptId(evaluatee.getDeptId())
+                        .build());
             }
-            model.addAttribute("teamPerfSubmittedMap", teamPerfSubmittedMap);
-            model.addAttribute("teamCompSubmittedMap", teamCompSubmittedMap);
-            model.addAttribute("evaluateeSelfSubmittedMap", evaluateeSelfSubmittedMap);
-            model.addAttribute("teamWeightValidMap", teamWeightValidMap);
 
-            // ========== 잠금 체크 일괄화 (사전 조회 데이터 활용 — 추가 DB 호출 없음) ==========
-            java.util.List<Long> teamMappingIdList = teamTasks.stream()
-                    .map(EvaluatorMappingDTO::mappingId)
+            // ========== 필터링 ==========
+            java.util.List<com.ees.eval.dto.PerformanceEvalRowDTO> filteredList = rowList.stream()
+                    .filter(r -> filterDeptId == null || filterDeptId.equals(r.deptId()))
+                    .filter(r -> filterStatus == null || filterStatus.isEmpty() || filterStatus.equals(r.evalStatus()))
+                    .filter(r -> keyword == null || keyword.isEmpty() || 
+                                 r.name().contains(keyword) || 
+                                 r.empId().toString().contains(keyword))
                     .collect(java.util.stream.Collectors.toList());
-            java.util.Map<Long, Boolean> teamLockMap = mappingService.checkEvaluationLockBulk(
-                    teamMappingIdList, allMappingsByEvaluatee, evalGroupMap);
-            model.addAttribute("teamLockMap", teamLockMap);
+
+            // ========== 정렬 (부서 오름차순, 직급 내림차순, 이름 오름차순) ==========
+            filteredList.sort(java.util.Comparator
+                    .comparing(com.ees.eval.dto.PerformanceEvalRowDTO::deptName, java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()))
+                    .thenComparing(com.ees.eval.dto.PerformanceEvalRowDTO::positionName, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder()))
+                    .thenComparing(com.ees.eval.dto.PerformanceEvalRowDTO::name, java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())));
+
+            // ========== 페이징 ==========
+            int pageSize = 10;
+            int totalCount = filteredList.size();
+            int totalPages = (int) Math.ceil((double) totalCount / pageSize);
+            if (totalPages == 0) totalPages = 1;
+            int currentPage = Math.max(1, Math.min(page, totalPages));
+            int startIndex = (currentPage - 1) * pageSize;
+            int endIndex = Math.min(startIndex + pageSize, totalCount);
+
+            java.util.List<com.ees.eval.dto.PerformanceEvalRowDTO> pagedList = filteredList.subList(startIndex, endIndex);
+
+            com.ees.eval.dto.PerformanceEvalPageDTO pageData = new com.ees.eval.dto.PerformanceEvalPageDTO(
+                    pagedList, currentPage, totalPages, totalCount, pageSize);
+            
+            model.addAttribute("pageData", pageData);
+            
+            // 뷰 렌더링에 필요한 필터 상태 유지
+            model.addAttribute("filterDeptId", filterDeptId);
+            model.addAttribute("keyword", keyword);
+            model.addAttribute("filterStatus", filterStatus);
+            
+            // 필터 드롭다운용 부서 목록 (팀원들이 속한 부서 고유 목록)
+            java.util.List<com.ees.eval.dto.DepartmentDTO> filterDepts = teamTasks.stream()
+                    .map(t -> evaluateeMap.get(t.evaluateeId()))
+                    .filter(java.util.Objects::nonNull)
+                    .map(e -> com.ees.eval.dto.DepartmentDTO.builder()
+                            .deptId(e.getDeptId())
+                            .deptName(e.getDeptName())
+                            .build())
+                    .filter(d -> d.deptId() != null)
+                    // distinct by deptId
+                    .collect(java.util.stream.Collectors.collectingAndThen(
+                            java.util.stream.Collectors.toMap(
+                                    com.ees.eval.dto.DepartmentDTO::deptId,
+                                    d -> d,
+                                    (existing, replacement) -> existing
+                            ),
+                            m -> new java.util.ArrayList<>(m.values())
+                    ));
+            filterDepts.sort(java.util.Comparator.comparing(com.ees.eval.dto.DepartmentDTO::deptName));
+            model.addAttribute("departments", filterDepts);
 
             // 자가평가 가중치 유효성
             final Long finalMyDeptId = myDeptId;
@@ -263,6 +357,44 @@ public class PerformanceEvaluationController {
         return "eval/performance/list";
     }
 
+    /**
+     * 특정 평가 유형(PERFORMANCE, COMPETENCY 등)의 가중치 적용 점수를 산출합니다.
+     */
+    private java.math.BigDecimal calcScore(java.util.List<Evaluation> evals, java.util.List<EvaluationElementDTO> elements, String typeCode) {
+        if (evals == null || evals.isEmpty()) return null;
+        java.util.List<Evaluation> submittedEvals = evals.stream().filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode())).toList();
+        if (submittedEvals.isEmpty()) return null;
+
+        java.util.Map<Long, Evaluation> evalByElement = submittedEvals.stream()
+                .collect(java.util.stream.Collectors.toMap(Evaluation::getElementId, e -> e, (a, b) -> a));
+
+        java.util.List<EvaluationElementDTO> typeElements = elements.stream()
+                .filter(e -> typeCode.equals(e.elementTypeCode()))
+                .toList();
+        if (typeElements.isEmpty()) return null;
+
+        java.math.BigDecimal weightedSum = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal totalWeight = java.math.BigDecimal.ZERO;
+        for (EvaluationElementDTO elem : typeElements) {
+            Evaluation eval = evalByElement.get(elem.elementId());
+            if (eval == null || eval.getScore() == null) continue;
+            java.math.BigDecimal maxScore = elem.maxScore();
+            if (maxScore.compareTo(java.math.BigDecimal.ZERO) == 0) continue;
+
+            java.math.BigDecimal normalized = java.math.BigDecimal.valueOf(eval.getScore())
+                    .divide(maxScore, 10, java.math.RoundingMode.HALF_UP)
+                    .multiply(elem.weight());
+            weightedSum = weightedSum.add(normalized);
+            totalWeight = totalWeight.add(elem.weight());
+        }
+
+        if (totalWeight.compareTo(java.math.BigDecimal.ZERO) == 0) return null;
+
+        return weightedSum.divide(totalWeight, 10, java.math.RoundingMode.HALF_UP)
+                .multiply(java.math.BigDecimal.valueOf(100))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
     @GetMapping("/form")
     public String getForm(@RequestParam Long mappingId,
             @RequestParam(required = false) String evalType,
@@ -273,11 +405,9 @@ public class PerformanceEvaluationController {
         // 매핑 정보 조회 (피평가자 정보, 차수 정보 포함)
         EvaluatorMappingDTO mapping = mappingService.getMappingById(mappingId);
 
-        // 평가 기간 유효성 검증 (상태 + 날짜)
-        if (!periodService.isPeriodActive(mapping.periodId())) {
-            redirectAttributes.addFlashAttribute("errorMessage", "평가 기간이 아니거나 이미 종료되었습니다.");
-            return "redirect:/eval/performance?periodId=" + mapping.periodId();
-        }
+        // 평가 기간 활성 여부 확인
+        boolean isPeriodActive = periodService.isPeriodActive(mapping.periodId());
+        model.addAttribute("isPeriodActive", isPeriodActive);
 
         // 부서별 유형별 가중치 합계 100 검증
         Employee evaluatee = employeeMapper.findById(mapping.evaluateeId()).orElse(null);
@@ -306,10 +436,12 @@ public class PerformanceEvaluationController {
                 ));
         model.addAttribute("savedMap", savedMap);
 
-        // 역순 진행 방지 (상위 평가자가 제출했는지 확인)
+        // 역순 진행 방지 (상위 평가자가 제출했는지 확인) 및 기간 종료 여부 통합 체크
         java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(mappingId);
-        model.addAttribute("isLocked", lockInfo.get("isLocked"));
+        boolean isLocked = (boolean) lockInfo.get("isLocked") || !isPeriodActive;
+        model.addAttribute("isLocked", isLocked);
         model.addAttribute("lockedBy", lockInfo.get("lockedBy"));
+        model.addAttribute("lockReason", !isPeriodActive ? "평가 기간 종료" : lockInfo.get("lockedBy"));
 
         // ========= 자가평가(SELF): 기존 form.html 유지 =========
         if ("SELF".equals(mapping.relationTypeCode())) {
