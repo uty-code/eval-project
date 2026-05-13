@@ -13,9 +13,11 @@ import com.ees.eval.service.EvaluatorMappingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -353,5 +355,53 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
                 .filter(p -> STATUS_IN_PROGRESS.equals(p.statusCode()))
                 .findFirst()
                 .orElse(periods.get(0));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isPeriodActive(Long periodId) {
+        EvaluationPeriod period = periodMapper.findById(periodId).orElse(null);
+        if (period == null || !STATUS_IN_PROGRESS.equals(period.getStatusCode())) {
+            return false;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate start = period.getStartDate();
+        LocalDate end = period.getEndDate();
+
+        // [시작일 <= 오늘 <= 종료일] 범위 확인
+        return (start == null || !today.isBefore(start)) && (end == null || !today.isAfter(end));
+    }
+
+    /**
+     * 매일 자정(00:01)에 실행되어 종료일이 지난 'IN_PROGRESS' 차수를 자동으로 'COMPLETED'로 변경합니다.
+     * cron = "0 1 0 * * *" (초 분 시 일 월 요일)
+     */
+    @Scheduled(cron = "0 1 0 * * *")
+    @Transactional
+    public void autoCloseExpiredPeriods() {
+        log.info("[스케줄러] 평가 차수 자동 마감 체크 시작: {}", LocalDateTime.now());
+        
+        List<EvaluationPeriod> inProgressPeriods = periodMapper.findByStatusCode(STATUS_IN_PROGRESS);
+        LocalDate today = LocalDate.now();
+
+        for (EvaluationPeriod period : inProgressPeriods) {
+            if (period.getEndDate() != null && today.isAfter(period.getEndDate())) {
+                log.info("[스케줄러] 차수 기한 만료 발견 - 자동 마감 처리: periodId={}, name={}, endDate={}", 
+                        period.getPeriodId(), period.getPeriodName(), period.getEndDate());
+                
+                try {
+                    // transitionStatus를 호출하여 비즈니스 규칙을 거치며 상태 전이
+                    transitionStatus(period.getPeriodId(), STATUS_COMPLETED);
+                } catch (Exception e) {
+                    log.error("[스케줄러] 차수 자동 마감 처리 중 오류 발생: periodId={}", period.getPeriodId(), e);
+                }
+            }
+        }
+        
+        log.info("[스케줄러] 평가 차수 자동 마감 체크 완료");
     }
 }

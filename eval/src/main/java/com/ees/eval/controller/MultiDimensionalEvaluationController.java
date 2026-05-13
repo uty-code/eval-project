@@ -185,10 +185,9 @@ public class MultiDimensionalEvaluationController {
             return "redirect:/eval/multi-dimensional";
         }
 
-        // 평가 시작 전 접근 차단
-        EvaluationPeriodDTO period = periodService.getPeriodById(mapping.periodId());
-        if ("PLANNED".equals(period.statusCode())) {
-            redirectAttributes.addFlashAttribute("errorMessage", "평가 시작 전입니다.");
+        // 평가 기간 유효성 검증 (상태 + 날짜)
+        if (!periodService.isPeriodActive(mapping.periodId())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "평가 기간이 아니거나 이미 종료되었습니다.");
             return "redirect:/eval/multi-dimensional?periodId=" + mapping.periodId();
         }
 
@@ -262,6 +261,13 @@ public class MultiDimensionalEvaluationController {
 
         Long empId = Long.parseLong(userDetails.getUsername());
         
+        // 평가 기간 유효성 검증 (제출 시점 재확인)
+        EvaluatorMappingDTO mapping = mappingService.getMappingById(mappingId);
+        if (!periodService.isPeriodActive(mapping.periodId())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "평가 기간이 종료되어 제출할 수 없습니다.");
+            return "redirect:/eval/multi-dimensional?periodId=" + mapping.periodId();
+        }
+
         // 역순 진행 방지 검증
         java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(mappingId);
         if ((Boolean) lockInfo.get("isLocked")) {

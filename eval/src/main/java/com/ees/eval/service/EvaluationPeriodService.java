@@ -99,4 +99,13 @@ public interface EvaluationPeriodService {
      * @return 선택된 차수 DTO (없으면 null)
      */
     EvaluationPeriodDTO resolveSelectedPeriod(Long periodId, List<EvaluationPeriodDTO> periods);
+
+    /**
+     * 차수가 현재 평가 가능한 상태인지 검증합니다.
+     * 상태가 'IN_PROGRESS'이고, 현재 날짜가 [시작일, 종료일] 범위 내에 있어야 합니다.
+     *
+     * @param periodId 검증할 차수 식별자
+     * @return 평가 가능 여부
+     */
+    boolean isPeriodActive(Long periodId);
 }
