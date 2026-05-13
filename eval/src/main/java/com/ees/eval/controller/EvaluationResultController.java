@@ -42,6 +42,7 @@ public class EvaluationResultController {
     private final EmployeeMapper employeeMapper;
     private final DepartmentMapper departmentMapper;
     private final EvaluationReportService reportService;
+    private final com.ees.eval.service.EvaluationGradeRatioService gradeRatioService;
 
     /**
      * 평가 결과 현황 메인 페이지를 조회합니다.
@@ -135,6 +136,12 @@ public class EvaluationResultController {
         long leaderCount = results.stream().filter(EvaluationResultDTO::isLeader).count();
         model.addAttribute("staffCount", staffCount);
         model.addAttribute("leaderCount", leaderCount);
+
+        // 6. 부서 선택 시에만 상대평가 비율(gradeRatio)을 뷰로 전달
+        if (deptId != null) {
+            com.ees.eval.dto.EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatio(selectedPeriod.periodId(), deptId);
+            model.addAttribute("gradeRatio", ratio);
+        }
 
         return "eval/result/list";
     }

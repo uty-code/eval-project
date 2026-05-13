@@ -146,10 +146,17 @@ public class EvaluationReportServiceImpl implements EvaluationReportService {
             XDDFNumericalDataSource<Double> val1 = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, new CellRangeAddress(5, 5, 1, 5));
 
             XDDFDoughnutChartData data1 = (XDDFDoughnutChartData) chart1.createData(ChartTypes.DOUGHNUT, null, null);
-            data1.setVaryColors(true); // 차트 색상 다양화
-            data1.setHoleSize(50); // 도넛 차트 구멍 크기 설정 (poi-ooxml-full 의존성 덕분에 500 에러 없음)
+            data1.setVaryColors(true); 
+            data1.setHoleSize(50); 
             XDDFDoughnutChartData.Series series1 = (XDDFDoughnutChartData.Series) data1.addSeries(cat1, val1);
             series1.setTitle("등급 분포", null);
+            
+            // --- 각 슬라이스별 색상 지정 (S, A, B, C, D 순서) ---
+            String[] hexColors = {"10B981", "A855F7", "3B82F6", "F59E0B", "EF4444"};
+            for (int i = 0; i < hexColors.length; i++) {
+                setSliceColor(series1, i, hexColors[i]);
+            }
+
             chart1.plot(data1);
 
             // 2. 부서별 평균 점수 (Bar Chart)
@@ -346,22 +353,78 @@ public class EvaluationReportServiceImpl implements EvaluationReportService {
     }
 
     private void applyGradeStyle(Workbook workbook, Cell cell, String grade) {
-        if (grade == null) return;
+        if (grade == null || !(workbook instanceof XSSFWorkbook)) return;
         
-        CellStyle style = workbook.createCellStyle();
+        XSSFWorkbook xwb = (XSSFWorkbook) workbook;
+        CellStyle style = xwb.createCellStyle();
         style.cloneStyleFrom(cell.getCellStyle());
-        Font font = workbook.createFont();
+        XSSFFont font = xwb.createFont();
         font.setBold(true);
 
-        if ("S".equals(grade)) {
-            style.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
+        String hex = null;
+        if ("S".equals(grade)) hex = "10B981";
+        else if ("A".equals(grade)) hex = "A855F7";
+        else if ("B".equals(grade)) hex = "3B82F6";
+        else if ("C".equals(grade)) hex = "F59E0B";
+        else if ("D".equals(grade)) hex = "EF4444";
+
+        if (hex != null) {
+            byte[] rgb = hexToBytes(hex);
+            XSSFColor color = new XSSFColor(rgb, null);
+            style.setFillForegroundColor(color);
             style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        } else if ("D".equals(grade)) {
-            style.setFillForegroundColor(IndexedColors.LIGHT_ORANGE.getIndex());
-            style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            font.setColor(IndexedColors.RED.getIndex());
+            font.setColor(IndexedColors.WHITE.getIndex()); // 배경색이 진하므로 글자는 흰색으로
         }
+
         style.setFont(font);
         cell.setCellStyle(style);
+    }
+
+    /**
+     * 차트 슬라이스(데이터 포인트)별 색상을 지정하는 유틸리티
+     * XDDFDoughnutChartData.Series 내부의 private 'series' 필드에 직접 접근합니다.
+     */
+    private void setSliceColor(XDDFDoughnutChartData.Series series, int index, String hex) {
+        try {
+            // XDDFDoughnutChartData.Series 클래스에는 CTPieSer 타입의 'series' 필드가 있습니다.
+            java.lang.reflect.Field field = series.getClass().getDeclaredField("series");
+            field.setAccessible(true);
+            Object ctObj = field.get(series);
+
+            if (ctObj instanceof org.openxmlformats.schemas.drawingml.x2006.chart.CTPieSer ctPieSer) {
+                org.openxmlformats.schemas.drawingml.x2006.chart.CTDPt dPt = ctPieSer.addNewDPt();
+                dPt.addNewIdx().setVal(index);
+                
+                org.openxmlformats.schemas.drawingml.x2006.main.CTShapeProperties spPr = dPt.addNewSpPr();
+                org.openxmlformats.schemas.drawingml.x2006.main.CTSolidColorFillProperties fill = spPr.addNewSolidFill();
+                org.openxmlformats.schemas.drawingml.x2006.main.CTSRgbColor rgbClr = fill.addNewSrgbClr();
+                
+                // RGB 값 설정
+                rgbClr.setVal(hexToBytes(hex));
+                
+                log.debug("[엑셀 리포트] 차트 슬라이스 {} 색상 적용 완료 (#{})", index, hex);
+            }
+        } catch (Exception e) {
+            log.warn("[엑셀 리포트] 차트 색상 적용 실패 (index: {}, error: {})", index, e.getMessage());
+            // 필드 접근 실패 시 대안으로 getXmlObject 메서드 재시도
+            try {
+                java.lang.reflect.Method method = series.getClass().getSuperclass().getDeclaredMethod("getXmlObject");
+                method.setAccessible(true);
+                Object ctObj = method.invoke(series);
+                if (ctObj instanceof org.openxmlformats.schemas.drawingml.x2006.chart.CTPieSer ctPieSer) {
+                    org.openxmlformats.schemas.drawingml.x2006.chart.CTDPt dPt = ctPieSer.addNewDPt();
+                    dPt.addNewIdx().setVal(index);
+                    dPt.addNewSpPr().addNewSolidFill().addNewSrgbClr().setVal(hexToBytes(hex));
+                }
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private byte[] hexToBytes(String hex) {
+        byte[] bytes = new byte[3];
+        for (int i = 0; i < 3; i++) {
+            bytes[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+        }
+        return bytes;
     }
 }

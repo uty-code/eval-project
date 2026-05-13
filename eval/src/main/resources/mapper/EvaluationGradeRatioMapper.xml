@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ees.eval.mapper.EvaluationGradeRatioMapper">
+
+    <select id="getGradeRatio" resultType="com.ees.eval.dto.EvaluationGradeRatioDTO">
+        SELECT ratio_id as ratioId,
+               period_id as periodId,
+               dept_id as deptId,
+               grade_s_ratio as gradeSRatio,
+               grade_a_ratio as gradeARatio,
+               grade_b_ratio as gradeBRatio,
+               grade_c_ratio as gradeCRatio,
+               grade_d_ratio as gradeDRatio
+        FROM evaluation_grade_ratios_51
+        WHERE period_id = #{periodId}
+          <if test="deptId != null">
+              AND dept_id = #{deptId}
+          </if>
+          <if test="deptId == null">
+              AND dept_id IS NULL
+          </if>
+          AND is_deleted = 'n'
+    </select>
+
+    <insert id="upsertGradeRatio">
+        MERGE INTO evaluation_grade_ratios_51 AS target
+        USING (SELECT #{periodId} AS period_id, 
+                      #{deptId} AS dept_id,
+                      #{gradeSRatio} AS s_ratio,
+                      #{gradeARatio} AS a_ratio,
+                      #{gradeBRatio} AS b_ratio,
+                      #{gradeCRatio} AS c_ratio,
+                      #{gradeDRatio} AS d_ratio) AS source
+        ON target.period_id = source.period_id
+           AND (target.dept_id = source.dept_id OR (target.dept_id IS NULL AND source.dept_id IS NULL))
+        WHEN MATCHED THEN
+            UPDATE SET grade_s_ratio = source.s_ratio,
+                       grade_a_ratio = source.a_ratio,
+                       grade_b_ratio = source.b_ratio,
+                       grade_c_ratio = source.c_ratio,
+                       grade_d_ratio = source.d_ratio,
+                       updated_at = GETDATE()
+        WHEN NOT MATCHED THEN
+            INSERT (period_id, dept_id, grade_s_ratio, grade_a_ratio, grade_b_ratio, grade_c_ratio, grade_d_ratio)
+            VALUES (source.period_id, source.dept_id, source.s_ratio, source.a_ratio, source.b_ratio, source.c_ratio, source.d_ratio);
+    </insert>
+
+</mapper>

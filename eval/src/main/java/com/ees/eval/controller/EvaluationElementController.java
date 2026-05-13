@@ -32,6 +32,7 @@ public class EvaluationElementController {
     private final EvaluationPeriodService periodService;
     private final DepartmentService departmentService;
     private final com.ees.eval.service.EvaluationTypeWeightService typeWeightService;
+    private final com.ees.eval.service.EvaluationGradeRatioService gradeRatioService;
 
     /**
      * 특정 평가 차수의 평가 요소 목록 및 설정 페이지를 반환합니다.
@@ -75,6 +76,9 @@ public class EvaluationElementController {
             model.addAttribute("selectedDeptId", deptId);
             model.addAttribute("memberWeights", memberWeights);
             model.addAttribute("leaderWeights", leaderWeights);
+
+            com.ees.eval.dto.EvaluationGradeRatioDTO gradeRatio = gradeRatioService.getGradeRatio(selectedId, deptId);
+            model.addAttribute("gradeRatio", gradeRatio);
 
             // 편집 가능 여부: PLANNED 상태일 때만 수정 허용
             boolean editable = "PLANNED".equals(selectedPeriod.statusCode());
@@ -148,6 +152,34 @@ public class EvaluationElementController {
         String redirectUrl = "redirect:/eval/elements?periodId=" + periodId;
         if (deptId != null)
             redirectUrl += "&deptId=" + deptId;
+        return redirectUrl;
+    }
+
+    @PostMapping("/grade-ratios")
+    public String saveGradeRatios(
+            @ModelAttribute com.ees.eval.dto.EvaluationGradeRatioDTO dto,
+            @RequestHeader(value = "HX-Request", required = false) boolean isHtmx,
+            RedirectAttributes redirectAttributes,
+            Model model) {
+        try {
+            validateEditable(dto.periodId());
+            gradeRatioService.saveGradeRatio(dto);
+            model.addAttribute("successMessage", "상대평가 등급 배분 비율이 저장되었습니다.");
+        } catch (Exception e) {
+            log.error("등급 비율 저장 실패", e);
+            model.addAttribute("errorMessage", e.getMessage());
+        }
+
+        if (isHtmx) {
+            prepareListModel(dto.periodId(), dto.deptId(), model);
+            return "eval/elements/list :: content";
+        }
+
+        redirectAttributes.addFlashAttribute("successMessage", "상대평가 등급 배분 비율이 저장되었습니다.");
+        String redirectUrl = "redirect:/eval/elements?periodId=" + dto.periodId();
+        if (dto.deptId() != null) {
+            redirectUrl += "&deptId=" + dto.deptId();
+        }
         return redirectUrl;
     }
 
