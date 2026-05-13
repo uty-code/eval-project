@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+    공통 부서 선택 드롭다운 Fragment
+    ──────────────────────────────────────────────────────────────────────
+    사용법:
+      th:replace="~{fragments/dept-select :: deptSelect(
+          ${departments},   ← DepartmentDTO 목록
+          ${selectedDeptId}, ← 현재 선택된 부서 ID (없으면 null)
+          'deptId',          ← <select> name 속성값
+          '전체 부서',        ← 기본(전체) 옵션 텍스트
+          false              ← onChange 자동 폼 제출 여부 (true/false)
+      )}"
+
+    파라미터:
+      departments   - List<DepartmentDTO> (deptId, parentDeptId, deptName)
+      selectedDeptId - 현재 선택 값 (Long, null 허용)
+      paramName      - name 속성 문자열
+      defaultLabel   - 기본 옵션 텍스트 (예: '전체 부서', '전사 공통')
+      autoSubmit     - true 이면 onChange="this.form.requestSubmit()" 추가
+    ──────────────────────────────────────────────────────────────────────
+-->
+<select th:fragment="deptSelect(departments, selectedDeptId, paramName, defaultLabel, autoSubmit)"
+        th:name="${paramName}"
+        class="form-select bg-dark text-white border-secondary border-opacity-25"
+        style="height: 42px; border-radius: 8px; width: 100%; min-width: 150px;"
+        th:onchange="${autoSubmit} ? 'this.form.requestSubmit()' : null">
+
+    <!-- 기본(전체/전사공통) 옵션 -->
+    <option value="" th:text="${defaultLabel}">전체 부서</option>
+
+    <!-- 부서 목록 계층 렌더링 -->
+    <th:block th:each="dept : ${departments}">
+        <!-- 상위 부서 (본부): parentDeptId == null -->
+        <option th:if="${dept.parentDeptId() == null}"
+                th:value="${dept.deptId()}"
+                th:text="'🏢 ' + ${dept.deptName()}"
+                th:selected="${selectedDeptId != null and selectedDeptId == dept.deptId()}"
+                style="font-weight: 700; color: #a5b4fc;">
+        </option>
+        <!-- 하위 부서 (팀): parentDeptId != null -->
+        <option th:unless="${dept.parentDeptId() == null}"
+                th:value="${dept.deptId()}"
+                th:text="'　└ ' + ${dept.deptName()}"
+                th:selected="${selectedDeptId != null and selectedDeptId == dept.deptId()}"
+                style="color: #94a3b8;">
+        </option>
+    </th:block>
+</select>
+
+</body>
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'my-evaluation', ~{::style}, ~{::script})}">
+
+<head>
+    <title>자가평가 마법사 - EES</title>
+</head>
+
+<body>
+    <div id="page-content" class="container-fluid py-4" th:fragment="content">
+        <style>
+            .eval-form-container { max-width: 1100px; margin: 0 auto; }
+
+            .eval-card {
+                background: #1a1f2c;
+                border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                padding: 32px;
+                margin-bottom: 24px;
+                position: relative;
+            }
+
+            .eval-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 24px;
+            }
+
+            .eval-title {
+                font-size: 1.25rem;
+                font-weight: 700;
+                color: #f8fafc;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .weight-badge {
+                background-color: rgba(255, 255, 255, 0.03);
+                color: #94a3b8;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                font-size: 0.85rem;
+                font-weight: 600;
+                padding: 6px 14px;
+                border-radius: 6px;
+            }
+
+            .field-label {
+                font-size: 0.85rem;
+                font-weight: 700;
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .field-label.perf { color: #818cf8; }
+            .field-label.comp { color: #10b981; }
+            .field-label.peer { color: #ec4899; }
+
+            .eval-textarea {
+                width: 100%;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                background-color: #242b3d;
+                border-radius: 8px;
+                padding: 18px;
+                font-size: 1rem;
+                color: #f8fafc;
+                min-height: 100px;
+                resize: vertical;
+                transition: all 0.2s;
+            }
+
+            .eval-textarea:focus {
+                outline: none;
+                border-color: #818cf8;
+                box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15);
+            }
+
+            .score-input {
+                font-size: 2.5rem !important;
+                font-weight: 800 !important;
+                text-align: center;
+                min-height: 100px !important;
+                background-color: #242b3d !important;
+                border: 2px solid rgba(255, 255, 255, 0.1) !important;
+                color: #f8fafc !important;
+                border-radius: 12px !important;
+                transition: all 0.3s ease;
+            }
+
+            .score-input:focus {
+                border-color: #6366f1 !important;
+                box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2) !important;
+                outline: none;
+            }
+
+            .wizard-step { display: none; }
+            .wizard-step.active {
+                display: block;
+                animation: fadeIn 0.3s ease-in-out;
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .step-indicator {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 30px;
+            }
+
+            .step-pill {
+                flex: 1;
+                padding: 15px;
+                text-align: center;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 8px;
+                color: #94a3b8;
+                font-weight: bold;
+                transition: all 0.3s ease;
+                cursor: pointer;
+            }
+
+            .step-pill.active {
+                background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                color: white;
+                box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            }
+            .step-pill.active.comp-step { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+            .step-pill.active.peer-step { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); }
+
+            .step-pill.completed {
+                background: rgba(34, 197, 94, 0.15);
+                color: #86efac;
+                border: 1px solid rgba(34, 197, 94, 0.3);
+            }
+
+            .total-score-badge {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                padding: 12px 24px;
+            }
+        </style>
+
+        <div class="eval-form-container">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4 mt-2">
+                <div>
+                    <h1 class="text-white fw-bold fs-2 mb-1">나의 자가평가 마법사</h1>
+                    <p class="text-muted mb-0">성과, 역량, 다면 평가를 차례대로 진행합니다.</p>
+                </div>
+                <a href="#" class="btn btn-outline-light border-opacity-25 px-4 py-2"
+                    hx-get="/eval/my-evaluation" hx-target="#page-content" hx-select="#page-content"
+                    hx-swap="outerHTML show:window:top" hx-push-url="true">
+                    <i class="bi bi-arrow-left me-2"></i> 목록으로 돌아가기
+                </a>
+            </div>
+
+            <!-- 제출 완료 및 잠금 배너 -->
+            <div th:if="${submitted and not isLocked}" class="alert alert-success bg-opacity-10 border-success border-opacity-25 text-success mb-4 py-3 d-flex align-items-center gap-3">
+                <i class="bi bi-patch-check-fill fs-4"></i>
+                <span class="fw-bold">평가가 이미 제출된 상태입니다. 수정 후 재제출이 가능합니다.</span>
+            </div>
+            <div th:if="${isLocked}" class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4 py-3 d-flex align-items-center gap-3">
+                <i class="bi bi-lock-fill fs-4"></i>
+                <div>
+                    <strong th:text="${lockedBy}">상위 평가자</strong>가 평가를 확정하여 더 이상 수정할 수 없습니다.
+                </div>
+            </div>
+
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <th:block th:if="${!evaluateeIsLeader}">
+                    <div class="step-pill active perf-step" id="indicator-step-1">
+                        <i class="bi bi-rocket-takeoff me-1"></i> 1단계: 성과 평가
+                    </div>
+                    <div class="step-pill comp-step" id="indicator-step-2">
+                        <i class="bi bi-lightning-charge me-1"></i> 2단계: 역량 평가
+                    </div>
+                </th:block>
+                <th:block th:if="${evaluateeIsLeader}">
+                    <div class="step-pill active peer-step" id="indicator-step-1">
+                        <i class="bi bi-people me-1"></i> 1단계: 다면 자가평가
+                    </div>
+                </th:block>
+            </div>
+
+            <form id="evaluationForm" th:action="@{/eval/my-evaluation/submit}" method="post">
+                <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
+                <input type="hidden" name="mappingId" th:value="${mappingId}">
+
+                <!-- [CASE 1] 부서원: 성과 + 역량 -->
+                <th:block th:if="${!evaluateeIsLeader}">
+                    <!-- STEP 1: 성과 평가 -->
+                    <div class="wizard-step active" id="step-1">
+                        <div class="d-flex justify-content-between align-items-end mb-4">
+                            <h3 class="text-white mb-0"><i class="bi bi-rocket-takeoff text-indigo-400 me-2"></i>성과 평가 항목</h3>
+                            <div class="total-score-badge">
+                                <span class="text-muted small">성과 환산점수:</span>
+                                <span class="text-indigo-400 fw-bold fs-4 ms-2" id="score-display-1">0.0</span>
+                            </div>
+                        </div>
+
+                        <div th:each="element : ${perfElements}" class="eval-card">
+                            <div class="eval-card-header">
+                                <div class="eval-title">
+                                    <span th:text="${element.elementName()}">성과 항목</span>
+                                </div>
+                                <div class="weight-badge">가중치 <span th:text="${element.weight() + '%'}"></span></div>
+                            </div>
+                            <div class="row justify-content-center">
+                                <div class="col-md-6 text-center">
+                                    <div class="field-label perf justify-content-center">본인 점수 (0~[[${element.maxScore()}]])</div>
+                                    <input type="number" class="eval-textarea score-input perf-score"
+                                        th:name="'score_' + ${element.elementId()}"
+                                        th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                                        th:data-weight="${element.weight()}"
+                                        th:data-max="${element.maxScore()}"
+                                        oninput="calculateScores()" min="0" th:max="${element.maxScore()}" required>
+                                    <div class="text-muted small mt-2">해당 성과 항목에 대한 자가 점수를 입력하세요.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="button" class="btn btn-primary btn-lg py-3 px-5 rounded-pill shadow-lg"
+                                style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border:none;"
+                                onclick="nextStep(1)">
+                                다음 단계 (역량 평가) <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: 역량 평가 -->
+                    <div class="wizard-step" id="step-2">
+                        <div class="d-flex justify-content-between align-items-end mb-4">
+                            <h3 class="text-white mb-0"><i class="bi bi-lightning-charge text-emerald-400 me-2"></i>역량 평가 항목</h3>
+                            <div class="total-score-badge">
+                                <span class="text-muted small">역량 환산점수:</span>
+                                <span class="text-emerald-400 fw-bold fs-4 ms-2" id="score-display-2">0.0</span>
+                            </div>
+                        </div>
+
+                        <div th:each="element : ${compElements}" class="eval-card">
+                            <div class="eval-card-header">
+                                <div class="eval-title">
+                                    <span th:text="${element.elementName()}">역량 항목</span>
+                                </div>
+                                <div class="weight-badge">가중치 <span th:text="${element.weight() + '%'}"></span></div>
+                            </div>
+                            <div class="row justify-content-center">
+                                <div class="col-md-6 text-center">
+                                    <div class="field-label comp justify-content-center">본인 점수 (0~[[${element.maxScore()}]])</div>
+                                    <input type="number" class="eval-textarea score-input comp-score"
+                                        th:name="'score_' + ${element.elementId()}"
+                                        th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                                        th:data-weight="${element.weight()}"
+                                        th:data-max="${element.maxScore()}"
+                                        oninput="calculateScores()" min="0" th:max="${element.maxScore()}" required>
+                                    <div class="text-muted small mt-2">해당 역량 항목에 대한 자가 점수를 입력하세요.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-light border-opacity-25 py-3 px-5 rounded-pill" onclick="prevStep(2)">
+                                <i class="bi bi-arrow-left me-2"></i> 이전 (성과 평가)
+                            </button>
+                            <button type="submit" class="btn btn-success btn-lg py-3 px-5 rounded-pill shadow-lg"
+                                style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border:none;">
+                                <i class="bi bi-check2-circle me-2"></i> 자가평가 최종 제출
+                            </button>
+                        </div>
+                    </div>
+                </th:block>
+
+                <!-- [CASE 2] 부서장: 다면평가만 -->
+                <th:block th:if="${evaluateeIsLeader}">
+                    <!-- STEP 1: 다면 평가 (부서장용 단일 단계) -->
+                    <div class="wizard-step active" id="step-1">
+                        <div class="d-flex justify-content-between align-items-end mb-4">
+                            <h3 class="text-white mb-0"><i class="bi bi-people text-pink-400 me-2"></i>다면 자가평가 항목</h3>
+                            <div class="total-score-badge">
+                                <span class="text-muted small">다면 환산점수:</span>
+                                <span class="text-pink-400 fw-bold fs-4 ms-2" id="score-display-3">0.0</span>
+                            </div>
+                        </div>
+
+                        <div th:each="element : ${peerElements}" class="eval-card">
+                            <div class="eval-card-header">
+                                <div class="eval-title">
+                                    <span th:text="${element.elementName()}">다면 항목</span>
+                                </div>
+                                <div class="weight-badge">가중치 <span th:text="${element.weight() + '%'}"></span></div>
+                            </div>
+                            <div class="row justify-content-center">
+                                <div class="col-md-6 text-center">
+                                    <div class="field-label peer justify-content-center">본인 점수 (0~[[${element.maxScore()}]])</div>
+                                    <input type="number" class="eval-textarea score-input peer-score"
+                                        th:name="'score_' + ${element.elementId()}"
+                                        th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                                        th:data-weight="${element.weight()}"
+                                        th:data-max="${element.maxScore()}"
+                                        oninput="calculateScores()" min="0" th:max="${element.maxScore()}" required>
+                                    <div class="text-muted small mt-2">협업 및 리더십에 대한 자가 점수를 입력하세요.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="submit" class="btn btn-danger btn-lg py-3 px-5 rounded-pill shadow-lg"
+                                style="background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); border:none;">
+                                <i class="bi bi-check2-circle me-2"></i> 자가평가 최종 제출
+                            </button>
+                        </div>
+                    </div>
+                </th:block>
+
+                </fieldset>
+            </form>
+        </div>
+
+        <script>
+            function calculateScores() {
+                const types = [
+                    { cls: '.perf-score', display: 'score-display-1' },
+                    { cls: '.comp-score', display: 'score-display-2' },
+                    { cls: '.peer-score', display: 'score-display-3' }
+                ];
+                
+                types.forEach(type => {
+                    let total = 0;
+                    document.querySelectorAll(type.cls).forEach(input => {
+                        let score = parseFloat(input.value) || 0;
+                        let weight = parseFloat(input.getAttribute('data-weight')) || 0;
+                        let max = parseFloat(input.getAttribute('data-max')) || 100;
+                        if (score > max) score = max;
+                        total += (score / max) * weight;
+                    });
+                    const el = document.getElementById(type.display);
+                    if (el) el.innerText = total.toFixed(1);
+                });
+            }
+
+            function nextStep(current) {
+                const step = document.getElementById('step-' + current);
+                const inputs = step.querySelectorAll('input[required], textarea[required]');
+                let valid = true;
+                for (let i of inputs) {
+                    if (!i.value || !i.value.trim()) {
+                        i.focus();
+                        i.reportValidity();
+                        valid = false;
+                        break;
+                    }
+                }
+                if (valid) {
+                    step.classList.remove('active');
+                    document.getElementById('indicator-step-' + current).classList.remove('active');
+                    document.getElementById('indicator-step-' + current).classList.add('completed');
+                    
+                    const next = current + 1;
+                    document.getElementById('step-' + next).classList.add('active');
+                    document.getElementById('indicator-step-' + next).classList.add('active');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }
+
+            function prevStep(current) {
+                document.getElementById('step-' + current).classList.remove('active');
+                document.getElementById('indicator-step-' + current).classList.remove('active');
+                
+                const prev = current - 1;
+                document.getElementById('step-' + prev).classList.add('active');
+                document.getElementById('indicator-step-' + prev).classList.remove('completed');
+                document.getElementById('indicator-step-' + prev).classList.add('active');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            document.addEventListener('DOMContentLoaded', calculateScores);
+        </script>
+    </div>
+</body>
+</html>

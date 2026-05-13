@@ -14,43 +14,66 @@
                 <h1 class="fw-bold fs-3 mb-1">평가자 매핑 관리</h1>
                 <p class="text-muted mb-0">평가 대상자별 평가자를 설정하고 조회합니다.</p>
             </div>
-            <div class="col-md-8 text-md-end">
-                <form th:action="@{/eval/evaluators}" method="get" hx-get="/eval/evaluators" hx-target="#page-content"
-                    hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#global-loader"
-                    class="d-inline-flex gap-2 align-items-center flex-wrap justify-content-end">
-                    <label class="text-muted small text-nowrap">차수 선택:</label>
-                    <select name="periodId" class="form-select form-select-sm bg-dark text-white border-secondary"
-                        style="width: 200px;" onchange="this.form.requestSubmit()">
-                        <option th:each="p : ${periods}" th:value="${p.periodId()}"
-                            th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
-                            th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수</option>
-                    </select>
+        <!-- Filter Section (사원 관리 스타일 적용) -->
+        <div class="ees-card mb-4 p-4">
+            <form th:action="@{/eval/evaluators}" method="get" hx-get="/eval/evaluators" hx-target="#page-content"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#global-loader">
+                <div class="row g-4 align-items-end">
+                    <!-- 1/3: 평가 차수 (및 부서) -->
+                    <div class="col-md-4">
+                        <div class="d-flex flex-column gap-2">
+                            <label class="form-label text-muted small fw-semibold mb-0">
+                                <i class="bi bi-calendar-event me-1"></i>평가 차수
+                            </label>
+                            <select name="periodId" class="form-select bg-dark text-white border-secondary border-opacity-25"
+                                style="height: 42px; border-radius: 8px;"
+                                onchange="this.form.requestSubmit()">
+                                <option th:each="p : ${periods}" th:value="${p.periodId()}"
+                                    th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
+                                    th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수</option>
+                            </select>
+                            
+                            <!-- 부서 선택이 있는 경우 차수 아래에 배치하거나 너비 조절 가능 -->
+                            <div th:if="${departments != null}" class="mt-2">
+                                <div th:replace="~{fragments/dept-select :: deptSelect(
+                                    ${departments}, ${selectedDeptId}, 'deptId', '전체 부서', true)}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                    <th:block th:if="${departments != null}">
-                        <label class="text-muted small text-nowrap ms-2">부서:</label>
-                        <select name="deptId" class="form-select form-select-sm bg-dark text-white border-secondary"
-                            style="width: 150px;" onchange="this.form.requestSubmit()">
-                            <option value="">전체 부서</option>
-                            <th:block th:each="d : ${departments}">
-                                <!-- 상위부서 (본부): parentDeptId == null -->
-                                <option th:if="${d.parentDeptId == null}" th:value="${d.deptId}"
-                                    th:text="'🏢 ' + ${d.deptName}" th:selected="${d.deptId == selectedDeptId}"
-                                    style="font-weight: 700; color: #a5b4fc;">
-                                </option>
-                                <!-- 하위부서 (팀): parentDeptId != null -->
-                                <option th:unless="${d.parentDeptId == null}" th:value="${d.deptId}"
-                                    th:text="'　└ ' + ${d.deptName}" th:selected="${d.deptId == selectedDeptId}"
-                                    style="color: #94a3b8; padding-left: 1.5rem;">
-                                </option>
-                            </th:block>
-                        </select>
-                    </th:block>
+                    <!-- 1/3: 이름/사번 검색 -->
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-semibold mb-2">
+                            <i class="bi bi-person-search me-1"></i>이름/사번 검색
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary border-opacity-25 text-muted">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" name="searchName" 
+                                class="form-control bg-dark text-white border-secondary border-opacity-25"
+                                style="height: 42px; border-radius: 0 8px 8px 0;"
+                                placeholder="사원명 또는 사번 입력..." th:value="${searchName}">
+                        </div>
+                    </div>
 
-                    <input type="text" name="searchName" class="form-control form-control-sm ees-form-control"
-                        placeholder="사원명/사번 검색" th:value="${searchName}" style="width: 140px;">
-                    <button type="submit" class="btn ees-btn-glass btn-sm px-3">조회</button>
-                </form>
-            </div>
+                    <!-- 1/3: 버튼 영역 -->
+                    <div class="col-md-4">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary fw-semibold flex-grow-1" 
+                                    style="height: 42px; background: #6366f1; border: none; border-radius: 8px;">
+                                <i class="bi bi-search me-2"></i>조회
+                            </button>
+                            <a th:href="@{/eval/evaluators(periodId=${selectedPeriod?.periodId()})}" 
+                               class="btn btn-outline-secondary d-flex align-items-center justify-content-center" 
+                               style="height: 42px; width: 42px; border-radius: 8px;" title="초기화">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
 
         <!-- Flash Messages -->

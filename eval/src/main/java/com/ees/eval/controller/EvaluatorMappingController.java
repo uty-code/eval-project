@@ -116,7 +116,14 @@ public class EvaluatorMappingController {
         }
 
         if (isAdmin) {
-            model.addAttribute("departments", departmentMapper.findAll());
+            List<com.ees.eval.dto.DepartmentDTO> deptDtos = departmentMapper.findAll().stream()
+                    .map(d -> com.ees.eval.dto.DepartmentDTO.builder()
+                            .deptId(d.getDeptId())
+                            .parentDeptId(d.getParentDeptId())
+                            .deptName(d.getDeptName())
+                            .build())
+                    .collect(java.util.stream.Collectors.toList());
+            model.addAttribute("departments", deptDtos);
         }
 
         model.addAttribute("periods", periods);

@@ -83,16 +83,28 @@ public class EvaluationResultController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_EXECUTIVE"));
 
         if (isAdmin || isExecutive) {
-            model.addAttribute("departments", departments);
+            List<com.ees.eval.dto.DepartmentDTO> deptDtos = departments.stream()
+                    .map(d -> com.ees.eval.dto.DepartmentDTO.builder()
+                            .deptId(d.getDeptId())
+                            .parentDeptId(d.getParentDeptId())
+                            .deptName(d.getDeptName())
+                            .build())
+                    .collect(Collectors.toList());
+            model.addAttribute("departments", deptDtos);
         } else {
             Employee loginEmp = employeeMapper.findById(loginEmpId).orElse(null);
             if (loginEmp != null) {
                 deptId = loginEmp.getDeptId();
                 final Long managerDeptId = deptId;
-                departments = departments.stream()
+                List<com.ees.eval.dto.DepartmentDTO> deptDtos = departments.stream()
                         .filter(d -> d.getDeptId().equals(managerDeptId))
+                        .map(d -> com.ees.eval.dto.DepartmentDTO.builder()
+                                .deptId(d.getDeptId())
+                                .parentDeptId(d.getParentDeptId())
+                                .deptName(d.getDeptName())
+                                .build())
                         .collect(Collectors.toList());
-                model.addAttribute("departments", departments);
+                model.addAttribute("departments", deptDtos);
             }
         }
         model.addAttribute("selectedDeptId", deptId);
