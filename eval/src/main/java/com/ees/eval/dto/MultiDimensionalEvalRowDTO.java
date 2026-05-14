@@ -17,6 +17,7 @@ public record MultiDimensionalEvalRowDTO(
     String deptName,
     String titleName,
     String relationName,
+    String periodName,
     MultiDimensionalEvalStatus statusType,
     String displayStatus,
     MultiDimensionalEvalCtaType ctaType,
