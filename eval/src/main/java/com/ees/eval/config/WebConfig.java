@@ -18,6 +18,13 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // 뒤로가기 캐시(bfcache) 방지 인터셉터: 인증이 필요한 서비스 영역(/eval/**) 및 설정 영역에 적용
+        registry.addInterceptor(new com.ees.eval.interceptor.CacheControlInterceptor())
+                .addPathPatterns("/eval/**", "/settings/**", "/dashboard/**")
+                .excludePathPatterns(
+                        "/css/**", "/js/**", "/images/**", "/favicon.ico", "/webjars/**"
+                );
+
         registry.addInterceptor(new PasswordChangeInterceptor())
                 .addPathPatterns("/**")
                 .excludePathPatterns(

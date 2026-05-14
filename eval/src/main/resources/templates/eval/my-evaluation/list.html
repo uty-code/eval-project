@@ -1,146 +1,360 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'my-evaluation', ~{}, ~{})}">
+    th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'my-evaluation', ~{::extraStyles}, ~{})}">
 
 <head>
     <title>나의 자가평가 - EES</title>
+    <th:block th:fragment="extraStyles">
+        <style>
+            /* ===== 필터 바 ===== */
+            .filter-bar select,
+            .filter-bar input {
+                background: rgba(255, 255, 255, .06);
+                border: 1px solid rgba(255, 255, 255, .12);
+                color: #cbd5e1;
+                font-size: .85rem;
+                padding: .4rem .7rem;
+                border-radius: 20px;
+                outline: none;
+            }
+
+            .filter-bar select:focus,
+            .filter-bar input:focus {
+                background: rgba(0, 0, 0, 0.3);
+                border-color: rgba(99, 102, 241, 0.5);
+            }
+
+            .btn-search {
+                background: linear-gradient(90deg, #6366f1, #a855f7);
+                color: #fff;
+                border: none;
+                border-radius: 20px;
+                font-size: .8rem;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all .2s;
+            }
+
+            .btn-search:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 15px rgba(99, 102, 241, .4);
+            }
+
+            /* ===== 테이블 ===== */
+            .result-table-wrap {
+                padding: 1rem 1.5rem 1.5rem;
+                overflow-x: auto;
+            }
+
+            .result-table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                font-size: .78rem;
+                border-top: 1px solid rgba(255, 255, 255, .35);
+                border-left: 1px solid rgba(255, 255, 255, .35);
+                border-right: 1px solid rgba(255, 255, 255, .35);
+                min-width: 900px;
+                table-layout: fixed;
+            }
+
+            .result-table thead th {
+                padding: .65rem .5rem;
+                text-align: center;
+                font-weight: 600;
+                color: rgba(255, 255, 255, .7);
+                white-space: nowrap;
+                border-bottom: 1px solid rgba(255, 255, 255, .35);
+                background: rgba(255, 255, 255, .02);
+            }
+
+            .th-group {
+                font-size: .8rem;
+                font-weight: 700;
+                letter-spacing: .5px;
+            }
+
+            .th-group-info {
+                color: rgba(255, 255, 255, .5);
+            }
+
+            .th-group-action {
+                color: #f59e0b !important;
+            }
+
+            .result-table tbody td {
+                padding: .85rem .7rem;
+                text-align: center;
+                color: rgba(255, 255, 255, .8);
+                border-bottom: 1px solid rgba(255, 255, 255, .35);
+                vertical-align: middle;
+            }
+
+            .result-table tbody tr:hover {
+                background: rgba(255, 255, 255, .03);
+            }
+
+            /* ===== 상태 배지 ===== */
+            .status-badge {
+                font-size: .65rem;
+                padding: .3rem .6rem;
+                border-radius: 12px;
+                font-weight: 600;
+                white-space: nowrap;
+                display: inline-block;
+            }
+
+            .status-done {
+                background: rgba(16, 185, 129, .15);
+                color: #34d399;
+                border: 1px solid rgba(16, 185, 129, .3);
+            }
+
+            .status-prog {
+                background: rgba(56, 189, 248, .15);
+                color: #7dd3fc;
+                border: 1px solid rgba(56, 189, 248, .3);
+            }
+
+            .status-wait {
+                background: rgba(245, 158, 11, .15);
+                color: #fcd34d;
+                border: 1px solid rgba(245, 158, 11, .3);
+            }
+
+            /* ===== 버튼 배지 ===== */
+            .action-btn {
+                font-size: .75rem;
+                padding: .35rem .8rem;
+                border-radius: 6px;
+                font-weight: 600;
+                border: none;
+                transition: all 0.2s;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+            }
+
+            .action-primary {
+                background: linear-gradient(90deg, #6366f1, #a855f7);
+                color: #fff;
+                box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+            }
+
+            .action-primary:hover {
+                background: linear-gradient(90deg, #4f46e5, #9333ea);
+                color: #fff;
+                transform: translateY(-1px);
+            }
+
+            .action-view {
+                background-color: #475569;
+                color: #fff;
+            }
+
+            .action-view:hover {
+                background-color: #334155;
+            }
+
+            .action-locked {
+                background-color: #475569;
+                color: #fff;
+            }
+
+            .pagination-container {
+                display: flex;
+                justify-content: center;
+                margin-top: 1.5rem;
+                gap: 0.25rem;
+            }
+
+            .col-period,
+            .col-dept,
+            .col-title,
+            .col-empid,
+            .col-name {
+                width: 130px;
+            }
+        </style>
+    </th:block>
 </head>
 
 <body>
-    <div id="page-content" class="container-fluid py-4">
-        <!-- [원본 유지] 상단 헤더 & 차수 선택 영역 -->
+    <div id="page-content" class="container-fluid py-4" th:fragment="content">
+        <th:block th:replace="~{::extraStyles}"></th:block>
+
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h1 class="text-white fs-3 mb-1"><i class="bi bi-person-workspace text-primary me-2"></i>나의 자가평가 대시보드</h1>
-                <p class="text-muted mb-0 small">이번 차수 나의 성과와 역량을 직접 진단하고 목표 달성도를 기록합니다.</p>
+                <h1 class="text-white fs-3 mb-1"><i class="bi bi-person-workspace text-primary me-2"></i>나의 자가평가</h1>
+                <p class="text-muted mb-0 small">차수별 나의 성과와 역량을 진단하고 기록합니다.</p>
             </div>
-            <div>
-                <form th:action="@{/eval/my-evaluation/list}" method="get"
-                    class="d-inline-flex gap-2 align-items-center bg-dark p-2 rounded-pill shadow-sm"
-                    style="border: 1px solid var(--glass-border);">
-                    <select name="periodId"
-                        class="form-select form-select-sm bg-transparent text-white border-0 fw-bold"
-                        onchange="this.form.submit()" style="width: 200px; box-shadow: none;">
-                        <option class="bg-dark" th:each="p : ${periods}" th:value="${p.periodId()}"
-                            th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
-                            th:selected="${selectedPeriod != null and p.periodId() == selectedPeriod.periodId()}">차수 선택</option>
-                    </select>
+        </div>
+
+        <!-- 메시지 영역 -->
+        <div th:if="${errorMessage}" class="alert alert-danger d-flex align-items-center mb-3" role="alert"
+            style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; border-radius: 0.75rem;">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <div th:text="${errorMessage}"></div>
+        </div>
+        <div th:if="${successMessage}" class="alert d-flex align-items-center mb-3" role="alert"
+            style="background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #86efac; border-radius: 0.75rem;">
+            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+            <div th:text="${successMessage}"></div>
+        </div>
+
+        <div id="my-eval-container">
+            <!-- 필터 섹션 -->
+            <div class="ees-card mb-4 p-3">
+                <form id="filterForm" hx-get="/eval/my-evaluation/list" hx-target="#my-eval-container"
+                    hx-select="#my-eval-container" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small fw-semibold">평가 차수</label>
+                            <select name="periodId"
+                                class="form-select bg-transparent border-secondary border-opacity-50 fw-bold"
+                                style="color: #fff; font-size: 0.85rem; border-radius: 8px;">
+                                <option value="">전체 차수</option>
+                                <option th:each="p : ${periods}" th:value="${p.periodId()}"
+                                    th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
+                                    th:selected="${selectedPeriodId == p.periodId()}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-semibold">작성 상태</label>
+                            <select name="filterStatus"
+                                class="form-select bg-transparent border-secondary border-opacity-50"
+                                style="color: #cbd5e1; font-size: 0.85rem; border-radius: 8px;">
+                                <option value="">전체 상태</option>
+                                <option value="WAITING" th:selected="${filterStatus == 'WAITING'}">작성 대기</option>
+                                <option value="IN_PROGRESS" th:selected="${filterStatus == 'IN_PROGRESS'}">작성 중</option>
+                                <option value="SUBMITTED" th:selected="${filterStatus == 'SUBMITTED'}">제출 완료</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-semibold">차수명 검색</label>
+                            <input type="text" name="keyword"
+                                class="form-control bg-transparent border-secondary border-opacity-50 text-white"
+                                placeholder="차수 이름 입력" th:value="${keyword}"
+                                style="font-size: 0.85rem; border-radius: 8px;">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn-search w-100" style="height: 38px;">
+                                <i class="bi bi-search me-1"></i>검색
+                            </button>
+                        </div>
+                    </div>
                 </form>
             </div>
-        </div>
 
-        <!-- [개편된 본문 영역] -->
-        <div th:if="${selectedPeriod != null}">
-            
-            <!-- 1. 평가 진행 중일 때 (PLANNED가 아닐 때) -->
-            <div th:if="${selectedPeriod.statusCode() != 'PLANNED'}">
-                
-                <!-- 평가 항목 요약 카드 -->
-                <div class="ees-card p-4 mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="fw-bold mb-0 text-white">
-                            <i class="bi bi-journal-check me-2 text-primary"></i>평가 항목 리스트
-                        </h5>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="ees-table align-middle">
-                            <thead>
-                                <tr class="text-muted small">
-                                    <th style="width: 40%">유형</th>
-                                    <th style="width: 30%" class="text-center">배점</th>
-                                    <th style="width: 30%" class="text-center">비중</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- 부서장: 다면평가 -->
-                                <th:block th:if="${isLeader}">
-                                    <tr th:each="tw : ${typeWeights}" th:if="${tw.elementTypeCode() == 'MULTI_DIMENSIONAL'}">
-                                        <td><span class="ees-badge ees-badge-multi">다면 평가</span></td>
-                                        <td class="text-center fw-bold text-white">100</td>
-                                        <td class="text-center fw-bold text-info" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">50%</td>
-                                    </tr>
-                                </th:block>
-                                
-                                <!-- 부서원: 성과/역량 -->
-                                <th:block th:unless="${isLeader}">
-                                    <tr th:each="tw : ${typeWeights}" th:if="${tw.elementTypeCode() == 'PERFORMANCE' or tw.elementTypeCode() == 'COMPETENCY'}">
-                                        <td>
-                                            <span th:if="${tw.elementTypeCode() == 'PERFORMANCE'}" class="ees-badge ees-badge-performance">성과 평가</span>
-                                            <span th:if="${tw.elementTypeCode() == 'COMPETENCY'}" class="ees-badge ees-badge-competency">역량 평가</span>
-                                        </td>
-                                        <td class="text-center fw-bold text-white">100</td>
-                                        <td class="text-center fw-bold text-info" th:text="${#numbers.formatDecimal(tw.weight(), 1, 0)} + '%'">50%</td>
-                                    </tr>
-                                </th:block>
-
-                                <tr th:if="${#lists.isEmpty(typeWeights)}">
-                                    <td colspan="3" class="text-center py-5 text-muted">등록된 평가 유형 정보가 없습니다.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- 2. 통합 액션 버튼 영역 -->
-                <div class="text-center py-5" th:if="${selfTask != null}">
-                    <th:block th:with="allSubmitted=${isLeader ? selfPeerSubmitted : (selfPerfSubmitted and selfCompSubmitted)}">
-                        
-                        <!-- [통합 액션 버튼] -->
-                        <div>
-                            <a th:href="@{/eval/my-evaluation/wizard(mappingId=${selfTask.mappingId()})}"
-                               hx-get="" th:hx-get="@{/eval/my-evaluation/wizard(mappingId=${selfTask.mappingId()})}"
-                               hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML show:window:top" hx-push-url="true"
-                               class="btn btn-lg px-5 py-3 rounded-pill shadow-lg border-0 text-white" 
-                               th:classappend="${isLocked ? 'bg-secondary' : (allSubmitted ? 'bg-success' : 'btn-primary')}"
-                               th:style="${isLocked ? 'min-width: 400px; background: linear-gradient(135deg, #4b5563 0%, #1f2937 100%) !important;' : (allSubmitted ? 'min-width: 400px; background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;' : 'min-width: 400px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); transition: transform 0.2s;')}">
-                                
-                                <th:block th:if="${isLocked}">
-                                    <i class="bi bi-lock-fill me-2"></i>
-                                    <span class="fs-5 fw-bold">평가 잠김 (작성 내용 확인)</span>
-                                </th:block>
-                                <th:block th:if="${!isLocked and allSubmitted}">
-                                    <i class="bi bi-check-circle-fill me-2"></i>
-                                    <span class="fs-5 fw-bold">자가평가 완료 (작성 내용 확인)</span>
-                                </th:block>
-                                <th:block th:if="${!isLocked and !allSubmitted}">
-                                    <i class="bi bi-magic me-2"></i> 
-                                    <span class="fs-5 fw-bold" th:text="${(isLeader ? selfPeerSubmitted : (selfPerfSubmitted or selfCompSubmitted)) ? '자가평가 계속하기' : '자가평가 시작하기'}">자가평가 시작하기</span>
-                                </th:block>
-                            </a>
-                            <p class="text-muted mt-4 small" th:if="${isLocked}">
-                                <i class="bi bi-info-circle me-1"></i> 평가자가 평가를 시작하여 내용을 수정할 수 없습니다.
-                            </p>
-                            <p class="text-muted mt-4 small" th:if="${!isLocked and allSubmitted}">
-                                <i class="bi bi-info-circle me-1"></i> 자가평가 제출이 완료되었습니다. 내용은 언제든 확인 가능합니다.
-                            </p>
-                            <p class="text-muted mt-4" th:if="${!isLocked and !allSubmitted}">
-                                <i class="bi bi-info-circle me-1"></i> 통합 마법사를 통해 쉽고 빠르게 평가를 작성할 수 있습니다.
-                            </p>
-                        </div>
-                    </th:block>
-                </div>
-
-                <!-- 매핑 미존재 안내 -->
-                <div th:unless="${selfTask != null}" class="ees-card p-5 text-center text-muted">
-                    <i class="bi bi-person-x fs-1 mb-3 d-block opacity-25"></i>
-                    배정된 자가평가 대상 정보가 없습니다.
-                </div>
+            <!-- 데이터 없음 -->
+            <div th:if="${pageData == null || pageData.content().isEmpty()}" class="ees-card text-center py-5">
+                <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+                <h5 class="fw-bold text-white">조회된 자가평가 내역이 없습니다.</h5>
             </div>
 
-            <!-- 2. 평가 시작 전 (PLANNED) 안내 카드 -->
-            <div th:if="${selectedPeriod.statusCode() == 'PLANNED'}" class="ees-card p-5 text-center text-muted">
-                <i class="bi bi-clock-history fs-1 mb-3 d-block opacity-25 text-info"></i>
-                <h5 class="fw-bold text-white mb-2">평가 준비 중</h5>
-                <p class="mb-0">현재 차수는 평가 항목 구성 및 정합성 검토 중입니다.<br>평가가 시작되면 항목 리스트가 활성화됩니다.</p>
+            <!-- 테이블 영역 -->
+            <div th:if="${pageData != null && !pageData.content().isEmpty()}" class="ees-card mb-5">
+                <div class="result-table-wrap">
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th class="col-period" style="width: 15.6%;">평가 차수</th>
+                                <th class="col-dept" style="width: 18.2%;">부서</th>
+                                <th class="col-title" style="width: 10.4%;">직급</th>
+                                <th class="col-empid" style="width: 100px; width: 10.4%;">사번</th>
+                                <th class="col-name" style="width: 13.0%; border-right: 1px solid rgba(255, 255, 255, .35);">성명</th>
+                                <th style="width: 11.7%; border-right: 1px solid rgba(255, 255, 255, .35);">환산 점수</th>
+                                <th style="width: 10.4%; border-right: 1px solid rgba(255, 255, 255, .35);">상태</th>
+                                <th style="width: 10.3%;">진행</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="r : ${pageData.content()}">
+                                <td class="col-period text-center" style="text-align: center !important;"
+                                    th:text="${r.periodName()}">2024 상반기</td>
+                                <td class="col-dept" th:text="${r.deptName()}">-</td>
+                                <td class="col-title" th:text="${r.titleName()}">-</td>
+                                <td class="col-empid" th:text="${r.empId()}">-</td>
+                                <td class="col-name fw-bold text-primary"
+                                    style="border-right: 1px solid rgba(255, 255, 255, .35);" th:text="${r.name()}">-
+                                </td>
+                                <td class="fw-bold text-center"
+                                    style="color: #a855f7; border-right: 1px solid rgba(255, 255, 255, .35);">
+                                    <span th:if="${r.score() != null}"
+                                        th:text="${#numbers.formatDecimal(r.score(), 1, 1)}">0.0</span>
+                                    <span th:if="${r.score() == null}">-</span>
+                                </td>
+                                <td style="border-right: 1px solid rgba(255, 255, 255, .35);">
+                                    <!-- 상태 배지 -->
+                                    <span class="status-badge"
+                                        th:classappend="${r.statusType().name() == 'SUBMITTED' ? 'status-done' : (r.statusType().name() == 'IN_PROGRESS' ? 'status-prog' : 'status-wait')}"
+                                        th:text="${r.statusType().name() == 'SUBMITTED' ? '완료' : (r.statusType().name() == 'IN_PROGRESS' ? '진행중' : '대기')}">대기</span>
+                                </td>
+                                <td style="border-right: 1px solid rgba(255, 255, 255, .35);">
+                                    <!-- 액션 버튼 -->
+                                    <div class="action-wrap">
+                                        <!-- 작성하기/수정하기 -->
+                                        <a th:if="${r.ctaType().name() == 'EDIT'}" href="#"
+                                            class="action-btn action-primary"
+                                            th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
+                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                            hx-push-url="true">
+                                            <i class="bi bi-pencil-square"></i>
+                                            <span th:text="${r.isSubmitted ? '수정' : '진행'}">진행</span>
+                                        </a>
+                                        <!-- 조회하기 -->
+                                        <a th:if="${r.ctaType().name() == 'VIEW'}" href="#"
+                                            class="action-btn action-view"
+                                            th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
+                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                            hx-push-url="true">
+                                            <i class="bi bi-search"></i> 조회
+                                        </a>
+                                        <!-- 잠김 -->
+                                        <a th:if="${r.ctaType().name() == 'LOCKED'}" href="#"
+                                            class="action-btn action-locked"
+                                            th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
+                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                            hx-push-url="true">
+                                            <i class="bi bi-search"></i> 조회
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 페이징네이션 -->
+                <div th:if="${pageData.totalPages() > 1}" class="pagination-container pb-4">
+                    <button class="btn btn-sm btn-outline-secondary text-white border-0"
+                        th:classappend="${pageData.currentPage() <= 1} ? 'disabled'"
+                        th:attr="hx-get=@{/eval/my-evaluation/list(periodId=${selectedPeriodId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() - 1})}"
+                        hx-target="#my-eval-container" hx-select="#my-eval-container" hx-swap="outerHTML"
+                        hx-push-url="true">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+
+                    <button th:each="i : ${#numbers.sequence(1, pageData.totalPages())}"
+                        th:class="${i == pageData.currentPage()} ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-secondary text-white border-0'"
+                        th:text="${i}"
+                        th:attr="hx-get=@{/eval/my-evaluation/list(periodId=${selectedPeriodId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${i})}"
+                        hx-target="#my-eval-container" hx-select="#my-eval-container" hx-swap="outerHTML"
+                        hx-push-url="true">
+                    </button>
+
+                    <button class="btn btn-sm btn-outline-secondary text-white border-0"
+                        th:classappend="${pageData.currentPage() >= pageData.totalPages()} ? 'disabled'"
+                        th:attr="hx-get=@{/eval/my-evaluation/list(periodId=${selectedPeriodId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() + 1})}"
+                        hx-target="#my-eval-container" hx-select="#my-eval-container" hx-swap="outerHTML"
+                        hx-push-url="true">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
             </div>
         </div>
-
-        <!-- 3. 차수 미선택 시 -->
-        <div th:if="${selectedPeriod == null}" class="ees-card p-5 text-center text-muted">
-            <i class="bi bi-calendar-x fs-1 mb-3 d-block opacity-25"></i>
-            조회할 평가 차수를 선택해 주세요.
-        </div>
-
     </div>
 </body>
+
 </html>

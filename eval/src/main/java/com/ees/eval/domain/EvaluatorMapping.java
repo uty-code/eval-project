@@ -45,6 +45,9 @@ public class EvaluatorMapping extends BaseEntity {
     /** 평가 차수명 (MyBatis JOIN용) */
     private String periodName;
 
+    /** 평가 연도 (MyBatis JOIN용) */
+    private Integer periodYear;
+
     /**
      * 평가자 매핑 엔티티를 생성하는 빌더 메서드입니다.
      *
@@ -56,7 +59,8 @@ public class EvaluatorMapping extends BaseEntity {
      */
     @Builder
     public EvaluatorMapping(Long mappingId, Long periodId, Long evaluateeId,
-            Long evaluatorId, String relationTypeCode, String evaluateeName, String evaluatorName, String deptName, String titleName, String periodName) {
+            Long evaluatorId, String relationTypeCode, String evaluateeName, String evaluatorName,
+            String deptName, String titleName, String periodName, Integer periodYear) {
         this.mappingId = mappingId;
         this.periodId = periodId;
         this.evaluateeId = evaluateeId;
@@ -67,5 +71,6 @@ public class EvaluatorMapping extends BaseEntity {
         this.deptName = deptName;
         this.titleName = titleName;
         this.periodName = periodName;
+        this.periodYear = periodYear;
     }
 }

@@ -1,6 +1,7 @@
 package com.ees.eval.service.impl;
 
 import com.ees.eval.domain.Evaluation;
+import com.ees.eval.dto.enums.ConfirmStatus;
 import com.ees.eval.mapper.EvaluationMapper;
 import com.ees.eval.service.EvaluationService;
 import lombok.RequiredArgsConstructor;
@@ -63,7 +64,7 @@ public class EvaluationServiceImpl implements EvaluationService {
                 Evaluation existing = existingMap.get(elementId);
                 existing.setReason(finalComment);
                 existing.setScore(finalScore);
-                existing.setConfirmStatusCode("SUBMITTED");
+                existing.setConfirmStatusCode(ConfirmStatus.SUBMITTED.getCode());
                 existing.preUpdate();
                 existing.setUpdatedBy(empId);
                 toUpdate.add(existing);
@@ -71,7 +72,7 @@ public class EvaluationServiceImpl implements EvaluationService {
                 Evaluation eval = Evaluation.builder()
                         .mappingId(mappingId)
                         .elementId(elementId)
-                        .confirmStatusCode("SUBMITTED")
+                        .confirmStatusCode(ConfirmStatus.SUBMITTED.getCode())
                         .build();
                 eval.setReason(finalComment);
                 eval.setScore(finalScore);
