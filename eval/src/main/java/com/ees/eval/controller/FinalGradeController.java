@@ -17,8 +17,10 @@ import com.ees.eval.service.EvaluationService;
 import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.EvaluatorMappingService;
 import com.ees.eval.service.FinalGradeService;
+import com.ees.eval.dto.FinalGradeSearchCondition;
 import com.ees.eval.dto.FinalGradeTaskDTO;
 import com.ees.eval.mapper.DepartmentMapper;
+import com.ees.eval.dto.DepartmentDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -57,40 +59,70 @@ public class FinalGradeController {
 
 
     @GetMapping
-    public String list(@RequestParam(name = "periodId", required = false) Long periodId,
-                       @RequestParam(name = "tab", required = false, defaultValue = "leader") String tab,
+    public String list(@ModelAttribute FinalGradeSearchCondition condition,
                        @AuthenticationPrincipal UserDetails userDetails,
                        Model model) {
+        
+        String tab = condition.tab() != null ? condition.tab() : "leader";
+        Long periodId = condition.periodId();
         
         model.addAttribute("activeMenu", "final-grade");
         model.addAttribute("activeTab", tab);
         Long executiveEmpId = Long.parseLong(userDetails.getUsername());
         
-        // 1. 차수 목록 및 현재 선택된 차수 정보 (진행 중인 차수만 표시)
-        List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
+        // 1. 차수 목록 조회
+        List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
         model.addAttribute("periods", periods);
 
-        EvaluationPeriodDTO selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
+        // 2. 선택된 차수 처리 (periodId가 0이면 '전체 차수', null이면 초기 진입으로 보고 자동 선택)
+        EvaluationPeriodDTO selectedPeriod = null;
+        if (periodId != null) {
+            if (periodId != 0L) {
+                selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
+            }
+            // 0인 경우 selectedPeriod는 null 유지 (전체 차수)
+        } else {
+            // 초기 진입 시에만 진행 중인 차수 자동 선택
+            selectedPeriod = periodService.resolveSelectedPeriod(null, periods);
+        }
         model.addAttribute("selectedPeriod", selectedPeriod);
 
-        if (selectedPeriod != null) {
-            if ("PLANNED".equals(selectedPeriod.statusCode())) {
-                model.addAttribute("infoMessage", "현재 평가 시작 전입니다.");
-            } else {
-                // 2. [최적화] FinalGradeService를 통해 벌크 조회 및 상태 플래그 계산
-                List<FinalGradeTaskDTO> tasks = finalGradeService.getFinalGradeTasks(selectedPeriod.periodId(), executiveEmpId);
-                model.addAttribute("tasks", tasks);
-                
-                // 인원수 미리 계산 (템플릿 내 Stream 사용 시 발생하는 렌더링 에러 방지)
-                long leaderCount = tasks.stream().filter(FinalGradeTaskDTO::isLeader).count();
-                long staffCount = tasks.stream().filter(t -> !t.isLeader()).count();
-                model.addAttribute("leaderCount", leaderCount);
-                model.addAttribute("staffCount", staffCount);
+        // 3. 부서 목록 조회 (필터 드롭다운용)
+        List<DepartmentDTO> departments = departmentMapper.findAll().stream()
+                .map(d -> DepartmentDTO.builder()
+                        .deptId(d.getDeptId())
+                        .deptName(d.getDeptName())
+                        .parentDeptId(d.getParentDeptId())
+                        .build())
+                .collect(Collectors.toList());
+        model.addAttribute("departments", departments);
+        model.addAttribute("condition", condition);
 
-                // 템플릿에서 task.allSubmitted() 등 DTO 필드를 직접 참조하므로 별도 Map 불필요
-            }
+        // 4. 데이터 조회 (전체 차수이거나 특정 차수가 선택된 경우)
+        // selectedPeriod가 null이면 전체 차수 조회를 위해 service에 null 전달
+        Long activePeriodId = (selectedPeriod != null) ? selectedPeriod.periodId() : null;
+        
+        if (selectedPeriod != null && "PLANNED".equals(selectedPeriod.statusCode())) {
+            model.addAttribute("infoMessage", "현재 평가 시작 전입니다.");
         } else {
-            model.addAttribute("infoMessage", "진행 중인 평가 차수가 없습니다.");
+            // [최적화] FinalGradeService를 통해 벌크 조회 및 상태 플래그 계산
+            FinalGradeSearchCondition activeCondition = new FinalGradeSearchCondition(
+                    activePeriodId, 
+                    condition.deptId(), 
+                    condition.search(), 
+                    tab,
+                    condition.status()
+            );
+            
+            List<FinalGradeTaskDTO> tasks = finalGradeService.getFinalGradeTasks(executiveEmpId, activeCondition);
+            model.addAttribute("tasks", tasks);
+            
+            // 인원수 미리 계산
+            long leaderCount = tasks.stream().filter(FinalGradeTaskDTO::isLeader).count();
+            long staffCount = tasks.stream().filter(t -> !t.isLeader()).count();
+            model.addAttribute("leaderCount", leaderCount);
+            model.addAttribute("staffCount", staffCount);
+            
         }
 
         return "eval/final-grade/list";

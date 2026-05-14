@@ -11,6 +11,9 @@ import java.math.BigDecimal;
 @Builder
 public record FinalGradeTaskDTO(
         Long mappingId,
+        Long periodId,
+        String periodName,
+        Integer periodYear,
         Long evaluateeId,
         String evaluateeName,
         String deptName,

@@ -1,5 +1,6 @@
 package com.ees.eval.service;
 
+import com.ees.eval.dto.FinalGradeSearchCondition;
 import com.ees.eval.dto.FinalGradeTaskDTO;
 import java.util.List;
 
@@ -12,9 +13,9 @@ public interface FinalGradeService {
      * 특정 임원이 담당하는 최종 등급 확정 대상 목록을 조회합니다.
      * N+1 문제를 해결하기 위해 벌크 조회 및 메모리 매핑을 수행합니다.
      *
-     * @param periodId        평가 차수 ID
      * @param executiveEmpId 임원(평가자) 사번
+     * @param condition      검색 및 필터 조건 (periodId 포함)
      * @return 상태 플래그가 계산된 대상 목록
      */
-    List<FinalGradeTaskDTO> getFinalGradeTasks(Long periodId, Long executiveEmpId);
+    List<FinalGradeTaskDTO> getFinalGradeTasks(Long executiveEmpId, FinalGradeSearchCondition condition);
 }

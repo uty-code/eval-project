@@ -73,6 +73,7 @@ public class MyEvaluationFacadeServiceImpl implements MyEvaluationFacadeService 
         // 1. 매핑 조회 및 기본 검증
         EvaluatorMappingDTO mapping = validateAndGetMapping(mappingId, empId);
         data.put("mapping", mapping);
+        data.put("mappingId", mappingId);
 
         // 2. 피평가자 정보 및 가중치 검증
         Employee evaluatee = employeeMapper.findById(mapping.evaluateeId())

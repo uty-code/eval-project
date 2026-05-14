@@ -46,7 +46,8 @@ public class FinalGradeServiceImpl implements FinalGradeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<FinalGradeTaskDTO> getFinalGradeTasks(Long periodId, Long executiveEmpId) {
+    public List<FinalGradeTaskDTO> getFinalGradeTasks(Long executiveEmpId, com.ees.eval.dto.FinalGradeSearchCondition condition) {
+        Long periodId = condition.periodId();
         // 1. 임원의 평가 대상 목록(EXECUTIVE 매핑) 조회 (DB 필터링 적용)
         List<EvaluatorMapping> teamTasks = mappingMapper.findByEvaluatorId(periodId, executiveEmpId, RelationType.EXECUTIVE.getCode());
         if (teamTasks.isEmpty()) {
@@ -111,45 +112,57 @@ public class FinalGradeServiceImpl implements FinalGradeService {
 
         // 5. FinalGrade 벌크 조회
         List<FinalGrade> allGrades = finalGradeMapper.findByPeriodId(periodId);
-        Map<Long, FinalGrade> gradeMap = allGrades.stream()
-                .collect(Collectors.toMap(FinalGrade::getEmpId, g -> g, (a, b) -> a));
+        // 전체 차수 조회 시 empId만으로는 부족하므로 periodId + empId 복합키 사용
+        Map<String, FinalGrade> gradeMap = allGrades.stream()
+                .collect(Collectors.toMap(g -> g.getPeriodId() + "_" + g.getEmpId(), g -> g, (a, b) -> a));
 
-        // 6. 캐싱
+        // 6. 캐싱 및 차수별 데이터 준비
         Map<Long, Boolean> weightValidCache = new HashMap<>();
-        List<EvaluationElementDTO> globalElements = elementService.getElementsByPeriodId(periodId, null);
+        Map<String, List<com.ees.eval.dto.EvaluationTypeWeightDTO>> typeWeightsCache = new HashMap<>();
+        Map<String, List<EvaluationElementDTO>> elementCache = new HashMap<>();
+        Map<Long, List<EvaluationElementDTO>> globalElementsCache = new HashMap<>();
+        
         Set<Long> leaderEmpIds = departmentMapper.findAll().stream()
                 .map(com.ees.eval.domain.Department::getLeaderId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        Map<String, List<com.ees.eval.dto.EvaluationTypeWeightDTO>> typeWeightsCache = new HashMap<>();
-        Map<Long, List<EvaluationElementDTO>> elementCacheByDeptId = new HashMap<>();
 
-        // 7. 모수 전원의 종합 점수 추산 및 부서별(deptId) 예상 등급 부여
+        // 7. 모수 전원의 종합 점수 추산 및 차수/부서별 예상 등급 부여
         Map<Long, Integer> totalScoreMap = new HashMap<>();
         Map<Long, String> expectedGradeMap = new HashMap<>();
 
-        // 7-1. 점수 계산
-        for (Long empId : evaluateeIds) {
+        // 7-1. 점수 계산 (각 매핑의 실제 periodId 사용)
+        for (EvaluatorMapping mapping : allMappingsForEvaluatees) {
+            Long currentPeriodId = mapping.getPeriodId();
+            Long empId = mapping.getEvaluateeId();
             Employee evaluatee = employeeMap.get(empId);
-            Long deptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
+            if (evaluatee == null) continue;
+            
+            Long deptId = evaluatee.getDeptId();
             boolean isLeader = leaderEmpIds.contains(empId);
             String targetRole = isLeader ? "LEADER" : "STAFF";
 
-            String twKey = (deptId != null ? deptId : "null") + "_" + targetRole;
+            // 캐시 키: periodId + deptId + role
+            String cacheKey = currentPeriodId + "_" + (deptId != null ? deptId : "null") + "_" + targetRole;
+            
             List<com.ees.eval.dto.EvaluationTypeWeightDTO> typeWeights = typeWeightsCache.computeIfAbsent(
-                    twKey, k -> typeWeightService.getTypeWeights(periodId, deptId, targetRole));
+                    cacheKey, k -> typeWeightService.getTypeWeights(currentPeriodId, deptId, targetRole));
 
-            Long elemCacheKey = deptId != null ? deptId : -1L;
-            List<EvaluationElementDTO> allElements = elementCacheByDeptId.computeIfAbsent(elemCacheKey,
+            List<EvaluationElementDTO> allElements = elementCache.computeIfAbsent(currentPeriodId + "_" + (deptId != null ? deptId : "null"),
                     k -> {
-                        if (deptId == null) return globalElements;
-                        List<EvaluationElementDTO> deptElements = elementService.getElementsByPeriodId(periodId, deptId);
-                        return deptElements.isEmpty() ? globalElements : deptElements;
+                        List<EvaluationElementDTO> global = globalElementsCache.computeIfAbsent(currentPeriodId, 
+                                pid -> elementService.getElementsByPeriodId(pid, null));
+                        if (deptId == null) return global;
+                        List<EvaluationElementDTO> deptElements = elementService.getElementsByPeriodId(currentPeriodId, deptId);
+                        return deptElements.isEmpty() ? global : deptElements;
                     });
 
             Long selfId = selfMappingIdMap.get(empId);
             Long mgrId = managerMappingIdMap.get(empId);
             Long execId = executiveMappingIdMap.get(empId);
+            
+            // 현재 매핑에 해당하는 평가만 필터링 (벌크 조회 결과에서)
+            if (totalScoreMap.containsKey(empId) && periodId != null) continue;
 
             List<Evaluation> selfEvals = selfId != null ? evalGroupMap.getOrDefault(selfId, Collections.emptyList()) : Collections.emptyList();
             List<Evaluation> mgrEvals = mgrId != null ? evalGroupMap.getOrDefault(mgrId, Collections.emptyList()) : Collections.emptyList();
@@ -173,8 +186,7 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                 execComp = calcScore(execEvals, allElements, "COMPETENCY");
             }
 
-            // FinalGrade가 이미 확정된 경우 해당 점수를 쓰고, 아니면 추정
-            FinalGrade fg = gradeMap.get(empId);
+            FinalGrade fg = gradeMap.get(currentPeriodId + "_" + empId);
             if (fg != null && fg.getTotalScore() != null) {
                 totalScoreMap.put(empId, fg.getTotalScore());
                 if (fg.getFinalGradeCode() != null) {
@@ -189,22 +201,25 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             }
         }
 
-        // 7-2. 부서별로 그룹화하여 동적 상대평가 적용
-        Map<Long, List<Long>> empsByDept = evaluateeIds.stream()
-                .filter(id -> {
-                    Employee e = employeeMap.get(id);
-                    return e != null && e.getDeptId() != null && totalScoreMap.get(id) != null;
+        // 7-2. 차수별 + 부서별로 그룹화하여 동적 상대평가 적용
+        Map<String, List<Long>> empsByGroup = allMappingsForEvaluatees.stream()
+                .filter(m -> {
+                    Employee e = employeeMap.get(m.getEvaluateeId());
+                    return e != null && e.getDeptId() != null && totalScoreMap.get(m.getEvaluateeId()) != null;
                 })
-                .collect(Collectors.groupingBy(id -> employeeMap.get(id).getDeptId()));
+                .collect(Collectors.groupingBy(m -> m.getPeriodId() + "_" + employeeMap.get(m.getEvaluateeId()).getDeptId(),
+                        Collectors.mapping(EvaluatorMapping::getEvaluateeId, Collectors.toList())));
 
-        for (Map.Entry<Long, List<Long>> entry : empsByDept.entrySet()) {
-            Long deptId = entry.getKey();
-            List<Long> deptEmpIds = entry.getValue();
+        for (Map.Entry<String, List<Long>> groupEntry : empsByGroup.entrySet()) {
+            String groupKey = groupEntry.getKey();
+            Long currentPeriodId = Long.parseLong(groupKey.split("_")[0]);
+            Long deptId = Long.parseLong(groupKey.split("_")[1]);
+            List<Long> deptEmpIds = groupEntry.getValue().stream().distinct().collect(Collectors.toList());
 
             int totalEligible = deptEmpIds.size();
             if (totalEligible == 0) continue;
 
-            com.ees.eval.dto.EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatio(periodId, deptId);
+            com.ees.eval.dto.EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatio(currentPeriodId, deptId);
             double[] exact = {
                     totalEligible * ratio.gradeSRatio() / 100.0,
                     totalEligible * ratio.gradeARatio() / 100.0,
@@ -229,7 +244,6 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                 targets[indices.get(i)]++;
             }
 
-            // 점수순 내림차순 정렬
             deptEmpIds.sort((id1, id2) -> totalScoreMap.get(id2).compareTo(totalScoreMap.get(id1)));
 
             String[] gradeNames = {"S", "A", "B", "C", "D"};
@@ -246,7 +260,7 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                         expectedGradeMap.put(empId, gradeNames[currentGradeIndex]);
                         countInCurrentGrade++;
                     } else {
-                        expectedGradeMap.put(empId, "D"); // fallback
+                        expectedGradeMap.put(empId, "D");
                     }
                 } else {
                     countInCurrentGrade++;
@@ -259,30 +273,37 @@ public class FinalGradeServiceImpl implements FinalGradeService {
         }
 
         // 8. 대상자(teamTasks)에 대한 결과 DTO 조립
-        return teamTasks.stream().map(task -> {
+        List<FinalGradeTaskDTO> dtoList = teamTasks.stream().map(task -> {
+            Long currentPeriodId = task.getPeriodId();
             Employee evaluatee = employeeMap.get(task.getEvaluateeId());
             Long deptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
             boolean isLeader = leaderEmpIds.contains(task.getEvaluateeId());
             String targetRole = isLeader ? "LEADER" : "STAFF";
 
-            boolean weightValid = weightValidCache.computeIfAbsent(
-                    deptId != null ? deptId * 31 + targetRole.hashCode() : targetRole.hashCode() * 31L,
-                    id -> typeWeightService.isWeightSumValid(periodId, deptId, targetRole));
+            String cacheKey = currentPeriodId + "_" + (deptId != null ? deptId : "null") + "_" + targetRole;
 
-            String twKey = (deptId != null ? deptId : "null") + "_" + targetRole;
+            boolean weightValid = weightValidCache.computeIfAbsent(
+                    (long) cacheKey.hashCode(),
+                    id -> typeWeightService.isWeightSumValid(currentPeriodId, deptId, targetRole));
+
             List<com.ees.eval.dto.EvaluationTypeWeightDTO> typeWeights = typeWeightsCache.computeIfAbsent(
-                    twKey, k -> typeWeightService.getTypeWeights(periodId, deptId, targetRole));
+                    cacheKey, k -> typeWeightService.getTypeWeights(currentPeriodId, deptId, targetRole));
             List<String> requiredTypes = typeWeights.stream()
                     .map(com.ees.eval.dto.EvaluationTypeWeightDTO::elementTypeCode)
                     .collect(Collectors.toList());
 
-            Long elemCacheKey = deptId != null ? deptId : -1L;
-            List<EvaluationElementDTO> allElements = elementCacheByDeptId.computeIfAbsent(elemCacheKey,
-                    k -> {
-                        if (deptId == null) return globalElements;
-                        List<EvaluationElementDTO> deptElements = elementService.getElementsByPeriodId(periodId, deptId);
-                        return deptElements.isEmpty() ? globalElements : deptElements;
-                    });
+            List<EvaluationElementDTO> allElements = elementCache.get(currentPeriodId + "_" + (deptId != null ? deptId : "null"));
+            if (allElements == null) {
+                List<EvaluationElementDTO> global = globalElementsCache.computeIfAbsent(currentPeriodId, 
+                        pid -> elementService.getElementsByPeriodId(pid, null));
+                if (deptId == null) {
+                    allElements = global;
+                } else {
+                    List<EvaluationElementDTO> deptElements = elementService.getElementsByPeriodId(currentPeriodId, deptId);
+                    allElements = deptElements.isEmpty() ? global : deptElements;
+                }
+            }
+
             List<EvaluationElementDTO> requiredElements = allElements.stream()
                     .filter(e -> requiredTypes.contains(e.elementTypeCode()))
                     .collect(Collectors.toList());
@@ -321,6 +342,9 @@ public class FinalGradeServiceImpl implements FinalGradeService {
 
             return FinalGradeTaskDTO.builder()
                     .mappingId(task.getMappingId())
+                    .periodId(task.getPeriodId())
+                    .periodName(task.getPeriodName())
+                    .periodYear(task.getPeriodYear())
                     .evaluateeId(task.getEvaluateeId())
                     .evaluateeName(task.getEvaluateeName())
                     .deptName(evaluatee != null ? evaluatee.getDeptName() : task.getDeptName())
@@ -343,9 +367,29 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                     .isLeader(isLeader)
                     .deptId(deptId)
                     .build();
-        })
-        .sorted(Comparator.comparing(FinalGradeTaskDTO::deptName, Comparator.nullsLast(String::compareTo)))
-        .collect(Collectors.toList());
+        }).collect(Collectors.toList());
+
+        // 9. 실무형 후처리 필터링 적용 (상대평가 정합성 유지를 위해 조립 후 필터링)
+        String normalizedSearch = condition.getNormalizedSearch();
+        Long filterDeptId = condition.deptId();
+
+        return dtoList.stream()
+                .filter(task -> filterDeptId == null || filterDeptId.equals(task.deptId()))
+                .filter(task -> {
+                    if (normalizedSearch == null) return true;
+                    String empName = task.evaluateeName() != null ? task.evaluateeName().toLowerCase() : "";
+                    String empIdStr = task.empId() != null ? task.empId().toString() : "";
+                    return empName.contains(normalizedSearch) || empIdStr.contains(normalizedSearch);
+                })
+                .filter(task -> {
+                    if (!org.springframework.util.StringUtils.hasText(condition.status())) return true;
+                    if ("DONE".equals(condition.status())) return task.allSubmitted();
+                    if ("WAIT".equals(condition.status())) return !task.allSubmitted();
+                    return true;
+                })
+                .sorted(Comparator.comparing(FinalGradeTaskDTO::deptName, Comparator.nullsLast(String::compareTo))
+                        .thenComparing(FinalGradeTaskDTO::evaluateeName, Comparator.nullsLast(String::compareTo)))
+                .collect(Collectors.toList());
     }
 
     private boolean isAllSubmitted(List<EvaluationElementDTO> elements, List<Evaluation> evaluations) {
