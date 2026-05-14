@@ -11,5 +11,6 @@ public record EmployeeDashboardDTO(
     String selfEvalStatus, // NOT_STARTED, IN_PROGRESS, COMPLETED
     int pendingPeerEvals,
     int totalPeerEvals,
-    List<Map<String, Object>> myRecentGrades // period_name, final_grade_code
+    List<Map<String, Object>> myRecentGrades, // period_name, final_grade_code
+    EvaluationResultDTO currentResult
 ) {}

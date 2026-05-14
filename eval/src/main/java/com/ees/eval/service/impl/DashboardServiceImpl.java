@@ -4,11 +4,13 @@ import com.ees.eval.dto.DashboardStatsDTO;
 import com.ees.eval.dto.EmployeeDashboardDTO;
 import com.ees.eval.dto.EvaluationPeriodDTO;
 import com.ees.eval.dto.RecentActivityDTO;
+import com.ees.eval.dto.EvaluationResultDTO;
 import com.ees.eval.mapper.DashboardMapper;
 import com.ees.eval.service.DashboardService;
 import com.ees.eval.service.DepartmentService;
 import com.ees.eval.service.EmployeeService;
 import com.ees.eval.service.EvaluationPeriodService;
+import com.ees.eval.service.EvaluationResultService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final EmployeeService employeeService;
     private final DepartmentService departmentService;
     private final EvaluationPeriodService periodService;
+    private final EvaluationResultService resultService;
 
     @Override
     @Transactional(readOnly = true)
@@ -134,6 +137,14 @@ public class DashboardServiceImpl implements DashboardService {
         // 4. D-Day 계산
         long dDay = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), activePeriod.endDate());
 
+        // 5. 현재 평가 차수 상세 결과
+        Long deptId = employeeService.getEmployeeById(empId).deptId();
+        List<EvaluationResultDTO> results = resultService.getResults(periodId, deptId);
+        EvaluationResultDTO currentResult = results.stream()
+                .filter(r -> r.empId().equals(empId))
+                .findFirst()
+                .orElse(null);
+
         return EmployeeDashboardDTO.builder()
                 .activePeriodName(activePeriod.periodName())
                 .dDay(dDay)
@@ -141,6 +152,7 @@ public class DashboardServiceImpl implements DashboardService {
                 .pendingPeerEvals(totalPeer - completedPeer)
                 .totalPeerEvals(totalPeer)
                 .myRecentGrades(recentGrades)
+                .currentResult(currentResult)
                 .build();
     }
 }
