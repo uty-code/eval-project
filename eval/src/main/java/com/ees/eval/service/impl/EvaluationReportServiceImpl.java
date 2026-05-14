@@ -22,6 +22,24 @@ import java.util.stream.Collectors;
 @Service
 public class EvaluationReportServiceImpl implements EvaluationReportService {
 
+    private enum GradeColor {
+        S("10B981"), A("A855F7"), B("3B82F6"), C("F59E0B"), D("EF4444");
+
+        private final String hex;
+
+        GradeColor(String hex) { this.hex = hex; }
+
+        public String getHex() { return hex; }
+
+        public static String getHexByGrade(String grade) {
+            try {
+                return GradeColor.valueOf(grade).getHex();
+            } catch (IllegalArgumentException | NullPointerException e) {
+                return null;
+            }
+        }
+    }
+
     @Override
     public void generatePremiumReport(EvaluationPeriodDTO period, List<EvaluationResultDTO> results, HttpServletResponse response) throws IOException {
         
@@ -152,9 +170,9 @@ public class EvaluationReportServiceImpl implements EvaluationReportService {
             series1.setTitle("등급 분포", null);
             
             // --- 각 슬라이스별 색상 지정 (S, A, B, C, D 순서) ---
-            String[] hexColors = {"10B981", "A855F7", "3B82F6", "F59E0B", "EF4444"};
-            for (int i = 0; i < hexColors.length; i++) {
-                setSliceColor(series1, i, hexColors[i]);
+            GradeColor[] colors = GradeColor.values();
+            for (int i = 0; i < colors.length; i++) {
+                setSliceColor(series1, i, colors[i].getHex());
             }
 
             chart1.plot(data1);
@@ -361,12 +379,7 @@ public class EvaluationReportServiceImpl implements EvaluationReportService {
         XSSFFont font = xwb.createFont();
         font.setBold(true);
 
-        String hex = null;
-        if ("S".equals(grade)) hex = "10B981";
-        else if ("A".equals(grade)) hex = "A855F7";
-        else if ("B".equals(grade)) hex = "3B82F6";
-        else if ("C".equals(grade)) hex = "F59E0B";
-        else if ("D".equals(grade)) hex = "EF4444";
+        String hex = GradeColor.getHexByGrade(grade);
 
         if (hex != null) {
             byte[] rgb = hexToBytes(hex);

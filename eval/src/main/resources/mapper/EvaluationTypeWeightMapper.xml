@@ -49,6 +49,19 @@
         )
     </insert>
 
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="weightId">
+        INSERT INTO evaluation_type_weights_51 (
+            period_id, dept_id, target_role_code, element_type_code, weight, 
+            is_deleted, version, created_at, created_by
+        ) VALUES 
+        <foreach collection="weights" item="weight" separator=",">
+        (
+            #{weight.periodId}, #{weight.deptId}, #{weight.targetRoleCode}, #{weight.elementTypeCode}, #{weight.weight}, 
+            'n', 0, GETDATE(), #{weight.createdBy}
+        )
+        </foreach>
+    </insert>
+
     <update id="update">
         UPDATE evaluation_type_weights_51
         SET weight = #{weight},

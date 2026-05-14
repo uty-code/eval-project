@@ -145,6 +145,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         }
 
         List<EvaluatorMappingDTO> results = new ArrayList<>();
+        List<EvaluatorMapping> mappingsToInsert = new ArrayList<>();
+        
         for (Long evaluatorId : evaluatorIds) {
             // 본인/타인 관계 검증
             validateSelfMapping(evaluateeId, evaluatorId, relationTypeCode);
@@ -174,8 +176,12 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                     .relationTypeCode(relationTypeCode)
                     .build();
             mapping.prePersist();
-            mappingMapper.insert(mapping);
+            mappingsToInsert.add(mapping);
             results.add(enrichDto(mapping));
+        }
+        
+        if (!mappingsToInsert.isEmpty()) {
+            mappingMapper.insertBatch(mappingsToInsert);
         }
         return results;
     }

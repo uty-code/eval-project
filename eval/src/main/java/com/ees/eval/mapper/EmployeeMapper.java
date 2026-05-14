@@ -139,6 +139,18 @@ public interface EmployeeMapper {
                            @Param("createdBy") Long createdBy, @Param("createdAt") LocalDateTime createdAt);
 
     /**
+     * 다건의 사원-권한 매핑 정보를 employee_roles_51 테이블에 일괄 저장합니다 (Batch).
+     *
+     * @param empId 사원 식별자
+     * @param roleIds 권한 식별자 리스트
+     * @param createdBy 생성자 ID
+     * @param createdAt 생성 시각
+     * @return 삽입된 행의 수
+     */
+    int insertEmployeeRolesBatch(@Param("empId") Long empId, @Param("roleIds") List<Long> roleIds,
+                                 @Param("createdBy") Long createdBy, @Param("createdAt") LocalDateTime createdAt);
+
+    /**
      * 특정 사원의 모든 권한 매핑을 소프트 삭제 처리합니다. (권한 교체 시 사전 초기화용)
      *
      * @param empId     대상 사원 식별자

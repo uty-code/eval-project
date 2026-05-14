@@ -312,6 +312,23 @@
             VALUES (source.emp_id, source.role_id, 'n', 0, #{createdAt}, #{createdBy});
     </insert>
 
+    <!-- 사원-권한 매핑 다건 일괄 삽입 (Batch) -->
+    <insert id="insertEmployeeRolesBatch">
+        <foreach collection="roleIds" item="roleId" separator=";">
+            MERGE INTO employee_roles_51 WITH (HOLDLOCK) AS target
+            USING (SELECT #{empId} AS emp_id, #{roleId} AS role_id) AS source
+            ON target.emp_id = source.emp_id AND target.role_id = source.role_id
+            WHEN MATCHED THEN
+                UPDATE SET 
+                    is_deleted = 'n',
+                    updated_at = #{createdAt},
+                    updated_by = #{createdBy}
+            WHEN NOT MATCHED THEN
+                INSERT (emp_id, role_id, is_deleted, version, created_at, created_by)
+                VALUES (source.emp_id, source.role_id, 'n', 0, #{createdAt}, #{createdBy});
+        </foreach>
+    </insert>
+
     <!-- 사원의 모든 권한 매핑을 소프트 삭제 처리 (권한 교체용 초기화) -->
     <update id="deleteEmployeeRolesByEmpId">
         update employee_roles_51

@@ -85,14 +85,14 @@
                 <div class="text-center py-5" th:if="${selfTask != null}">
                     <th:block th:with="allSubmitted=${isLeader ? selfPeerSubmitted : (selfPerfSubmitted and selfCompSubmitted)}">
                         
-                        <!-- [통합 버튼: 제출 완료 또는 잠금] -->
-                        <div th:if="${allSubmitted or isLocked}">
+                        <!-- [통합 액션 버튼] -->
+                        <div>
                             <a th:href="@{/eval/my-evaluation/wizard(mappingId=${selfTask.mappingId()})}"
                                hx-get="" th:hx-get="@{/eval/my-evaluation/wizard(mappingId=${selfTask.mappingId()})}"
                                hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML show:window:top" hx-push-url="true"
                                class="btn btn-lg px-5 py-3 rounded-pill shadow-lg border-0 text-white" 
-                               th:classappend="${isLocked ? 'bg-secondary' : 'bg-success'}"
-                               th:style="${isLocked ? 'min-width: 400px; background: linear-gradient(135deg, #4b5563 0%, #1f2937 100%) !important;' : 'min-width: 400px; background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;'}">
+                               th:classappend="${isLocked ? 'bg-secondary' : (allSubmitted ? 'bg-success' : 'btn-primary')}"
+                               th:style="${isLocked ? 'min-width: 400px; background: linear-gradient(135deg, #4b5563 0%, #1f2937 100%) !important;' : (allSubmitted ? 'min-width: 400px; background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;' : 'min-width: 400px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); transition: transform 0.2s;')}">
                                 
                                 <th:block th:if="${isLocked}">
                                     <i class="bi bi-lock-fill me-2"></i>
@@ -102,6 +102,10 @@
                                     <i class="bi bi-check-circle-fill me-2"></i>
                                     <span class="fs-5 fw-bold">자가평가 완료 (작성 내용 확인)</span>
                                 </th:block>
+                                <th:block th:if="${!isLocked and !allSubmitted}">
+                                    <i class="bi bi-magic me-2"></i> 
+                                    <span class="fs-5 fw-bold" th:text="${(isLeader ? selfPeerSubmitted : (selfPerfSubmitted or selfCompSubmitted)) ? '자가평가 계속하기' : '자가평가 시작하기'}">자가평가 시작하기</span>
+                                </th:block>
                             </a>
                             <p class="text-muted mt-4 small" th:if="${isLocked}">
                                 <i class="bi bi-info-circle me-1"></i> 평가자가 평가를 시작하여 내용을 수정할 수 없습니다.
@@ -109,19 +113,7 @@
                             <p class="text-muted mt-4 small" th:if="${!isLocked and allSubmitted}">
                                 <i class="bi bi-info-circle me-1"></i> 자가평가 제출이 완료되었습니다. 내용은 언제든 확인 가능합니다.
                             </p>
-                        </div>
-
-                        <!-- [통합 버튼: 작성 가능] -->
-                        <div th:unless="${allSubmitted or isLocked}">
-                            <a th:href="@{/eval/my-evaluation/wizard(mappingId=${selfTask.mappingId()})}"
-                               hx-get="" th:hx-get="@{/eval/my-evaluation/wizard(mappingId=${selfTask.mappingId()})}"
-                               hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML show:window:top" hx-push-url="true"
-                               class="btn btn-primary btn-lg px-5 py-3 rounded-pill shadow-lg border-0"
-                               style="min-width: 400px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); transition: transform 0.2s;">
-                                <i class="bi bi-magic me-2"></i> 
-                                <span class="fs-5 fw-bold" th:text="${(isLeader ? selfPeerSubmitted : (selfPerfSubmitted or selfCompSubmitted)) ? '자가평가 계속하기' : '자가평가 시작하기'}">자가평가 시작하기</span>
-                            </a>
-                            <p class="text-muted mt-4">
+                            <p class="text-muted mt-4" th:if="${!isLocked and !allSubmitted}">
                                 <i class="bi bi-info-circle me-1"></i> 통합 마법사를 통해 쉽고 빠르게 평가를 작성할 수 있습니다.
                             </p>
                         </div>

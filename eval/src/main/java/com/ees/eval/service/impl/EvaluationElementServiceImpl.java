@@ -192,7 +192,8 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
         // 2. 전사 공통 설정 조회
         List<EvaluationElement> commonElements = elementMapper.findByPeriodId(periodId, null);
 
-        // 3. 공통 설정을 부서 전용으로 복사하여 저장
+        // 3. 공통 설정을 부서 전용으로 복사하여 리스트에 수집
+        List<EvaluationElement> elementsToInsert = new java.util.ArrayList<>();
         for (EvaluationElement common : commonElements) {
             EvaluationElement deptElement = EvaluationElement.builder()
                     .periodId(periodId)
@@ -203,7 +204,12 @@ public class EvaluationElementServiceImpl implements EvaluationElementService {
                     .weight(common.getWeight())
                     .build();
             deptElement.prePersist();
-            elementMapper.insert(deptElement);
+            elementsToInsert.add(deptElement);
+        }
+
+        // 4. Batch Insert로 한 번에 저장 (N+1 Insert 방지)
+        if (!elementsToInsert.isEmpty()) {
+            elementMapper.insertBatch(elementsToInsert);
         }
     }
 

@@ -16,6 +16,8 @@ public interface EvaluationTypeWeightMapper {
     
     int insert(EvaluationTypeWeight weight);
     
+    int insertBatch(@Param("weights") List<EvaluationTypeWeight> weights);
+    
     int update(EvaluationTypeWeight weight);
     
     int deleteByPeriodId(@Param("periodId") Long periodId, @Param("deptId") Long deptId, @Param("targetRoleCode") String targetRoleCode);

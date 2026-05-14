@@ -36,7 +36,17 @@ public class EvaluationServiceImpl implements EvaluationService {
             }
         });
 
-        // 2. 각 요소별 Upsert 처리
+        // 2. Fetch all existing evaluations for this mappingId
+        List<Evaluation> existingEvaluations = evaluationMapper.findByMappingId(mappingId);
+        Map<Long, Evaluation> existingMap = new HashMap<>();
+        if (existingEvaluations != null) {
+            existingEvaluations.forEach(e -> existingMap.put(e.getElementId(), e));
+        }
+
+        List<Evaluation> toInsert = new ArrayList<>();
+        List<Evaluation> toUpdate = new ArrayList<>();
+
+        // 3. Process each element and categorise into Insert or Update
         for (Long elementId : elementIds) {
             String comment = params.get("comment_" + elementId);
             String scoreStr = params.get("score_" + elementId);
@@ -49,28 +59,35 @@ public class EvaluationServiceImpl implements EvaluationService {
             final Integer finalScore = score;
             final String finalComment = (comment != null) ? comment.trim() : "";
 
-            evaluationMapper.findByMappingIdAndElementId(mappingId, elementId)
-                    .ifPresentOrElse(
-                            existing -> {
-                                existing.setReason(finalComment);
-                                existing.setScore(finalScore);
-                                existing.setConfirmStatusCode("SUBMITTED");
-                                existing.preUpdate();
-                                evaluationMapper.update(existing);
-                            },
-                            () -> {
-                                Evaluation eval = Evaluation.builder()
-                                        .mappingId(mappingId)
-                                        .elementId(elementId)
-                                        .confirmStatusCode("SUBMITTED")
-                                        .build();
-                                eval.setReason(finalComment);
-                                eval.setScore(finalScore);
-                                eval.prePersist();
-                                eval.setCreatedBy(empId);
-                                eval.setUpdatedBy(empId);
-                                evaluationMapper.insert(eval);
-                            });
+            if (existingMap.containsKey(elementId)) {
+                Evaluation existing = existingMap.get(elementId);
+                existing.setReason(finalComment);
+                existing.setScore(finalScore);
+                existing.setConfirmStatusCode("SUBMITTED");
+                existing.preUpdate();
+                existing.setUpdatedBy(empId);
+                toUpdate.add(existing);
+            } else {
+                Evaluation eval = Evaluation.builder()
+                        .mappingId(mappingId)
+                        .elementId(elementId)
+                        .confirmStatusCode("SUBMITTED")
+                        .build();
+                eval.setReason(finalComment);
+                eval.setScore(finalScore);
+                eval.prePersist();
+                eval.setCreatedBy(empId);
+                eval.setUpdatedBy(empId);
+                toInsert.add(eval);
+            }
+        }
+
+        // 4. Execute batch operations
+        if (!toInsert.isEmpty()) {
+            evaluationMapper.insertBatch(toInsert);
+        }
+        if (!toUpdate.isEmpty()) {
+            evaluationMapper.updateBatch(toUpdate);
         }
 
         return elementIds;

@@ -87,6 +87,23 @@
         )
     </insert>
 
+    <!-- 여러 평가 항목 다중 삽입 (Batch Insert) -->
+    <insert id="insertBatch">
+        insert into evaluation_elements_51 (
+            period_id, dept_id, element_type_code, element_name,
+            max_score, weight,
+            is_deleted, version, created_at, created_by
+        ) values 
+        <foreach collection="elements" item="element" separator=",">
+        (
+            #{element.periodId}, #{element.deptId}, #{element.elementTypeCode}, #{element.elementName},
+            #{element.maxScore}, #{element.weight},
+            #{element.isDeleted}, #{element.version}, #{element.createdAt}, #{element.createdBy}
+        )
+        </foreach>
+    </insert>
+
+
     <!-- 평가 항목 수정 (낙관적 락 포함) -->
     <update id="update">
         update evaluation_elements_51

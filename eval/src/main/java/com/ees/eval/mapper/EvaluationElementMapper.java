@@ -55,6 +55,14 @@ public interface EvaluationElementMapper {
     int insert(EvaluationElement element);
 
     /**
+     * 다중 평가 항목을 한 번에 저장합니다. (Batch Insert)
+     *
+     * @param elements 저장할 항목 리스트
+     * @return 삽입된 행의 수
+     */
+    int insertBatch(@Param("elements") List<EvaluationElement> elements);
+
+    /**
      * 항목 정보를 수정합니다. 낙관적 락이 적용됩니다.
      *
      * @param element 수정할 항목 엔티티

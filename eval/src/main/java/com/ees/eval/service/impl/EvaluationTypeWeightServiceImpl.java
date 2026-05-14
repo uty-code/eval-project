@@ -73,17 +73,21 @@ public class EvaluationTypeWeightServiceImpl implements EvaluationTypeWeightServ
         // 기존 가중치 삭제 (Soft delete)
         weightMapper.deleteByPeriodId(periodId, deptId, targetRoleCode);
 
-        // 신규 가중치 저장
-        for (EvaluationTypeWeightDTO dto : weights) {
-            EvaluationTypeWeight entity = EvaluationTypeWeight.builder()
-                    .periodId(periodId)
-                    .deptId(deptId)
-                    .targetRoleCode(targetRoleCode)
-                    .elementTypeCode(dto.elementTypeCode())
-                    .weight(dto.weight())
-                    .build();
-            entity.prePersist();
-            weightMapper.insert(entity);
+        // 신규 가중치 일괄 저장 (Batch)
+        if (!weights.isEmpty()) {
+            List<EvaluationTypeWeight> entities = weights.stream().map(dto -> {
+                EvaluationTypeWeight entity = EvaluationTypeWeight.builder()
+                        .periodId(periodId)
+                        .deptId(deptId)
+                        .targetRoleCode(targetRoleCode)
+                        .elementTypeCode(dto.elementTypeCode())
+                        .weight(dto.weight())
+                        .build();
+                entity.prePersist();
+                return entity;
+            }).collect(Collectors.toList());
+            
+            weightMapper.insertBatch(entities);
         }
     }
 

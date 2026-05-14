@@ -190,10 +190,25 @@ public class DepartmentServiceImpl implements DepartmentService {
         departmentMapper.findById(deptId)
                 .orElseThrow(() -> new IllegalArgumentException("부서를 찾을 수 없습니다. deptId: " + deptId));
 
-        // 2. 부서 소속 사원 목록 조회 후 DTO 변환 (권한 정보 포함)
-        return employeeMapper.findByDeptId(deptId).stream()
+        // 2. 부서 소속 사원 목록 조회
+        List<Employee> employees = employeeMapper.findByDeptId(deptId);
+        if (employees.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 3. N+1 방지: 사원들의 권한 목록 일괄 조회
+        List<Long> empIds = employees.stream().map(Employee::getEmpId).collect(Collectors.toList());
+        List<Map<String, Object>> roleMaps = employeeMapper.findRoleNamesByEmpIds(empIds);
+
+        Map<Long, List<String>> empRolesMap = roleMaps.stream()
+                .collect(Collectors.groupingBy(
+                        row -> ((Number) row.get("EMP_ID")).longValue(),
+                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())));
+
+        // 4. DTO 변환
+        return employees.stream()
                 .map(emp -> {
-                    List<String> roleNames = employeeMapper.findRoleNamesByEmpId(emp.getEmpId());
+                    List<String> roleNames = empRolesMap.getOrDefault(emp.getEmpId(), Collections.emptyList());
                     return convertEmployeeToDto(emp, roleNames);
                 })
                 .collect(Collectors.toList());
