@@ -18,10 +18,12 @@
             m.created_at        as CREATED_AT,
             m.created_by        as CREATED_BY,
             m.updated_at        as UPDATED_AT,
-            m.updated_by        as UPDATED_BY
+            m.updated_by        as UPDATED_BY,
+            p.position_name     as TITLE_NAME
         from evaluator_mappings_51 m
         inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
         inner join employees_51 e2 on m.evaluator_id = e2.emp_id
+        left join positions_51 p on e1.position_id = p.position_id and p.is_deleted = 'n'
         where m.mapping_id = #{mappingId}
           and m.is_deleted = 'n'
     </select>
@@ -42,11 +44,13 @@
             m.created_at        as CREATED_AT,
             m.created_by        as CREATED_BY,
             m.updated_at        as UPDATED_AT,
-            m.updated_by        as UPDATED_BY
+            m.updated_by        as UPDATED_BY,
+            p.position_name     as TITLE_NAME
         from evaluator_mappings_51 m
         inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
         inner join employees_51 e2 on m.evaluator_id = e2.emp_id
         left join departments_51 d on e1.dept_id = d.dept_id and d.is_deleted = 'n'
+        left join positions_51 p on e1.position_id = p.position_id and p.is_deleted = 'n'
         where m.period_id = #{periodId}
           and m.is_deleted = 'n'
           <if test="deptId != null">
@@ -72,17 +76,21 @@
             m.relation_type_code as RELATION_TYPE_CODE,
             e1.name             as EVALUATEE_NAME,
             e2.name             as EVALUATOR_NAME,
-            p.period_name       as PERIOD_NAME,
+            ep.period_name       as PERIOD_NAME,
             m.is_deleted        as IS_DELETED,
             m.version           as VERSION,
             m.created_at        as CREATED_AT,
             m.created_by        as CREATED_BY,
             m.updated_at        as UPDATED_AT,
-            m.updated_by        as UPDATED_BY
+            m.updated_by        as UPDATED_BY,
+            d.dept_name         as DEPT_NAME,
+            pos.position_name     as TITLE_NAME
         from evaluator_mappings_51 m
         inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
         inner join employees_51 e2 on m.evaluator_id = e2.emp_id
-        inner join evaluation_periods_51 p on m.period_id = p.period_id
+        inner join evaluation_periods_51 ep on m.period_id = ep.period_id
+        left join departments_51 d on e1.dept_id = d.dept_id and d.is_deleted = 'n'
+        left join positions_51 pos on e1.position_id = pos.position_id and pos.is_deleted = 'n'
         <where>
             <if test="periodId != null">
                 and m.period_id = #{periodId}
@@ -94,7 +102,7 @@
                 and m.relation_type_code = #{relationTypeCode}
             </if>
         </where>
-        order by p.start_date desc, m.mapping_id desc
+        order by ep.start_date desc, m.mapping_id desc
     </select>
 
     <!-- 나를 평가하는 사람 목록 (evaluatee_id = 나) -->
@@ -112,17 +120,19 @@
             m.created_at        as CREATED_AT,
             m.created_by        as CREATED_BY,
             m.updated_at        as UPDATED_AT,
-            m.updated_by        as UPDATED_BY
+            m.updated_by        as UPDATED_BY,
+            d.dept_name         as DEPT_NAME,
+            p.position_name     as TITLE_NAME
         from evaluator_mappings_51 m
         inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
         inner join employees_51 e2 on m.evaluator_id = e2.emp_id
+        left join departments_51 d on e1.dept_id = d.dept_id and d.is_deleted = 'n'
+        left join positions_51 p on e1.position_id = p.position_id and p.is_deleted = 'n'
         where m.period_id = #{periodId}
           and m.evaluatee_id = #{evaluateeId}
           and m.is_deleted = 'n'
           and e1.status_code = 'EMPLOYED'
         order by m.relation_type_code asc, m.evaluator_id asc
-
-
     </select>
 
     <!-- 동일 관계 중복 존재 여부 확인 (차수+피평가자+평가자+관계유형) -->

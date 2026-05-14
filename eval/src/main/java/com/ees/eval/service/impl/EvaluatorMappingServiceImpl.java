@@ -740,6 +740,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                 .evaluateeName(mapping.getEvaluateeName() != null ? mapping.getEvaluateeName() : "알 수 없음")
                 .evaluatorName(mapping.getEvaluatorName() != null ? mapping.getEvaluatorName() : "알 수 없음")
                 .deptName(mapping.getDeptName())
+                .titleName(mapping.getTitleName())
                 .isDeleted(mapping.getIsDeleted())
                 .version(mapping.getVersion())
                 .createdAt(mapping.getCreatedAt())

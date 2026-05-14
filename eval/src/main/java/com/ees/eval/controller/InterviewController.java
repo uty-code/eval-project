@@ -5,6 +5,7 @@ import com.ees.eval.dto.EvaluationPeriodDTO;
 import com.ees.eval.dto.EvaluatorMappingDTO;
 import com.ees.eval.dto.InterviewDTO;
 import com.ees.eval.dto.InterviewTaskDTO;
+import com.ees.eval.service.EmployeeService;
 import com.ees.eval.service.EvaluationPeriodService;
 import com.ees.eval.service.EvaluatorMappingService;
 import com.ees.eval.service.InterviewService;
@@ -32,6 +33,7 @@ public class InterviewController {
     private final EvaluationPeriodService periodService;
     private final EvaluatorMappingService mappingService;
     private final InterviewService interviewService;
+    private final EmployeeService employeeService;
 
     @GetMapping
     public String list(Model model,
@@ -68,16 +70,42 @@ public class InterviewController {
             teamTasks.forEach(m -> allMappingIds.add(m.mappingId()));
             receivedTasks.forEach(m -> allMappingIds.add(m.mappingId()));
 
+            // 임원이 조회할 대상자들의 부서장 매핑 ID 찾기 및 상태 조회를 위해 ID 추가
+            java.util.Map<Long, Long> evaluateeToManagerMappingId = new java.util.HashMap<>();
+            List<Long> executiveTargetEvaluateeIds = teamTasks.stream()
+                    .filter(m -> "EXECUTIVE".equals(m.relationTypeCode()))
+                    .map(EvaluatorMappingDTO::evaluateeId)
+                    .toList();
+
+            for (Long evId : executiveTargetEvaluateeIds) {
+                mappingService.getMyEvaluators(selectedPeriod.periodId(), evId).stream()
+                        .filter(e -> "MANAGER".equals(e.relationTypeCode()))
+                        .findFirst()
+                        .ifPresent(e -> {
+                            evaluateeToManagerMappingId.put(evId, e.mappingId());
+                            if (!allMappingIds.contains(e.mappingId())) {
+                                allMappingIds.add(e.mappingId());
+                            }
+                        });
+            }
+
             // Batch 조회 실행
             java.util.Map<Long, InterviewDTO> interviewMap = interviewService.getInterviewsByMappingIds(allMappingIds);
 
             // 3. 팀 평가 목록 DTO 변환
             List<InterviewTaskDTO> tasks = teamTasks.stream().map(m -> {
-                InterviewDTO interview = interviewMap.get(m.mappingId());
+                Long targetMappingId = m.mappingId();
+                if ("EXECUTIVE".equals(m.relationTypeCode())) {
+                    targetMappingId = evaluateeToManagerMappingId.getOrDefault(m.evaluateeId(), m.mappingId());
+                }
+                InterviewDTO interview = interviewMap.get(targetMappingId);
                 String combinedContent = getCombinedContent(interview);
                 return InterviewTaskDTO.builder()
-                        .mappingId(m.mappingId())
+                        .mappingId(m.mappingId()) // UI 액션 링크 유지를 위해 본인 매핑 ID 사용
+                        .empId(m.evaluateeId())
                         .evaluateeName(m.evaluateeName())
+                        .deptName(m.deptName())
+                        .titleName(m.titleName())
                         .relationTypeCode(m.relationTypeCode())
                         .statusCode(interview != null ? interview.statusCode() : "NOT_STARTED")
                         .contentSnippet(combinedContent.length() > 50 ? combinedContent.substring(0, 50) + "..." : combinedContent.trim())
@@ -95,9 +123,13 @@ public class InterviewController {
             List<InterviewTaskDTO> myResults = isHighRank ? java.util.Collections.emptyList() : receivedTasks.stream().map(m -> {
                 InterviewDTO interview = interviewMap.get(m.mappingId());
                 String combinedContent = getCombinedContent(interview);
+                com.ees.eval.dto.EmployeeDTO evaluator = employeeService.getEmployeeById(m.evaluatorId());
                 return InterviewTaskDTO.builder()
                         .mappingId(m.mappingId())
+                        .empId(m.evaluateeId())
                         .evaluateeName(m.evaluatorName())
+                        .deptName(evaluator.deptName())
+                        .titleName(evaluator.positionName())
                         .relationTypeCode(m.relationTypeCode())
                         .statusCode(interview != null ? interview.statusCode() : "NOT_STARTED")
                         .contentSnippet(combinedContent.length() > 50 ? combinedContent.substring(0, 50) + "..." : combinedContent.trim())
@@ -140,10 +172,28 @@ public class InterviewController {
             return "redirect:/eval/interview";
         }
 
-        // 1. 인터뷰 데이터 조회 (없으면 기본값 생성)
-        InterviewDTO interview = interviewService.getInterviewByMappingId(mappingId)
+        boolean isExecutive = "EXECUTIVE".equals(mapping.relationTypeCode());
+        Long targetMappingId = mappingId;
+
+        if (isExecutive && isEvaluator) {
+            java.util.List<EvaluatorMappingDTO> evaluators = mappingService.getMyEvaluators(mapping.periodId(), mapping.evaluateeId());
+            targetMappingId = evaluators.stream()
+                    .filter(m -> "MANAGER".equals(m.relationTypeCode()))
+                    .map(EvaluatorMappingDTO::mappingId)
+                    .findFirst()
+                    .orElse(mappingId);
+            
+            // 임원은 수정 불가 (읽기 전용)
+            isEvaluator = false;
+            model.addAttribute("isExecutiveReadOnly", true);
+        } else {
+            model.addAttribute("isExecutiveReadOnly", false);
+        }
+
+        // 1. 인터뷰 데이터 조회 (타겟 매핑 ID 기준, 없으면 기본값 생성)
+        InterviewDTO interview = interviewService.getInterviewByMappingId(targetMappingId)
                 .orElse(InterviewDTO.builder()
-                        .mappingId(mappingId)
+                        .mappingId(targetMappingId)
                         .content1("")
                         .content2("")
                         .content3("")
@@ -151,9 +201,9 @@ public class InterviewController {
                         .statusCode("NOT_STARTED")
                         .build());
         
-        // 2. 피평가자인데 아직 작성이 안된 경우 체크
-        if (isEvaluatee && "NOT_STARTED".equals(interview.statusCode())) {
-            redirectAttributes.addFlashAttribute("errorMessage", "아직 작성된 면담 기록이 없습니다.");
+        // 2. 피평가자는 확정(COMPLETED)된 면담 기록만 조회 가능
+        if (isEvaluatee && !"COMPLETED".equals(interview.statusCode())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "아직 확정된 면담 기록이 없습니다.");
             return "redirect:/eval/interview";
         }
 
