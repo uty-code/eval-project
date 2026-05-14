@@ -209,82 +209,81 @@
                 <!-- ====== STEP 1: 성과 평가 ====== -->
                 <div class="wizard-step active" id="step-1">
                     <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
-                    <h3 class="text-white mb-4"><i class="bi bi-bar-chart-fill text-primary me-2"></i>성과 평가 항목</h3>
+                        <h3 class="text-white mb-4"><i class="bi bi-bar-chart-fill text-primary me-2"></i>성과 평가 항목</h3>
 
-                    <div th:if="${performanceElements == null || performanceElements.isEmpty()}"
-                        class="eval-card text-center py-5">
-                        <i class="bi bi-info-circle fs-1 text-muted mb-3 d-block"></i>
-                        <h5 class="text-white fw-bold">등록된 성과 평가요소가 없습니다.</h5>
-                    </div>
-
-                    <div th:each="element : ${performanceElements}" class="eval-card">
-                        <div class="eval-card-header">
-                            <div class="eval-title">
-                                <i class="bi bi-check2-square"></i>
-                                <span th:text="${element.elementName()}">성과 항목</span>
-                            </div>
-                            <div class="weight-badge">
-                                가중치 <span th:text="${element.weight() + '%'}">40%</span>
-                            </div>
+                        <div th:if="${performanceElements == null || performanceElements.isEmpty()}"
+                            class="eval-card text-center py-5">
+                            <i class="bi bi-info-circle fs-1 text-muted mb-3 d-block"></i>
+                            <h5 class="text-white fw-bold">등록된 성과 평가요소가 없습니다.</h5>
                         </div>
 
-                        <!-- 자가평가 참고 -->
-                        <div class="mb-4">
-                            <div class="field-label">
-                                <i class="bi bi-person-badge"></i> 대상자의 자가 평가 (제출된 실적 기록)
-                            </div>
-                            <div class="eval-textarea" readonly
-                                th:with="hasSelfEval=${selfEvalMap != null and selfEvalMap.containsKey(element.elementId()) and (selfEvalMap.get(element.elementId()).getScore() != null or (selfEvalMap.get(element.elementId()).getReason() != null and selfEvalMap.get(element.elementId()).getReason() != ''))}"
-                                th:text="${hasSelfEval ? (selfEvalMap.get(element.elementId()).getScore() != null ? selfEvalMap.get(element.elementId()).getScore() + '점' : '') + (selfEvalMap.get(element.elementId()).getScore() != null and selfEvalMap.get(element.elementId()).getReason() != null and selfEvalMap.get(element.elementId()).getReason() != '' ? ' - ' : '') + (selfEvalMap.get(element.elementId()).getReason() != null ? selfEvalMap.get(element.elementId()).getReason() : '') : '작성된 자가 평가 내용이 없습니다.'}"
-                                th:style="${!hasSelfEval ? 'color: #64748b; font-style: italic;' : ''}">
-                            </div>
-                        </div>
-
-                        <!-- 1차 평가자 참고 (EXECUTIVE일 때만) -->
-                        <div th:if="${mapping.relationTypeCode() == 'EXECUTIVE'}" class="mb-4">
-                            <div class="field-label">
-                                <i class="bi bi-person-check"></i> 1차 평가자(부서장) 코멘트 및 점수
-                            </div>
-                            <div class="eval-textarea" readonly
-                                th:with="hasManagerEval=${managerEvalMap != null and managerEvalMap.containsKey(element.elementId()) and (managerEvalMap.get(element.elementId()).getScore() != null or (managerEvalMap.get(element.elementId()).getReason() != null and managerEvalMap.get(element.elementId()).getReason() != ''))}"
-                                th:text="${hasManagerEval ? (managerEvalMap.get(element.elementId()).getScore() != null ? managerEvalMap.get(element.elementId()).getScore() + '점' : '') + (managerEvalMap.get(element.elementId()).getScore() != null and managerEvalMap.get(element.elementId()).getReason() != null and managerEvalMap.get(element.elementId()).getReason() != '' ? ' - ' : '') + (managerEvalMap.get(element.elementId()).getReason() != null ? managerEvalMap.get(element.elementId()).getReason() : '') : '작성된 1차 평가 내용이 없습니다.'}"
-                                th:style="${!hasManagerEval ? 'color: #64748b; font-style: italic;' : ''}">
-                            </div>
-                        </div>
-
-                        <!-- 평가 입력 -->
-                        <div class="row g-4">
-                            <div class="col-md-3">
-                                <div class="field-label">
-                                    <i class="bi bi-award"></i> 최종 평가 점수 (0~100점)
+                        <div th:each="element : ${performanceElements}" class="eval-card">
+                            <div class="eval-card-header">
+                                <div class="eval-title">
+                                    <i class="bi bi-check2-square"></i>
+                                    <span th:text="${element.elementName()}">성과 항목</span>
                                 </div>
-                                <input type="number" class="eval-textarea score-input step1-score"
-                                    th:name="'score_' + ${element.elementId()}"
-                                    th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
-                                    th:data-weight="${element.weight()}"
-                                    th:data-max="${element.maxScore()}"
-                                    oninput="calculateTotalConvertedScore()"
-                                    min="0" th:max="${element.maxScore()}" step="1"
-                                    required>
-                            </div>
-                            <div class="col-md-9">
-                                <div class="field-label">
-                                    <i class="bi bi-chat-left-text"></i> 최종 코멘트 (평가 사유 및 피드백)
+                                <div class="weight-badge">
+                                    가중치 <span th:text="${element.weight() + '%'}">40%</span>
                                 </div>
-                                <textarea class="eval-textarea" th:name="'comment_' + ${element.elementId()}"
-                                    placeholder="평가 사유 및 피드백을 입력해주세요."
-                                    required
-                                    th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
+                            </div>
+
+                            <!-- 자가평가 참고 -->
+                            <div class="mb-4">
+                                <div class="field-label">
+                                    <i class="bi bi-person-badge"></i> 대상자의 자가 평가 (제출된 실적 기록)
+                                </div>
+                                <div class="eval-textarea" readonly
+                                    th:with="hasSelfEval=${selfEvalMap != null and selfEvalMap.containsKey(element.elementId()) and (selfEvalMap.get(element.elementId()).getScore() != null or (selfEvalMap.get(element.elementId()).getReason() != null and selfEvalMap.get(element.elementId()).getReason() != ''))}"
+                                    th:text="${hasSelfEval ? (selfEvalMap.get(element.elementId()).getScore() != null ? selfEvalMap.get(element.elementId()).getScore() + '점' : '') + (selfEvalMap.get(element.elementId()).getScore() != null and selfEvalMap.get(element.elementId()).getReason() != null and selfEvalMap.get(element.elementId()).getReason() != '' ? ' - ' : '') + (selfEvalMap.get(element.elementId()).getReason() != null ? selfEvalMap.get(element.elementId()).getReason() : '') : '작성된 자가 평가 내용이 없습니다.'}"
+                                    th:style="${!hasSelfEval ? 'color: #64748b; font-style: italic;' : ''}">
+                                </div>
+                            </div>
+
+                            <!-- 1차 평가자 참고 (EXECUTIVE일 때만) -->
+                            <div th:if="${mapping.relationTypeCode() == 'EXECUTIVE'}" class="mb-4">
+                                <div class="field-label">
+                                    <i class="bi bi-person-check"></i> 1차 평가자(부서장) 코멘트 및 점수
+                                </div>
+                                <div class="eval-textarea" readonly
+                                    th:with="hasManagerEval=${managerEvalMap != null and managerEvalMap.containsKey(element.elementId()) and (managerEvalMap.get(element.elementId()).getScore() != null or (managerEvalMap.get(element.elementId()).getReason() != null and managerEvalMap.get(element.elementId()).getReason() != ''))}"
+                                    th:text="${hasManagerEval ? (managerEvalMap.get(element.elementId()).getScore() != null ? managerEvalMap.get(element.elementId()).getScore() + '점' : '') + (managerEvalMap.get(element.elementId()).getScore() != null and managerEvalMap.get(element.elementId()).getReason() != null and managerEvalMap.get(element.elementId()).getReason() != '' ? ' - ' : '') + (managerEvalMap.get(element.elementId()).getReason() != null ? managerEvalMap.get(element.elementId()).getReason() : '') : '작성된 1차 평가 내용이 없습니다.'}"
+                                    th:style="${!hasManagerEval ? 'color: #64748b; font-style: italic;' : ''}">
+                                </div>
+                            </div>
+
+                            <!-- 평가 입력 -->
+                            <div class="row g-4">
+                                <div class="col-md-3">
+                                    <div class="field-label">
+                                        <i class="bi bi-award"></i> 최종 평가 점수 (0~100점)
+                                    </div>
+                                    <input type="number" class="eval-textarea score-input step1-score"
+                                        th:name="'score_' + ${element.elementId()}"
+                                        th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                                        th:data-weight="${element.weight()}"
+                                        th:data-max="${element.maxScore()}"
+                                        oninput="calculateTotalConvertedScore()"
+                                        min="0" th:max="${element.maxScore()}" step="1"
+                                        required>
+                                </div>
+                                <div class="col-md-9">
+                                    <div class="field-label">
+                                        <i class="bi bi-chat-left-text"></i> 최종 코멘트 (평가 사유 및 피드백)
+                                    </div>
+                                    <textarea class="eval-textarea" th:name="'comment_' + ${element.elementId()}"
+                                        placeholder="평가 사유 및 피드백을 입력해주세요."
+                                        required
+                                        th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </fieldset>
 
                     <div class="d-flex justify-content-end align-items-center mt-4 mb-5 gap-3">
                         <div class="total-score-display text-info fw-bold fs-5 px-4 py-2" style="background: rgba(13,202,240,0.1); border-radius: 8px; border: 1px solid rgba(13,202,240,0.2);">
                             성과 환산점수: <span id="totalConvertedScore_step1">0.0</span>점
                         </div>
-                        <!-- 다음 버튼은 fieldset 외부로 노출하여 disabled 방지 -->
-                        </fieldset>
                         <button type="button" class="btn btn-primary btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg"
                             style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none;"
                             onclick="nextStep()">
@@ -296,75 +295,75 @@
                 <!-- ====== STEP 2: 역량 평가 ====== -->
                 <div class="wizard-step" id="step-2">
                     <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
-                    <h3 class="text-white mb-4"><i class="bi bi-stars me-2" style="color:#34d399;"></i>역량 평가 항목</h3>
+                        <h3 class="text-white mb-4"><i class="bi bi-stars me-2" style="color:#34d399;"></i>역량 평가 항목</h3>
 
-                    <div th:if="${competencyElements == null || competencyElements.isEmpty()}"
-                        class="eval-card text-center py-5">
-                        <i class="bi bi-info-circle fs-1 text-muted mb-3 d-block"></i>
-                        <h5 class="text-white fw-bold">등록된 역량 평가요소가 없습니다.</h5>
-                    </div>
-
-                    <div th:each="element : ${competencyElements}" class="eval-card">
-                        <div class="eval-card-header">
-                            <div class="eval-title">
-                                <i class="bi bi-check2-square" style="color:#34d399;"></i>
-                                <span th:text="${element.elementName()}">역량 항목</span>
-                            </div>
-                            <div class="weight-badge">
-                                가중치 <span th:text="${element.weight() + '%'}">40%</span>
-                            </div>
+                        <div th:if="${competencyElements == null || competencyElements.isEmpty()}"
+                            class="eval-card text-center py-5">
+                            <i class="bi bi-info-circle fs-1 text-muted mb-3 d-block"></i>
+                            <h5 class="text-white fw-bold">등록된 역량 평가요소가 없습니다.</h5>
                         </div>
 
-                        <!-- 자가평가 참고 -->
-                        <div class="mb-4">
-                            <div class="field-label" style="color: #34d399;">
-                                <i class="bi bi-person-badge"></i> 대상자의 자가 평가 (제출된 실적 기록)
-                            </div>
-                            <div class="eval-textarea" readonly
-                                th:with="hasSelfEval=${selfEvalMap != null and selfEvalMap.containsKey(element.elementId()) and (selfEvalMap.get(element.elementId()).getScore() != null or (selfEvalMap.get(element.elementId()).getReason() != null and selfEvalMap.get(element.elementId()).getReason() != ''))}"
-                                th:text="${hasSelfEval ? (selfEvalMap.get(element.elementId()).getScore() != null ? selfEvalMap.get(element.elementId()).getScore() + '점' : '') + (selfEvalMap.get(element.elementId()).getScore() != null and selfEvalMap.get(element.elementId()).getReason() != null and selfEvalMap.get(element.elementId()).getReason() != '' ? ' - ' : '') + (selfEvalMap.get(element.elementId()).getReason() != null ? selfEvalMap.get(element.elementId()).getReason() : '') : '작성된 자가 평가 내용이 없습니다.'}"
-                                th:style="${!hasSelfEval ? 'color: #64748b; font-style: italic;' : ''}">
-                            </div>
-                        </div>
-
-                        <!-- 1차 평가자 참고 (EXECUTIVE일 때만) -->
-                        <div th:if="${mapping.relationTypeCode() == 'EXECUTIVE'}" class="mb-4">
-                            <div class="field-label" style="color: #34d399;">
-                                <i class="bi bi-person-check"></i> 1차 평가자(부서장) 코멘트 및 점수
-                            </div>
-                            <div class="eval-textarea" readonly
-                                th:with="hasManagerEval=${managerEvalMap != null and managerEvalMap.containsKey(element.elementId()) and (managerEvalMap.get(element.elementId()).getScore() != null or (managerEvalMap.get(element.elementId()).getReason() != null and managerEvalMap.get(element.elementId()).getReason() != ''))}"
-                                th:text="${hasManagerEval ? (managerEvalMap.get(element.elementId()).getScore() != null ? managerEvalMap.get(element.elementId()).getScore() + '점' : '') + (managerEvalMap.get(element.elementId()).getScore() != null and managerEvalMap.get(element.elementId()).getReason() != null and managerEvalMap.get(element.elementId()).getReason() != '' ? ' - ' : '') + (managerEvalMap.get(element.elementId()).getReason() != null ? managerEvalMap.get(element.elementId()).getReason() : '') : '작성된 1차 평가 내용이 없습니다.'}"
-                                th:style="${!hasManagerEval ? 'color: #64748b; font-style: italic;' : ''}">
-                            </div>
-                        </div>
-
-                        <!-- 평가 입력 -->
-                        <div class="row g-4">
-                            <div class="col-md-3">
-                                <div class="field-label" style="color: #34d399;">
-                                    <i class="bi bi-award"></i> 최종 평가 점수 (0~100점)
+                        <div th:each="element : ${competencyElements}" class="eval-card">
+                            <div class="eval-card-header">
+                                <div class="eval-title">
+                                    <i class="bi bi-check2-square" style="color:#34d399;"></i>
+                                    <span th:text="${element.elementName()}">역량 항목</span>
                                 </div>
-                                <input type="number" class="eval-textarea score-input step2-score"
-                                    th:name="'score_' + ${element.elementId()}"
-                                    th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
-                                    th:data-weight="${element.weight()}"
-                                    th:data-max="${element.maxScore()}"
-                                    oninput="calculateTotalConvertedScore()"
-                                    min="0" th:max="${element.maxScore()}" step="1"
-                                    required>
-                            </div>
-                            <div class="col-md-9">
-                                <div class="field-label" style="color: #34d399;">
-                                    <i class="bi bi-chat-left-text"></i> 최종 코멘트 (평가 사유 및 피드백)
+                                <div class="weight-badge">
+                                    가중치 <span th:text="${element.weight() + '%'}">40%</span>
                                 </div>
-                                <textarea class="eval-textarea" th:name="'comment_' + ${element.elementId()}"
-                                    placeholder="역량 평가 사유 및 피드백을 입력해주세요."
-                                    required
-                                    th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
+                            </div>
+
+                            <!-- 자가평가 참고 -->
+                            <div class="mb-4">
+                                <div class="field-label" style="color: #34d399;">
+                                    <i class="bi bi-person-badge"></i> 대상자의 자가 평가 (제출된 실적 기록)
+                                </div>
+                                <div class="eval-textarea" readonly
+                                    th:with="hasSelfEval=${selfEvalMap != null and selfEvalMap.containsKey(element.elementId()) and (selfEvalMap.get(element.elementId()).getScore() != null or (selfEvalMap.get(element.elementId()).getReason() != null and selfEvalMap.get(element.elementId()).getReason() != ''))}"
+                                    th:text="${hasSelfEval ? (selfEvalMap.get(element.elementId()).getScore() != null ? selfEvalMap.get(element.elementId()).getScore() + '점' : '') + (selfEvalMap.get(element.elementId()).getScore() != null and selfEvalMap.get(element.elementId()).getReason() != null and selfEvalMap.get(element.elementId()).getReason() != '' ? ' - ' : '') + (selfEvalMap.get(element.elementId()).getReason() != null ? selfEvalMap.get(element.elementId()).getReason() : '') : '작성된 자가 평가 내용이 없습니다.'}"
+                                    th:style="${!hasSelfEval ? 'color: #64748b; font-style: italic;' : ''}">
+                                </div>
+                            </div>
+
+                            <!-- 1차 평가자 참고 (EXECUTIVE일 때만) -->
+                            <div th:if="${mapping.relationTypeCode() == 'EXECUTIVE'}" class="mb-4">
+                                <div class="field-label" style="color: #34d399;">
+                                    <i class="bi bi-person-check"></i> 1차 평가자(부서장) 코멘트 및 점수
+                                </div>
+                                <div class="eval-textarea" readonly
+                                    th:with="hasManagerEval=${managerEvalMap != null and managerEvalMap.containsKey(element.elementId()) and (managerEvalMap.get(element.elementId()).getScore() != null or (managerEvalMap.get(element.elementId()).getReason() != null and managerEvalMap.get(element.elementId()).getReason() != ''))}"
+                                    th:text="${hasManagerEval ? (managerEvalMap.get(element.elementId()).getScore() != null ? managerEvalMap.get(element.elementId()).getScore() + '점' : '') + (managerEvalMap.get(element.elementId()).getScore() != null and managerEvalMap.get(element.elementId()).getReason() != null and managerEvalMap.get(element.elementId()).getReason() != '' ? ' - ' : '') + (managerEvalMap.get(element.elementId()).getReason() != null ? managerEvalMap.get(element.elementId()).getReason() : '') : '작성된 1차 평가 내용이 없습니다.'}"
+                                    th:style="${!hasManagerEval ? 'color: #64748b; font-style: italic;' : ''}">
+                                </div>
+                            </div>
+
+                            <!-- 평가 입력 -->
+                            <div class="row g-4">
+                                <div class="col-md-3">
+                                    <div class="field-label" style="color: #34d399;">
+                                        <i class="bi bi-award"></i> 최종 평가 점수 (0~100점)
+                                    </div>
+                                    <input type="number" class="eval-textarea score-input step2-score"
+                                        th:name="'score_' + ${element.elementId()}"
+                                        th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                                        th:data-weight="${element.weight()}"
+                                        th:data-max="${element.maxScore()}"
+                                        oninput="calculateTotalConvertedScore()"
+                                        min="0" th:max="${element.maxScore()}" step="1"
+                                        required>
+                                </div>
+                                <div class="col-md-9">
+                                    <div class="field-label" style="color: #34d399;">
+                                        <i class="bi bi-chat-left-text"></i> 최종 코멘트 (평가 사유 및 피드백)
+                                    </div>
+                                    <textarea class="eval-textarea" th:name="'comment_' + ${element.elementId()}"
+                                        placeholder="역량 평가 사유 및 피드백을 입력해주세요."
+                                        required
+                                        th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
+                                </div>
                             </div>
                         </div>
-                    </div>
                     </fieldset>
 
                     <div class="d-flex justify-content-between align-items-center mt-4 mb-5">
@@ -388,8 +387,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- fieldset 종료 태그는 step-2 내에서 점수 입력까지만 감싸도록 위에서 이미 닫음 -->
             </form>
             <script>
                 function nextStep() {

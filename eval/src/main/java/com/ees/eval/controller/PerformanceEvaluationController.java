@@ -14,6 +14,9 @@ import com.ees.eval.service.EvaluationPeriodService;
 import com.ees.eval.service.EvaluationService;
 import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.EvaluatorMappingService;
+import com.ees.eval.service.ScoreCalculationService;
+import com.ees.eval.domain.FinalGrade;
+import com.ees.eval.mapper.FinalGradeMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -45,6 +48,8 @@ public class PerformanceEvaluationController {
     private final EvaluationMapper evaluationMapper;
     private final EvaluatorMappingMapper evaluatorMappingMapper;
     private final EmployeeMapper employeeMapper;
+    private final ScoreCalculationService scoreCalculationService;
+    private final FinalGradeMapper finalGradeMapper;
 
     /**
      * 부서별 평가 요소를 캐싱하여 동일 부서에 대한 중복 DB 호출을 방지합니다.
@@ -169,6 +174,10 @@ public class PerformanceEvaluationController {
             // (G) 가중치 유효성 부서별 캐싱
             java.util.Map<Long, Boolean> weightValidCacheByDeptId = new java.util.HashMap<>();
 
+            // (H) 최종 등급 데이터 조회 (1회)
+            java.util.Map<Long, FinalGrade> gradeMap = finalGradeMapper.findByPeriodId(selectedPeriod.periodId()).stream()
+                    .collect(java.util.stream.Collectors.toMap(FinalGrade::getEmpId, g -> g, (a, b) -> a));
+
             // ========== 자가평가 제출 여부 확인 (메모리에서) ==========
             boolean selfPerfSubmitted = false;
             boolean selfCompSubmitted = false;
@@ -279,6 +288,8 @@ public class PerformanceEvaluationController {
                         .evalStatus(evalStatus)
                         .ctaStatus(ctaStatus)
                         .deptId(evaluatee.getDeptId())
+                        .expectedGrade(gradeMap.containsKey(task.evaluateeId()) ? gradeMap.get(task.evaluateeId()).getFinalGradeCode() : "-")
+                        .totalScore(gradeMap.containsKey(task.evaluateeId()) ? gradeMap.get(task.evaluateeId()).getTotalScore() : null)
                         .build());
             }
 
@@ -564,6 +575,50 @@ public class PerformanceEvaluationController {
             log.warn("[평가제출] 점수 파싱 실패: mappingId={}", mappingId);
             redirectAttributes.addFlashAttribute("errorMessage", "잘못된 점수 형식입니다.");
             return "redirect:/eval/performance/form?mappingId=" + mappingId;
+        }
+
+        // 제출 후 실시간 등급 재계산 로직 추가
+        try {
+            log.info("[등급재계산] 시작 - periodId={}, evaluateeId={}, deptId={}", submitMapping.periodId(), submitMapping.evaluateeId(), submitDeptId);
+            // 1. 총점 계산
+            Integer totalScore = scoreCalculationService.calculateTotalScore(submitMapping.periodId(), submitMapping.evaluateeId());
+            log.info("[등급재계산] 총점 산출 결과: {}", totalScore);
+            
+            if (totalScore != null) {
+                // 2. FinalGrade 업데이트
+                FinalGrade fg = finalGradeMapper.findByPeriodIdAndEmpId(submitMapping.periodId(), submitMapping.evaluateeId())
+                        .orElse(new FinalGrade());
+                
+                log.info("[등급재계산] 기존 FinalGrade 존재 여부: {}", fg.getGradeId() != null);
+            
+            if (fg.getPeriodId() == null) {
+                fg.setPeriodId(submitMapping.periodId());
+                fg.setEmpId(submitMapping.evaluateeId());
+                fg.setTotalScore(totalScore);
+                fg.setFinalGradeCode("-"); 
+                fg.setIsDeleted("n");
+                fg.setVersion(1);
+                fg.setCreatedAt(java.time.LocalDateTime.now());
+                fg.setCreatedBy(empId);
+                fg.setUpdatedAt(java.time.LocalDateTime.now());
+                fg.setUpdatedBy(empId);
+                finalGradeMapper.insert(fg);
+            } else {
+                fg.setTotalScore(totalScore);
+                fg.setUpdatedAt(java.time.LocalDateTime.now());
+                fg.setUpdatedBy(empId);
+                finalGradeMapper.update(fg);
+            }
+
+            // 3. 부서 전체 등급 재산출 (상대평가)
+            if (submitDeptId != null) {
+                log.info("[등급재계산] 부서 상대평가 시작 - deptId={}", submitDeptId);
+                scoreCalculationService.calculateRelativeGradesForDepartment(submitMapping.periodId(), submitDeptId);
+                log.info("[등급재계산] 부서 상대평가 완료");
+            }
+          } // if (totalScore != null) 닫기
+        } catch (Exception e) {
+            log.error("[등급재계산] 오류 발생: mappingId={}, error={}", mappingId, e.getMessage(), e);
         }
 
         // 제출 후 목록 페이지로 이동

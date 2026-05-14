@@ -29,6 +29,10 @@ public record PerformanceEvalRowDTO(
     String evalStatus, // "완료", "진행중", "대기", "미배정"
     String ctaStatus,  // "PRIMARY", "LOCKED", "WAITING", "WEIGHT_ERROR"
     
+    // 예상 등급 및 점수 (추가)
+    String expectedGrade,
+    Integer totalScore,
+
     // 검색용 데이터 유지 (옵션)
     Long deptId
 ) {}
