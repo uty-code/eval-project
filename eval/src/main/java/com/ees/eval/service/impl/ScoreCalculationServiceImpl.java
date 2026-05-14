@@ -221,6 +221,8 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
         Integer prevScore = null;
         String prevGrade = null;
         
+        List<FinalGrade> gradesToUpdate = new ArrayList<>();
+        
         for (FinalGrade fg : grades) {
             String assignedGrade;
             Integer score = fg.getTotalScore();
@@ -243,12 +245,16 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
             }
             
             fg.setFinalGradeCode(assignedGrade);
-            finalGradeMapper.update(fg);
+            gradesToUpdate.add(fg);
             
             prevScore = score;
             prevGrade = assignedGrade;
             
             log.debug("[ScoreCalc] 상대평가 등급 부여 완료 - empId={}, score={}, grade={}", fg.getEmpId(), score, assignedGrade);
+        }
+        
+        if (!gradesToUpdate.isEmpty()) {
+            finalGradeMapper.updateBatch(gradesToUpdate);
         }
     }
 }

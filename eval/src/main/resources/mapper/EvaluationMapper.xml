@@ -32,6 +32,37 @@
         )
     </insert>
 
+    <!-- 다건 삽입 (Batch) -->
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO evaluations_51 (
+            mapping_id, element_id, score, reason,
+            confirm_status_code, is_deleted, version,
+            created_at, created_by, updated_at, updated_by
+        ) VALUES
+        <foreach collection="evaluations" item="eval" separator=",">
+            (#{eval.mappingId}, #{eval.elementId}, #{eval.score}, #{eval.reason},
+             #{eval.confirmStatusCode}, #{eval.isDeleted}, #{eval.version},
+             #{eval.createdAt}, #{eval.createdBy}, #{eval.updatedAt}, #{eval.updatedBy})
+        </foreach>
+    </insert>
+
+    <!-- 다건 업데이트 (Batch) -->
+    <update id="updateBatch" parameterType="java.util.List">
+        <foreach collection="evaluations" item="eval" separator=";">
+            UPDATE evaluations_51
+            <set>
+                <if test="eval.score != null">score = #{eval.score},</if>
+                <if test="eval.reason != null">reason = #{eval.reason},</if>
+                <if test="eval.confirmStatusCode != null">confirm_status_code = #{eval.confirmStatusCode},</if>
+                updated_at = #{eval.updatedAt},
+                updated_by = #{eval.updatedBy},
+                version = version + 1
+            </set>
+            WHERE eval_id = #{eval.evalId}
+              AND version = #{eval.version}
+        </foreach>
+    </update>
+
     <!-- mappingId + elementId 기준 단건 조회 -->
     <select id="findByMappingIdAndElementId" resultMap="EvaluationResultMap">
         SELECT *

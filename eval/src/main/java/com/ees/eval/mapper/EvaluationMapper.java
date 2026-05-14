@@ -16,6 +16,12 @@ public interface EvaluationMapper {
     /** 평가 레코드 단건 삽입 */
     void insert(Evaluation evaluation);
 
+    /** 평가 레코드 다중 삽입 (Batch) */
+    void insertBatch(@Param("evaluations") List<Evaluation> evaluations);
+
+    /** 평가 레코드 다중 업데이트 (Batch) */
+    int updateBatch(@Param("evaluations") List<Evaluation> evaluations);
+
     /**
      * 다수의 매핑 ID에 대한 평가 데이터를 한 번에 조회합니다. (N+1 문제 해결용)
      *

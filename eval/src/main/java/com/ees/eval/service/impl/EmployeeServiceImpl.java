@@ -158,7 +158,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         // 4. employees 테이블에 삽입
         employeeMapper.insert(employee);
 
-        // 5. employee_roles 매핑 테이블에 권한 정보 삽입
+        // 5. employee_roles 매핑 테이블에 권한 정보 일괄 삽입 (Batch)
         if (roleIds != null && !roleIds.isEmpty()) {
             LocalDateTime now = LocalDateTime.now();
             
@@ -174,9 +174,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 }
             }
 
-            for (Long roleId : roleIds) {
-                employeeMapper.insertEmployeeRole(employee.getEmpId(), roleId, com.ees.eval.util.SecurityUtil.getCurrentEmployeeId(), now);
-            }
+            employeeMapper.insertEmployeeRolesBatch(employee.getEmpId(), roleIds, com.ees.eval.util.SecurityUtil.getCurrentEmployeeId(), now);
         }
 
         // 6. 저장 완료된 최신 정보를 다시 조회하여 반환
@@ -315,7 +313,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new EesOptimisticLockException("사원 정보가 다른 사용자에 의해 변경되었거나 수정 충돌이 발생했습니다.");
         }
 
-        // 4. 권한 교체: 기존 권한 소프트 삭제 후 새 권한 삽입
+        // 4. 권한 교체: 기존 권한 소프트 삭제 후 새 권한 일괄 삽입 (Batch)
         if (roleIds != null && !roleIds.isEmpty()) {
             LocalDateTime now = LocalDateTime.now();
             Long adminId = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
@@ -346,9 +344,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             }
 
             employeeMapper.deleteEmployeeRolesByEmpId(employee.getEmpId(), adminId, now);
-            for (Long roleId : roleIds) {
-                employeeMapper.insertEmployeeRole(employee.getEmpId(), roleId, adminId, now);
-            }
+            employeeMapper.insertEmployeeRolesBatch(employee.getEmpId(), roleIds, adminId, now);
         }
 
         // 5. 최신 데이터 재조회

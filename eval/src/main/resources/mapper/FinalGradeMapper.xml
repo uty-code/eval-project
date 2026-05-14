@@ -47,6 +47,19 @@
           AND version = #{version}
     </update>
 
+    <update id="updateBatch">
+        <foreach collection="grades" item="grade" separator=";">
+            UPDATE final_grades_51
+            SET total_score      = #{grade.totalScore},
+                final_grade_code = #{grade.finalGradeCode},
+                updated_at       = #{grade.updatedAt},
+                updated_by       = #{grade.updatedBy},
+                version          = version + 1
+            WHERE grade_id = #{grade.gradeId}
+              AND version = #{grade.version}
+        </foreach>
+    </update>
+
     <select id="findByPeriodId" resultMap="FinalGradeResultMap">
         SELECT *
         FROM final_grades_51

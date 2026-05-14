@@ -19,6 +19,8 @@ public interface FinalGradeMapper {
 
     void update(FinalGrade finalGrade);
 
+    void updateBatch(@Param("grades") List<FinalGrade> grades);
+
     List<FinalGrade> findByPeriodId(@Param("periodId") Long periodId);
     
     List<FinalGrade> findByPeriodIdAndDeptId(@Param("periodId") Long periodId, @Param("deptId") Long deptId);

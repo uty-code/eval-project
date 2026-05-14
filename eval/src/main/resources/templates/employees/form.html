@@ -8,6 +8,13 @@
 
 <body>
     <div id="page-content" class="container-fluid py-4" data-bs-theme="dark" th:fragment="content">
+        <style>
+            .ees-form-input {
+                background-color: rgba(33, 37, 41, 0.25) !important;
+                border-color: rgba(108, 117, 125, 0.5) !important;
+                color: #fff !important;
+            }
+        </style>
         <!-- Page Header / Breadcrumb -->
         <div class="row align-items-center mb-4">
             <div class="col">
@@ -59,7 +66,7 @@
                                         <label for="password" class="form-label text-muted small fw-semibold">초기 비밀번호
                                             <span class="text-danger">*</span></label>
                                         <input type="password"
-                                            class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            class="form-control ees-form-input"
                                             id="password" name="password" required minlength="4">
                                         <div class="form-text text-muted small">최초 로그인 시 사용할 비밀번호를 입력하세요.</div>
                                     </div>
@@ -76,14 +83,14 @@
                                         <label for="name" class="form-label text-muted small fw-semibold">성명 <span
                                                 class="text-danger">*</span></label>
                                         <input type="text"
-                                            class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            class="form-control ees-form-input"
                                             id="name" name="name" th:value="${employee.name}" required>
                                     </div>
                                     <div class="col-md-4">
                                         <label for="email" class="form-label text-muted small fw-semibold">이메일 <span
                                                 class="text-danger">*</span></label>
                                         <input type="email"
-                                            class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            class="form-control ees-form-input"
                                             id="email" name="email" th:value="${employee.email}"
                                             pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
                                             title="올바른 이메일 형식을 입력하세요. (예: example@domain.com)"
@@ -93,7 +100,7 @@
                                         <label for="phone" class="form-label text-muted small fw-semibold">연락처 <span
                                                 class="text-danger">*</span></label>
                                         <input type="text"
-                                            class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            class="form-control ees-form-input"
                                             id="phone" name="phone" th:value="${employee.phone}"
                                             placeholder="010-0000-0000" pattern="^010-[0-9]{4}-[0-9]{4}$"
                                             title="전화번호 양식은 010-0000-0000 이어야 합니다." maxlength="13" required>
@@ -111,7 +118,7 @@
                                         <label for="deptId" class="form-label text-muted small fw-semibold">소속 부서 <span
                                                 class="text-danger">*</span></label>
                                         <select id="deptId" name="deptId"
-                                            class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            class="form-select ees-form-input"
                                             style="font-size: 0.875rem;"
                                             required>
                                             <option value="">부서 선택</option>
@@ -137,7 +144,7 @@
                                         <label for="positionId" class="form-label text-muted small fw-semibold">직급 <span
                                                 class="text-danger">*</span></label>
                                         <select id="positionId" name="positionId"
-                                            class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            class="form-select ees-form-input"
                                             required>
                                             <option value="">직급 선택</option>
                                             <option th:each="pos : ${positions}" th:value="${pos.positionId}"
@@ -150,7 +157,7 @@
                                         <label for="statusCode" class="form-label text-muted small fw-semibold">재직 상태
                                             <span class="text-danger">*</span></label>
                                         <select id="statusCode" name="statusCode"
-                                            class="form-select bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            class="form-select ees-form-input"
                                             required>
                                             <option value="EMPLOYED"
                                                 th:selected="${employee.statusCode == 'EMPLOYED'}">재직</option>
@@ -168,7 +175,7 @@
                                         <label for="hireDate" class="form-label text-muted small fw-semibold">입사일 <span
                                                 class="text-danger">*</span></label>
                                         <input type="date"
-                                            class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                                            class="form-control ees-form-input"
                                             id="hireDate" name="hireDate"
                                             th:value="${employee.hireDate != null ? #temporals.format(employee.hireDate, 'yyyy-MM-dd') : ''}"
                                             required>
