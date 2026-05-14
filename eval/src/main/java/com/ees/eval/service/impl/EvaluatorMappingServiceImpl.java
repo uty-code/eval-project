@@ -992,9 +992,9 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                 ctaType = MultiDimensionalEvalCtaType.LOCKED;
             } else if (!selfSubmitted) {
                 ctaType = MultiDimensionalEvalCtaType.WAITING_SELF;
-            } else if (isSubmitted) {
-                ctaType = MultiDimensionalEvalCtaType.VIEW;
             } else {
+                // 기간 중이고 잠기지 않았으며 자가평가가 완료되었다면 제출 여부와 관계없이 '수정' 가능(EDIT)
+                // (이미 제출된 경우 템플릿에서 '수정' 텍스트로 자동 전환됨)
                 ctaType = MultiDimensionalEvalCtaType.EDIT;
             }
 
@@ -1132,9 +1132,9 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
             MyEvaluationCtaType ctaType;
             if (isLocked) {
                 ctaType = MyEvaluationCtaType.LOCKED;
-            } else if (isSubmitted) {
-                ctaType = MyEvaluationCtaType.VIEW;
             } else {
+                // 제출 여부와 관계없이 잠기지 않았다면 '수정' 가능 상태(EDIT)로 표시
+                // (이미 제출된 경우 템플릿에서 '수정' 텍스트로 자동 전환됨)
                 ctaType = MyEvaluationCtaType.EDIT;
             }
 

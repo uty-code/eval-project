@@ -63,8 +63,10 @@
     <select id="findByPeriodId" resultMap="FinalGradeResultMap">
         SELECT *
         FROM final_grades_51
-        WHERE period_id = #{periodId}
-          AND is_deleted = 'n'
+        WHERE is_deleted = 'n'
+        <if test="periodId != null">
+          AND period_id = #{periodId}
+        </if>
     </select>
 
     <select id="findByPeriodIds" resultMap="FinalGradeResultMap">
@@ -84,10 +86,14 @@
         SELECT fg.*
         FROM final_grades_51 fg
         JOIN employees_51 e ON fg.emp_id = e.emp_id
-        WHERE fg.period_id = #{periodId}
-          AND e.dept_id = #{deptId}
-          AND fg.is_deleted = 'n'
+        WHERE fg.is_deleted = 'n'
           AND e.is_deleted = 'n'
+        <if test="periodId != null">
+          AND fg.period_id = #{periodId}
+        </if>
+        <if test="deptId != null">
+          AND e.dept_id = #{deptId}
+        </if>
     </select>
 
     <delete id="deleteByPeriodId">

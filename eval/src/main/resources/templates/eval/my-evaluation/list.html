@@ -227,7 +227,6 @@
                                 style="color: #cbd5e1; font-size: 0.85rem; border-radius: 8px;">
                                 <option value="">전체 상태</option>
                                 <option value="WAITING" th:selected="${filterStatus == 'WAITING'}">작성 대기</option>
-                                <option value="IN_PROGRESS" th:selected="${filterStatus == 'IN_PROGRESS'}">작성 중</option>
                                 <option value="SUBMITTED" th:selected="${filterStatus == 'SUBMITTED'}">제출 완료</option>
                             </select>
                         </div>
@@ -276,7 +275,7 @@
                                 <td class="col-dept" th:text="${r.deptName()}">-</td>
                                 <td class="col-title" th:text="${r.titleName()}">-</td>
                                 <td class="col-empid" th:text="${r.empId()}">-</td>
-                                <td class="col-name fw-bold text-primary"
+                                <td class="col-name"
                                     style="border-right: 1px solid rgba(255, 255, 255, .35);" th:text="${r.name()}">-
                                 </td>
                                 <td class="fw-bold text-center"

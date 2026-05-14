@@ -3,13 +3,16 @@ package com.ees.eval.service;
 import com.ees.eval.domain.Employee;
 import com.ees.eval.domain.Evaluation;
 import com.ees.eval.domain.EvaluatorMapping;
+import com.ees.eval.dto.FinalGradeSearchCondition;
 import com.ees.eval.dto.FinalGradeTaskDTO;
 import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.EvaluationMapper;
 import com.ees.eval.mapper.EvaluatorMappingMapper;
+import com.ees.eval.mapper.FinalGradeMapper;
 import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.impl.FinalGradeServiceImpl;
+import com.ees.eval.service.ScoreCalculationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,6 +43,12 @@ class FinalGradeServiceTest {
     private EvaluationElementService elementService;
     @Mock
     private EvaluationTypeWeightService typeWeightService;
+    @Mock
+    private FinalGradeMapper finalGradeMapper;
+    @Mock
+    private ScoreCalculationService scoreCalculationService;
+    @Mock
+    private com.ees.eval.service.EvaluationGradeRatioService gradeRatioService;
 
     @InjectMocks
     private FinalGradeServiceImpl finalGradeService;
@@ -56,7 +65,7 @@ class FinalGradeServiceTest {
         given(mappingMapper.findByEvaluatorId(anyLong(), anyLong(), any())).willReturn(Collections.emptyList());
 
         // when
-        List<FinalGradeTaskDTO> result = finalGradeService.getFinalGradeTasks(periodId, executiveId);
+        List<FinalGradeTaskDTO> result = finalGradeService.getFinalGradeTasks(executiveId, new FinalGradeSearchCondition(periodId, null, null, null, null));
 
         // then
         assertThat(result).isEmpty();
@@ -89,9 +98,10 @@ class FinalGradeServiceTest {
         given(evaluationMapper.findByMappingIds(anyList())).willReturn(Collections.emptyList());
         given(elementService.getElementsByPeriodId(any(), any())).willReturn(Collections.emptyList());
         given(typeWeightService.isWeightSumValid(any(), any(), anyString())).willReturn(true);
+        given(finalGradeMapper.findByPeriodId(anyLong())).willReturn(Collections.emptyList());
 
         // when
-        List<FinalGradeTaskDTO> result = finalGradeService.getFinalGradeTasks(periodId, executiveId);
+        List<FinalGradeTaskDTO> result = finalGradeService.getFinalGradeTasks(executiveId, new FinalGradeSearchCondition(periodId, null, null, null, null));
 
         // then
         assertThat(result).hasSize(1);
