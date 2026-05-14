@@ -4,6 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 브라우저 캐시 방지 설정 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title th:replace="${title}">EES - 사원 평가 시스템</title>
     <!-- Google Fonts -->
     <link
@@ -236,6 +240,15 @@
                 const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
                 if (csrfToken && csrfHeader) {
                     evt.detail.headers[csrfHeader] = csrfToken;
+                }
+            });
+
+            // Browser Back-Forward Cache (bfcache) 대응
+            // 뒤로가기로 페이지 진입 시, 브라우저가 메모리에 저장된 이전 사용자의 HTML을 그대로 보여주는 현상 방지
+            window.addEventListener('pageshow', function (event) {
+                if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                    // 캐시된 페이지가 복원되었거나 뒤로가기 내비게이션인 경우 강제 새로고침
+                    window.location.reload();
                 }
             });
         });

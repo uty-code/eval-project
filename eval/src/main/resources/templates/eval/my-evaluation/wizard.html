@@ -3,7 +3,7 @@
     th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'my-evaluation', ~{::style}, ~{::script})}">
 
 <head>
-    <title>자가평가 마법사 - EES</title>
+    <title>자가평가 - EES</title>
 </head>
 
 <body>
@@ -151,7 +151,7 @@
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-4 mt-2">
                 <div>
-                    <h1 class="text-white fw-bold fs-2 mb-1">나의 자가평가 마법사</h1>
+                    <h1 class="text-white fw-bold fs-2 mb-1">나의 자가평가</h1>
                     <p class="text-muted mb-0">성과, 역량, 다면 평가를 차례대로 진행합니다.</p>
                 </div>
                 <a href="#" class="btn btn-outline-light border-opacity-25 px-4 py-2"
@@ -382,7 +382,19 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
 
-            document.addEventListener('DOMContentLoaded', calculateScores);
+            // 초기화 시 점수 계산 실행
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', calculateScores);
+            } else {
+                calculateScores();
+            }
+
+            // HTMX로 페이지가 교체될 때도 실행되도록 등록
+            document.body.addEventListener('htmx:afterOnLoad', function(evt) {
+                if (evt.detail.target.id === 'page-content') {
+                    calculateScores();
+                }
+            });
         </script>
     </div>
 </body>

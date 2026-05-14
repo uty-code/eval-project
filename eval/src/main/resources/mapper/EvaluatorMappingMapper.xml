@@ -84,7 +84,8 @@
             m.updated_at        as UPDATED_AT,
             m.updated_by        as UPDATED_BY,
             d.dept_name         as DEPT_NAME,
-            pos.position_name     as TITLE_NAME
+            pos.position_name     as TITLE_NAME,
+            ep.period_year       as PERIOD_YEAR
         from evaluator_mappings_51 m
         inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
         inner join employees_51 e2 on m.evaluator_id = e2.emp_id

@@ -55,16 +55,31 @@
                 border-left: 1px solid rgba(255, 255, 255, .35);
                 border-right: 1px solid rgba(255, 255, 255, .35);
                 min-width: 900px;
+                table-layout: fixed;
             }
 
             .result-table thead th {
-                padding: .8rem .7rem;
+                padding: .65rem .5rem;
                 text-align: center;
                 font-weight: 600;
                 color: rgba(255, 255, 255, .7);
                 white-space: nowrap;
                 border-bottom: 1px solid rgba(255, 255, 255, .35);
                 background: rgba(255, 255, 255, .02);
+            }
+
+            .th-group {
+                font-size: .8rem;
+                font-weight: 700;
+                letter-spacing: .5px;
+            }
+
+            .th-group-info {
+                color: rgba(255, 255, 255, .5);
+            }
+
+            .th-group-action {
+                color: #f59e0b !important;
             }
 
             .result-table tbody td {
@@ -94,19 +109,19 @@
                 display: inline-block;
             }
 
-            .status-SUBMITTED {
+            .status-done {
                 background: rgba(16, 185, 129, .15);
                 color: #34d399;
                 border: 1px solid rgba(16, 185, 129, .3);
             }
 
-            .status-IN_PROGRESS {
+            .status-prog {
                 background: rgba(56, 189, 248, .15);
                 color: #7dd3fc;
                 border: 1px solid rgba(56, 189, 248, .3);
             }
 
-            .status-WAITING {
+            .status-wait {
                 background: rgba(245, 158, 11, .15);
                 color: #fcd34d;
                 border: 1px solid rgba(245, 158, 11, .3);
@@ -139,20 +154,17 @@
             }
 
             .action-view {
-                background: rgba(255, 255, 255, .1);
+                background-color: #475569;
                 color: #fff;
-                border: 1px solid rgba(255, 255, 255, .15);
             }
 
             .action-view:hover {
-                background: rgba(255, 255, 255, .15);
+                background-color: #334155;
             }
 
             .action-locked {
-                background-color: #991b1b;
+                background-color: #475569;
                 color: #fff;
-                cursor: not-allowed;
-                opacity: 0.8;
             }
 
             .action-waiting {
@@ -293,15 +305,15 @@
                         <table class="result-table">
                             <thead>
                                 <tr>
-                                    <th class="col-period">평가 차수</th>
-                                    <th class="col-dept">부서명</th>
-                                    <th class="col-title">직책</th>
-                                    <th class="col-empid">사번</th>
-                                    <th class="col-name" style="border-right: 1px solid rgba(255, 255, 255, .35);">성명</th>
-                                    <th style="border-right: 1px solid rgba(255, 255, 255, .35);">관계</th>
-                                    <th style="border-right: 1px solid rgba(255, 255, 255, .35);">다면 평가</th>
-                                    <th style="border-right: 1px solid rgba(255, 255, 255, .35);">평가 상태</th>
-                                    <th>진행</th>
+                                    <th class="col-period" style="width: 12.2%;">평가 차수</th>
+                                    <th class="col-dept" style="width: 16.3%;">부서명</th>
+                                    <th class="col-title" style="width: 8.2%;">직책</th>
+                                    <th class="col-empid" style="width: 8.2%;">사번</th>
+                                    <th class="col-name" style="width: 10.2%; border-right: 1px solid rgba(255, 255, 255, .35);">성명</th>
+                                    <th style="width: 18.4%; border-right: 1px solid rgba(255, 255, 255, .35);">관계</th>
+                                    <th style="width: 9.2%; border-right: 1px solid rgba(255, 255, 255, .35);">다면 평가</th>
+                                    <th style="width: 8.2%; border-right: 1px solid rgba(255, 255, 255, .35);">상태</th>
+                                    <th style="width: 9.1%;">진행</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -318,19 +330,20 @@
                                         <span th:if="${r.score() == null}">-</span>
                                     </td>
                                     <td style="border-right: 1px solid rgba(255, 255, 255, .35);">
-                                        <span class="status-badge" th:classappend="${'status-' + r.statusType()}"
-                                            th:text="${r.displayStatus()}">-</span>
+                                        <span class="status-badge"
+                                            th:classappend="${r.statusType().name() == 'SUBMITTED' ? 'status-done' : (r.statusType().name() == 'IN_PROGRESS' ? 'status-prog' : 'status-wait')}"
+                                            th:text="${r.statusType().name() == 'SUBMITTED' ? '완료' : (r.statusType().name() == 'IN_PROGRESS' ? '진행중' : '대기')}">-</span>
                                     </td>
                                     <td>
                                         <!-- 자가평가 대기중 -->
                                         <button th:if="${r.ctaType().name() == 'WAITING_SELF'}"
                                             class="action-btn action-waiting" disabled>
-                                            <i class="bi bi-hourglass-split"></i> 자가 대기
+                                            <i class="bi bi-hourglass-split"></i> 대기중
                                         </button>
 
                                         <!-- 잠금됨 / 기간종료 (조회 모드) -->
                                         <a th:if="${r.ctaType().name() == 'LOCKED'}" href="#"
-                                            class="action-btn" style="background-color: #475569; color: #fff;"
+                                            class="action-btn action-view"
                                             th:attr="hx-get=@{/eval/multi-dimensional/form(mappingId=${r.mappingId()})}"
                                             hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
                                             hx-push-url="true" hx-sync="body:replace">
