@@ -3,18 +3,20 @@
       th:replace="~{layout/layout :: layout(~{::title}, ~{::#page-content}, 'multi-dimensional-eval', ~{::style}, ~{})}">
 <head>
     <title>다면 평가 작성 - EES</title>
+</head>
 <body>
 <div id="page-content" class="container-fluid py-4" th:fragment="content">
     <style>
         .eval-form-container { max-width: 1200px; margin: 0 auto; }
         .eval-card {
-            background: #1a1f2c;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             border: 1px solid rgba(255,255,255,0.08);
             padding: 32px;
             margin-bottom: 24px;
             position: relative;
+            backdrop-filter: blur(10px);
         }
         .eval-card-header {
             display: flex;
@@ -30,18 +32,18 @@
             align-items: center;
             gap: 10px;
         }
-        .eval-title i { color: #06b6d4; font-size: 1.4rem; }
+        .eval-title i { color: #6366f1; font-size: 1.4rem; }
         .weight-badge {
-            background-color: rgba(255,255,255,0.03);
-            color: #94a3b8;
-            border: 1px solid rgba(255,255,255,0.1);
+            background-color: rgba(99, 102, 241, 0.1);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.2);
             font-size: 0.85rem;
             font-weight: 600;
             padding: 6px 14px;
             border-radius: 6px;
         }
         .field-label {
-            color: #06b6d4;
+            color: #a5b4fc;
             font-size: 0.85rem;
             font-weight: 700;
             margin-bottom: 12px;
@@ -52,8 +54,8 @@
         .eval-textarea {
             width: 100%;
             border: 1px solid rgba(255,255,255,0.1);
-            background-color: #242b3d;
-            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
             padding: 18px;
             font-size: 1rem;
             color: #f8fafc;
@@ -63,8 +65,9 @@
         }
         .eval-textarea:focus {
             outline: none;
-            border-color: #06b6d4;
-            box-shadow: 0 0 0 3px rgba(6,182,212,0.15);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            background-color: rgba(255, 255, 255, 0.08);
         }
         .eval-textarea:read-only {
             background-color: rgba(255,255,255,0.02);
@@ -78,6 +81,24 @@
             font-weight: 800 !important;
             text-align: center;
             min-height: 80px !important;
+            color: #a855f7 !important;
+        }
+        .total-score-display {
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 12px;
+            color: #a5b4fc;
+        }
+        .btn-submit-eval {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            border: none;
+            color: white;
+            transition: all 0.3s;
+        }
+        .btn-submit-eval:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+            filter: brightness(1.1);
         }
     </style>
     <div class="eval-form-container">
@@ -86,8 +107,8 @@
         <div class="d-flex justify-content-between align-items-center mb-5 mt-2">
             <div class="d-flex align-items-center gap-3">
                 <h1 class="text-white fw-bold fs-2 mb-0">다면 평가 작성</h1>
-                <span class="badge bg-cyan-500 px-4 py-2 fs-6 rounded-pill"
-                      style="background-color: #06b6d4;"
+                <span class="badge px-4 py-2 fs-6 rounded-pill"
+                      style="background: linear-gradient(90deg, #6366f1, #a855f7);"
                       th:text="${mapping.evaluateeName()}">피평가자(부서장)</span>
             </div>
             <a href="#" class="btn btn-outline-light border-opacity-25 px-4 py-2"
@@ -186,11 +207,10 @@
 
             <!-- 하단 버튼 -->
             <div class="d-flex justify-content-end align-items-center mt-4 mb-5 gap-3">
-                <div class="total-score-display text-info fw-bold fs-5 px-4 py-2" style="background: rgba(13,202,240,0.1); border-radius: 8px; border: 1px solid rgba(13,202,240,0.2);">
+                <div class="total-score-display fw-bold fs-5 px-4 py-2">
                     총 환산점수: <span id="totalConvertedScore">0.0</span>점
                 </div>
-                <button type="submit" class="btn btn-info btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg text-white"
-                        style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border: none;">
+                <button type="submit" class="btn btn-submit-eval btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg">
                     <i class="bi bi-check2-circle me-2"></i> 다면평가 제출하기
                 </button>
             </div>

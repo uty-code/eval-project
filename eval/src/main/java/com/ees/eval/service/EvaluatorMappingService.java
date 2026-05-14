@@ -151,4 +151,19 @@ public interface EvaluatorMappingService {
             java.util.List<Long> mappingIds,
             java.util.Map<Long, java.util.List<com.ees.eval.domain.EvaluatorMapping>> allMappingsByEvaluatee,
             java.util.Map<Long, java.util.List<com.ees.eval.domain.Evaluation>> evalGroupMap);
+
+    /**
+     * 다면평가 대상 목록을 필터링 및 페이징하여 조회합니다.
+     * 
+     * @param periodId     평가 차수 ID
+     * @param evaluatorId  평가자(나) 사원 ID
+     * @param filterDeptId 부서 필터 (null이면 전체)
+     * @param filterStatus 상태 필터 (null이면 전체)
+     * @param keyword      검색어 (null이면 전체)
+     * @param page         페이지 번호 (1부터 시작)
+     * @param pageSize     페이지 크기
+     * @return 다면평가 페이징 데이터 (MultiDimensionalEvalPageDTO)
+     */
+    com.ees.eval.dto.MultiDimensionalEvalPageDTO getMultiDimensionalTasks(
+            Long periodId, Long evaluatorId, Long filterDeptId, String filterStatus, String keyword, int page, int pageSize);
 }

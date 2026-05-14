@@ -6,55 +6,172 @@
     <title>다면 평가 - EES</title>
     <th:block th:fragment="extraStyles">
         <style>
-            .eval-list-item {
-                display: flex;
-                align-items: center;
-                padding: 18px 24px;
-                border-bottom: 1px solid var(--glass-border);
-                transition: background-color 0.2s ease;
+            /* ===== 필터 바 ===== */
+            .filter-bar select,
+            .filter-bar input {
+                background: rgba(255, 255, 255, .06);
+                border: 1px solid rgba(255, 255, 255, .12);
+                color: #cbd5e1;
+                font-size: .85rem;
+                padding: .4rem .7rem;
+                border-radius: 20px;
+                outline: none;
             }
 
-            .eval-list-item:last-child {
-                border-bottom: none;
+            .filter-bar select:focus,
+            .filter-bar input:focus {
+                border-color: rgba(99, 102, 241, .5);
             }
 
-            .eval-list-item:hover {
-                background-color: rgba(255, 255, 255, 0.05);
-            }
-
-            .eval-name {
-                font-size: 1.1rem;
+            .btn-search {
+                background: linear-gradient(90deg, #6366f1, #a855f7);
+                color: #fff;
+                border: none;
+                padding: .45rem 1.2rem;
+                border-radius: 20px;
+                font-size: .8rem;
                 font-weight: 700;
-                color: var(--text-main);
-                min-width: 140px;
+                cursor: pointer;
+                transition: all .2s;
             }
 
-            .badge-dept {
-                background-color: var(--surface-light);
-                color: var(--text-main);
-                font-size: 0.85rem;
-                font-weight: 600;
-                padding: 4px 12px;
-                border-radius: 6px;
-                margin-right: 16px;
-                border: 1px solid var(--glass-border);
+            .btn-search:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 15px rgba(99, 102, 241, .4);
             }
 
-            .badge-status {
-                background-color: rgba(245, 158, 11, 0.2);
-                color: #fbd38d;
-                border: 1px solid rgba(245, 158, 11, 0.3);
-                font-size: 0.85rem;
+            /* ===== 테이블 ===== */
+            .result-table-wrap {
+                padding: 1rem 1.5rem 1.5rem;
+                overflow-x: auto;
+            }
+
+            .result-table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                font-size: .78rem;
+                border-top: 1px solid rgba(255, 255, 255, .35);
+                border-left: 1px solid rgba(255, 255, 255, .35);
+                border-right: 1px solid rgba(255, 255, 255, .35);
+                min-width: 900px;
+            }
+
+            .result-table thead th {
+                padding: .8rem .7rem;
+                text-align: center;
                 font-weight: 600;
-                padding: 4px 12px;
+                color: rgba(255, 255, 255, .7);
+                white-space: nowrap;
+                border-bottom: 1px solid rgba(255, 255, 255, .35);
+                background: rgba(255, 255, 255, .02);
+            }
+
+            .result-table tbody td {
+                padding: .85rem .7rem;
+                text-align: center;
+                color: rgba(255, 255, 255, .8);
+                border-bottom: 1px solid rgba(255, 255, 255, .35);
+                vertical-align: middle;
+            }
+
+            .result-table tbody tr:hover {
+                background: rgba(255, 255, 255, .03);
+            }
+
+            .emp-name {
+                color: #a855f7;
+                font-weight: 700;
+            }
+
+            /* ===== 상태 배지 ===== */
+            .status-badge {
+                font-size: .65rem;
+                padding: .3rem .6rem;
+                border-radius: 12px;
+                font-weight: 600;
+                white-space: nowrap;
+                display: inline-block;
+            }
+
+            .status-SUBMITTED {
+                background: rgba(16, 185, 129, .15);
+                color: #34d399;
+                border: 1px solid rgba(16, 185, 129, .3);
+            }
+
+            .status-IN_PROGRESS {
+                background: rgba(56, 189, 248, .15);
+                color: #7dd3fc;
+                border: 1px solid rgba(56, 189, 248, .3);
+            }
+
+            .status-WAITING {
+                background: rgba(245, 158, 11, .15);
+                color: #fcd34d;
+                border: 1px solid rgba(245, 158, 11, .3);
+            }
+
+            /* ===== 버튼 배지 ===== */
+            .action-btn {
+                font-size: .75rem;
+                padding: .35rem .8rem;
                 border-radius: 6px;
+                font-weight: 600;
+                border: none;
+                transition: all 0.2s;
+                text-decoration: none;
                 display: inline-flex;
                 align-items: center;
-                gap: 6px;
+                gap: 0.3rem;
+            }
+
+            .action-primary {
+                background: linear-gradient(90deg, #6366f1, #a855f7);
+                color: #fff;
+                box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+            }
+
+            .action-primary:hover {
+                background: linear-gradient(90deg, #4f46e5, #9333ea);
+                color: #fff;
+                transform: translateY(-1px);
+            }
+
+            .action-view {
+                background: rgba(255, 255, 255, .1);
+                color: #fff;
+                border: 1px solid rgba(255, 255, 255, .15);
+            }
+
+            .action-view:hover {
+                background: rgba(255, 255, 255, .15);
+            }
+
+            .action-locked {
+                background-color: #991b1b;
+                color: #fff;
+                cursor: not-allowed;
+                opacity: 0.8;
+            }
+
+            .action-waiting {
+                background-color: #4b5563;
+                color: #d1d5db;
+                cursor: not-allowed;
+                opacity: 0.8;
+            }
+
+            .pagination-container {
+                display: flex;
+                justify-content: center;
+                margin-top: 1.5rem;
+                gap: 0.25rem;
             }
         </style>
     </th:block>
 </head>
+
 <body>
     <div id="page-content" class="container-fluid py-4" th:fragment="content">
         <!-- Re-include styles for HTMX swaps -->
@@ -63,16 +180,17 @@
         <!-- 상단 헤더 & 차수 선택 영역 -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h1 class="text-white fs-3 mb-1"><i class="bi bi-people-fill text-info me-2"></i>다면 평가</h1>
+                <h1 class="text-white fs-3 mb-1"><i class="bi bi-people-fill text-primary me-2"></i>다면 평가</h1>
                 <p class="text-muted mb-0 small">배정된 부서장/상급자 평가를 진행해주세요.</p>
             </div>
             <div>
-                <form th:action="@{/eval/multi-dimensional}" method="get"
+                <form id="periodForm" th:action="@{/eval/multi-dimensional}" method="get"
                     class="d-inline-flex gap-2 align-items-center bg-dark p-2 rounded-pill shadow-sm"
                     style="border: 1px solid var(--glass-border);">
                     <select name="periodId"
                         class="form-select form-select-sm bg-transparent text-white border-0 fw-bold"
-                        onchange="this.form.submit()" style="width: 200px; box-shadow: none;">
+                        onchange="document.getElementById('periodForm').submit();"
+                        style="width: 200px; box-shadow: none;">
                         <option class="bg-dark" th:each="p : ${periods}" th:value="${p.periodId()}"
                             th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
                             th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수 선택</option>
@@ -82,15 +200,16 @@
         </div>
 
         <!-- 에러/성공 메시지 영역 -->
-        <div th:if="${errorMessage}" class="alert alert-danger mb-3" role="alert"
+        <div th:if="${errorMessage}" class="alert alert-danger d-flex align-items-center mb-3" role="alert"
             style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; border-radius: 0.75rem;">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <span th:text="${errorMessage}"></span>
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <div th:text="${errorMessage}"></div>
         </div>
-        <div th:if="${successMessage}" class="alert alert-success mb-3" role="alert"
-            style="background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #86efac; border-radius: 0.75rem;">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            <span th:text="${successMessage}"></span>
+
+        <div th:if="${successMessage}" class="alert d-flex align-items-center mb-3" role="alert"
+            style="background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #86efac; border-radius: 0.75rem;">
+            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+            <div th:text="${successMessage}"></div>
         </div>
 
         <!-- 정보 메시지 -->
@@ -98,63 +217,164 @@
             <i class="bi bi-info-circle me-1"></i> <span th:text="${infoMessage}"></span>
         </div>
 
-        <div th:if="${selectedPeriod != null}">
+        <!-- ━━━━ 다면평가 리스트 영역 (HTMX 갱신 영역) ━━━━ -->
+        <div th:if="${selectedPeriod != null}" id="eval-table-container">
 
-            <div th:if="${selectedPeriod.statusCode() != 'PLANNED'}">
-                <div th:if="${tasks == null || tasks.isEmpty()}" class="ees-card text-center py-5">
-                    <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
-                    <h5 class="fw-bold text-white">다면평가 대상자가 없습니다.</h5>
-                </div>
-
-                <div th:if="${tasks != null && !tasks.isEmpty()}" class="ees-card">
-                    <div th:each="task : ${tasks}" class="eval-list-item">
-                        <div class="eval-name" th:text="${task.evaluateeName()}">부서장 이름</div>
-                        <div class="badge-dept">부서장</div>
-                        
-                        <!-- 제출 여부 배지 -->
-                        <div th:if="${!submittedMap.getOrDefault(task.mappingId(), false)}" class="badge-status">
-                            <i class="bi bi-hourglass-split"></i> 평가 대기
-                        </div>
-                        <div th:if="${submittedMap.getOrDefault(task.mappingId(), false)}" class="badge-status"
-                            style="background:rgba(34,197,94,0.15);color:#86efac;border-color:rgba(34,197,94,0.3);">
-                            <i class="bi bi-check-circle-fill"></i> 평가 완료
-                        </div>
-
-                        <div class="flex-grow-1"></div>
-                        <div>
-                            <!-- 1. 평가 잠금 상태인 경우 -->
-                            <button th:if="${lockMap != null && lockMap.getOrDefault(task.mappingId(), false)}"
-                                class="badge-status"
-                                style="background-color: #991b1b; cursor: not-allowed; border: none; padding: 8px 16px;">
-                                <i class="bi bi-lock-fill"></i> 평가 잠김
-                            </button>
-
-                            <!-- 2. 자가평가가 완료된 경우 (잠금 상태 아닐 때) -->
-                            <a th:if="${(lockMap == null || !lockMap.getOrDefault(task.mappingId(), false)) && evaluateeSelfSubmittedMap != null && evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false)}"
-                                href="#" class="btn ees-btn-glass-primary btn-sm"
-                                th:attr="hx-get=@{/eval/multi-dimensional/form(mappingId=${task.mappingId()})}"
-                                hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
-                                hx-push-url="true">
-                                <i class="bi bi-pencil-square"></i> 
-                                <span th:text="${submittedMap.getOrDefault(task.mappingId(), false)} ? '평가 수정' : '평가 작성'"></span>
-                            </a>
-
-                            <!-- 3. 자가평가 대기중 (잠금 상태 아닐 때) -->
-                            <button th:if="${(lockMap == null || !lockMap.getOrDefault(task.mappingId(), false)) && (evaluateeSelfSubmittedMap == null || !evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false))}"
-                                class="badge-status"
-                                style="background-color: #4b5563; cursor: not-allowed; opacity: 0.7; border: none; padding: 8px 16px;">
-                                <i class="bi bi-lock-fill"></i> 자가평가 대기중
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 평가 시작 전 화면 -->
             <div th:if="${selectedPeriod.statusCode() == 'PLANNED'}" class="ees-card p-5 text-center text-muted">
                 <i class="bi bi-clock-history fs-1 mb-3 d-block opacity-25 text-info"></i>
                 <h5 class="fw-bold text-white mb-2">다면평가 준비 중</h5>
                 <p class="mb-0">평가가 시작되면 대상 리스트가 활성화됩니다.</p>
+            </div>
+
+            <div th:if="${selectedPeriod.statusCode() != 'PLANNED'}">
+                <!-- 필터 섹션 -->
+                <div class="ees-card mb-4 p-3">
+                    <form id="filterForm" hx-get="/eval/multi-dimensional" hx-target="#eval-table-container"
+                        hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace">
+                        <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
+
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small fw-semibold">부서 필터</label>
+                                <select name="filterDeptId"
+                                    class="form-select bg-transparent border-secondary border-opacity-50"
+                                    style="color: #cbd5e1; font-size: 0.85rem; border-radius: 8px;">
+                                    <option value="">전체 부서</option>
+                                    <option th:each="d : ${departments}" th:value="${d.deptId()}"
+                                        th:text="${d.deptName()}" th:selected="${filterDeptId == d.deptId()}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small fw-semibold">평가 상태</label>
+                                <select name="filterStatus"
+                                    class="form-select bg-transparent border-secondary border-opacity-50"
+                                    style="color: #cbd5e1; font-size: 0.85rem; border-radius: 8px;">
+                                    <option value="">전체 상태</option>
+                                    <option value="SUBMITTED" th:selected="${filterStatus == 'SUBMITTED'}">평가 완료
+                                    </option>
+                                    <option value="IN_PROGRESS" th:selected="${filterStatus == 'IN_PROGRESS'}">평가 진행중
+                                    </option>
+                                    <option value="WAITING" th:selected="${filterStatus == 'WAITING'}">평가 대기</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small fw-semibold">성명 / 사번 검색</label>
+                                <input type="text" name="keyword"
+                                    class="form-control bg-transparent border-secondary border-opacity-50 text-white"
+                                    placeholder="이름 또는 사번 입력" th:value="${keyword}"
+                                    style="font-size: 0.85rem; border-radius: 8px;">
+                            </div>
+                            <div class="col-md-2 d-flex gap-2">
+                                <button type="submit" class="btn-search flex-grow-1" style="height: 38px;">
+                                    <i class="bi bi-search me-1"></i>검색
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div th:if="${pageData == null || pageData.tasks().isEmpty()}"
+                    class="ees-card text-center py-5 border-0 shadow-sm rounded-3 mb-4">
+                    <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+                    <h5 class="fw-bold text-white">조건에 맞는 다면평가 대상자가 없습니다.</h5>
+                </div>
+
+                <!-- 테이블 영역 -->
+                <div th:if="${pageData != null && !pageData.tasks().isEmpty()}" class="ees-card mb-5 mt-0">
+                    <div class="result-table-wrap">
+                        <table class="result-table">
+                            <thead>
+                                <tr>
+                                    <th>부서명</th>
+                                    <th>직책</th>
+                                    <th>사번</th>
+                                    <th>성명</th>
+                                    <th>관계</th>
+                                    <th>다면 평가</th>
+                                    <th>평가 상태</th>
+                                    <th>진행</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="r : ${pageData.tasks()}">
+                                    <td th:text="${r.deptName()}">-</td>
+                                    <td th:text="${r.titleName()}">-</td>
+                                    <td th:text="${r.empId()}">-</td>
+                                    <td class="emp-name" th:text="${r.name()}">-</td>
+                                    <td th:text="${r.relationName()}">부서원→부서장</td>
+                                    <td class="fw-bold" style="color: #a855f7;">
+                                        <span th:if="${r.score() != null}"
+                                            th:text="${#numbers.formatDecimal(r.score(), 1, 1)}">0.0</span>
+                                        <span th:if="${r.score() == null}">-</span>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge" th:classappend="${'status-' + r.statusType()}"
+                                            th:text="${r.displayStatus()}">-</span>
+                                    </td>
+                                    <td>
+                                        <!-- 자가평가 대기중 -->
+                                        <button th:if="${r.ctaType().name() == 'WAITING_SELF'}"
+                                            class="action-btn action-waiting" disabled>
+                                            <i class="bi bi-hourglass-split"></i> 자가 대기
+                                        </button>
+
+                                        <!-- 잠금됨 -->
+                                        <button th:if="${r.ctaType().name() == 'LOCKED'}"
+                                            class="action-btn action-locked" disabled>
+                                            <i class="bi bi-lock-fill"></i> 평가 잠김
+                                        </button>
+
+                                        <!-- 평가 진행/수정 -->
+                                        <a th:if="${r.ctaType().name() == 'EDIT'}" href="#"
+                                            class="action-btn action-primary"
+                                            th:attr="hx-get=@{/eval/multi-dimensional/form(mappingId=${r.mappingId()})}"
+                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                            hx-push-url="true" hx-sync="body:replace">
+                                            <i class="bi bi-pencil-square"></i> <span
+                                                th:text="${r.statusType().name() == 'SUBMITTED' ? '수정' : '진행'}"></span>
+                                        </a>
+
+                                        <!-- 조회 -->
+                                        <a th:if="${r.ctaType().name() == 'VIEW'}" href="#"
+                                            class="action-btn action-view"
+                                            th:attr="hx-get=@{/eval/multi-dimensional/form(mappingId=${r.mappingId()})}"
+                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                            hx-push-url="true" hx-sync="body:replace">
+                                            <i class="bi bi-search"></i> 조회
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 페이징네이션 -->
+                    <div th:if="${pageData.totalPages() > 1}" class="pagination-container pb-4">
+                        <button class="btn btn-sm btn-outline-secondary text-white border-0"
+                            th:classappend="${!pageData.hasPrevious()} ? 'disabled'"
+                            th:attr="hx-get=@{/eval/multi-dimensional(periodId=${selectedPeriod.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() - 1})}"
+                            hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
+                            hx-push-url="true" hx-sync="this:replace">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+
+                        <button th:each="i : ${#numbers.sequence(1, pageData.totalPages())}"
+                            th:class="${i == pageData.currentPage()} ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-secondary text-white border-0'"
+                            th:text="${i}"
+                            th:attr="hx-get=@{/eval/multi-dimensional(periodId=${selectedPeriod.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${i})}"
+                            hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
+                            hx-push-url="true" hx-sync="this:replace">
+                        </button>
+
+                        <button class="btn btn-sm btn-outline-secondary text-white border-0"
+                            th:classappend="${!pageData.hasNext()} ? 'disabled'"
+                            th:attr="hx-get=@{/eval/multi-dimensional(periodId=${selectedPeriod.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() + 1})}"
+                            hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
+                            hx-push-url="true" hx-sync="this:replace">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
