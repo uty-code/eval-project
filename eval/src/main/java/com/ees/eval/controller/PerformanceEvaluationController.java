@@ -406,12 +406,12 @@ public class PerformanceEvaluationController {
             model.addAttribute("selfWeightValid", selfWeightValid);
 
             if (selectedPeriod != null && "PLANNED".equals(selectedPeriod.statusCode())) {
-                model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
+                // 상단 메시지 제거
             } else if (pageData.totalCount() == 0) {
-                model.addAttribute("infoMessage", "조회된 평가 데이터가 없습니다.");
+                // 상단 메시지 제거
             }
         } else {
-            model.addAttribute("infoMessage", "조회된 평가 데이터가 없습니다.");
+            // 상단 메시지 제거
             // 빈 페이지 데이터 설정
             model.addAttribute("pageData", new com.ees.eval.dto.PerformanceEvalPageDTO(
                     Collections.emptyList(), 1, 1, 0, 10));

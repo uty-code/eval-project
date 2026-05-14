@@ -8,6 +8,11 @@
 
 <body>
     <div id="page-content" class="container-fluid py-4" th:fragment="content">
+        <!-- 정보 메시지 -->
+        <div th:if="${infoMessage}" class="ees-card p-4 text-center mb-4" style="color:rgba(255,255,255,.5)">
+            <i class="bi bi-info-circle me-1"></i> <span th:text="${infoMessage}"></span>
+        </div>
+
         <!-- Header -->
         <div class="row align-items-center mb-4">
             <div class="col-md-4">
@@ -90,11 +95,6 @@
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             <span th:text="${errorMessage}"></span>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        
-        <!-- 정보 메시지 -->
-        <div th:if="${infoMessage}" class="ees-card p-4 text-center mb-4" style="color:rgba(255,255,255,.5)">
-            <i class="bi bi-info-circle me-1"></i> <span th:text="${infoMessage}"></span>
         </div>
 
         <!-- 필터링 안내 (부서장/임원 전용) -->
