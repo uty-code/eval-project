@@ -67,6 +67,19 @@
           AND is_deleted = 'n'
     </select>
 
+    <select id="findByPeriodIds" resultMap="FinalGradeResultMap">
+        SELECT *
+        FROM final_grades_51
+        WHERE is_deleted = 'n'
+        <if test="periodIds != null and !periodIds.isEmpty()">
+            AND period_id IN
+            <foreach collection="periodIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+    </select>
+
+
     <select id="findByPeriodIdAndDeptId" resultMap="FinalGradeResultMap">
         SELECT fg.*
         FROM final_grades_51 fg

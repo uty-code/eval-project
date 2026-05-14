@@ -27,6 +27,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 성과/역량 평가 컨트롤러
@@ -55,10 +61,11 @@ public class PerformanceEvaluationController {
      * 부서별 평가 요소를 캐싱하여 동일 부서에 대한 중복 DB 호출을 방지합니다.
      */
     private List<EvaluationElementDTO> getCachedElements(
-            java.util.Map<Long, List<EvaluationElementDTO>> cache, Long periodId, Long deptId) {
-        Long cacheKey = deptId != null ? deptId : -1L;
+            java.util.Map<String, List<EvaluationElementDTO>> cache, Long periodId, Long deptId) {
+        String cacheKey = periodId + "_" + (deptId != null ? deptId : -1L);
         return cache.computeIfAbsent(cacheKey, k -> elementService.getElementsWithFallback(periodId, deptId));
     }
+
 
     @GetMapping
     public String list(Model model,
@@ -67,33 +74,71 @@ public class PerformanceEvaluationController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String filterStatus,
             @RequestParam(defaultValue = "1") int page,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails,
+            jakarta.servlet.http.HttpServletRequest request) {
 
         model.addAttribute("activeMenu", "performance-eval");
 
         Long empId = Long.parseLong(userDetails.getUsername());
 
-        List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
-        model.addAttribute("periods", periods);
+        // 1. 전체 차수 목록 로드 및 정렬 정책 적용 (IN_PROGRESS 우선, 그 외 최신순)
+        List<EvaluationPeriodDTO> allPeriods = periodService.getAllPeriods();
+        List<EvaluationPeriodDTO> sortedPeriods = new java.util.ArrayList<>(allPeriods);
+        sortedPeriods.sort((p1, p2) -> {
+            boolean p1Active = "IN_PROGRESS".equals(p1.statusCode());
+            boolean p2Active = "IN_PROGRESS".equals(p2.statusCode());
+            if (p1Active && !p2Active) return -1;
+            if (!p1Active && p2Active) return 1;
+            // 둘 다 같은 상태거나 둘 다 활성이 아니면 연도/ID 내림차순
+            int yearCompare = p2.periodYear().compareTo(p1.periodYear());
+            if (yearCompare != 0) return yearCompare;
+            return p2.periodId().compareTo(p1.periodId());
+        });
+        model.addAttribute("periods", sortedPeriods);
 
-        EvaluationPeriodDTO selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
+        // 2. 파라미터 존재 여부 확인 (최초 진입 vs 명시적 선택 구분)
+        boolean hasPeriodParam = request.getParameterMap().containsKey("periodId");
 
-        if (selectedPeriod != null) {
-            final Long finalPeriodId = selectedPeriod.periodId();
-            model.addAttribute("selectedPeriod", selectedPeriod);
+        // 3. 최초 진입 시 리다이렉트 처리 (진행 중인 차수 우선, 없으면 최신 차수)
+        if (!hasPeriodParam) {
+            EvaluationPeriodDTO defaultPeriod = sortedPeriods.stream()
+                    .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
+                    .findFirst()
+                    .orElse(!sortedPeriods.isEmpty() ? sortedPeriods.get(0) : null);
+            
+            if (defaultPeriod != null) {
+                return "redirect:/eval/performance?periodId=" + defaultPeriod.periodId();
+            }
+        }
 
-            List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(selectedPeriod.periodId(), empId);
-
-            EvaluatorMappingDTO selfTask = myTasks.stream()
-                    .filter(m -> "SELF".equals(m.relationTypeCode()))
+        // 4. 선택된 차수 정보 결정 (null이면 전체 통합 조회)
+        EvaluationPeriodDTO selectedPeriod = null;
+        if (periodId != null) {
+            selectedPeriod = allPeriods.stream()
+                    .filter(p -> p.periodId().equals(periodId))
                     .findFirst()
                     .orElse(null);
+        }
+        model.addAttribute("selectedPeriod", selectedPeriod);
+
+        // 5. 데이터 조회 (periodId가 null이면 전체 기간 조회)
+        List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(periodId, empId);
+
+        if (!myTasks.isEmpty()) {
+            // 관련 차수 ID 목록 추출 (N+1 방지용 벌크 조회 대상)
+            java.util.List<Long> relevantPeriodIds = myTasks.stream()
+                    .map(EvaluatorMappingDTO::periodId)
+                    .distinct()
+                    .collect(java.util.stream.Collectors.toList());
+
+            List<EvaluatorMappingDTO> selfTasks = myTasks.stream()
+                    .filter(m -> "SELF".equals(m.relationTypeCode()))
+                    .toList();
 
             List<EvaluatorMappingDTO> teamTasks = myTasks.stream()
                     .filter(m -> "MANAGER".equals(m.relationTypeCode()) || "EXECUTIVE".equals(m.relationTypeCode()))
                     .toList();
 
-            model.addAttribute("selfTask", selfTask);
             model.addAttribute("tasks", teamTasks);
 
             // ========== [최적화] 루프 밖에서 데이터 일괄 조회 ==========
@@ -112,10 +157,8 @@ public class PerformanceEvaluationController {
                     .collect(java.util.stream.Collectors.toList());
 
             // 자가평가 매핑 ID도 포함
-            if (selfTask != null) {
-                teamMappingIds = new java.util.ArrayList<>(teamMappingIds);
-                teamMappingIds.add(selfTask.mappingId());
-            }
+            java.util.List<Long> allMyMappingIds = new java.util.ArrayList<>(teamMappingIds);
+            selfTasks.forEach(s -> allMyMappingIds.add(s.mappingId()));
 
             // (C) 피평가자 사원 정보 일괄 조회 (1회)
             final java.util.Map<Long, Employee> evaluateeMap = teamEvaluateeIds.isEmpty() ?
@@ -125,42 +168,42 @@ public class PerformanceEvaluationController {
 
             // (D) 모든 관련 매핑의 평가 데이터 일괄 조회 (1회)
             java.util.Map<Long, java.util.List<Evaluation>> evalGroupMap = new java.util.HashMap<>();
-            if (!teamMappingIds.isEmpty()) {
-                evalGroupMap = evaluationMapper.findByMappingIds(teamMappingIds).stream()
+            if (!allMyMappingIds.isEmpty()) {
+                evalGroupMap = evaluationMapper.findByMappingIds(allMyMappingIds).stream()
                         .collect(java.util.stream.Collectors.groupingBy(Evaluation::getMappingId));
             }
 
-            // (E) 피평가자들의 SELF 매핑 일괄 조회 (1회) — 자가평가 제출 여부 확인용
-            java.util.Map<Long, com.ees.eval.domain.EvaluatorMapping> selfMappingByEvaluateeMap = new java.util.HashMap<>();
-            java.util.List<Long> selfMappingIdsToFetch = new java.util.ArrayList<>();
-            // 피평가자별 전체 매핑 그룹 (잠금 체크용으로도 재사용)
+            // (E) 피평가자들의 모든 관련 매핑 일괄 조회 (잠금 체크 및 자가평가 확인용)
             java.util.Map<Long, java.util.List<com.ees.eval.domain.EvaluatorMapping>> allMappingsByEvaluatee = new java.util.HashMap<>();
-            java.util.List<Long> allDownstreamMappingIds = new java.util.ArrayList<>();
+            java.util.Map<String, com.ees.eval.domain.EvaluatorMapping> selfMappingByEvaluateeAndPeriodMap = new java.util.HashMap<>();
+            java.util.List<Long> additionalMappingIds = new java.util.ArrayList<>();
+
             if (!teamEvaluateeIds.isEmpty()) {
+                // 특정 차수가 아닌 태스크에 포함된 모든 차수 대상으로 조회
                 java.util.List<com.ees.eval.domain.EvaluatorMapping> allRelatedMappings =
-                        evaluatorMappingMapper.findByEvaluateeIds(selectedPeriod.periodId(), teamEvaluateeIds);
+                        evaluatorMappingMapper.findByEvaluateeIds(periodId, teamEvaluateeIds);
+                
                 // 피평가자별 그룹화
                 allMappingsByEvaluatee = allRelatedMappings.stream()
                         .collect(java.util.stream.Collectors.groupingBy(
                                 com.ees.eval.domain.EvaluatorMapping::getEvaluateeId));
+                
                 for (com.ees.eval.domain.EvaluatorMapping m : allRelatedMappings) {
                     if ("SELF".equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted())) {
-                        selfMappingByEvaluateeMap.put(m.getEvaluateeId(), m);
-                        selfMappingIdsToFetch.add(m.getMappingId());
+                        selfMappingByEvaluateeAndPeriodMap.put(m.getPeriodId() + "_" + m.getEvaluateeId(), m);
+                        if (!allMyMappingIds.contains(m.getMappingId())) {
+                            additionalMappingIds.add(m.getMappingId());
+                        }
                     }
-                    // MANAGER/EXECUTIVE 매핑의 평가 데이터도 잠금 체크에 필요
                     if ("MANAGER".equals(m.getRelationTypeCode()) || "EXECUTIVE".equals(m.getRelationTypeCode())) {
-                        if (!teamMappingIds.contains(m.getMappingId())) {
-                            allDownstreamMappingIds.add(m.getMappingId());
+                        if (!allMyMappingIds.contains(m.getMappingId())) {
+                            additionalMappingIds.add(m.getMappingId());
                         }
                     }
                 }
             }
 
-            // SELF 매핑들의 평가 데이터도 일괄 조회 (1회)
-            // + 다운스트림 매핑(잠금 체크용) 평가 데이터도 함께 조회
-            java.util.List<Long> additionalMappingIds = new java.util.ArrayList<>(selfMappingIdsToFetch);
-            additionalMappingIds.addAll(allDownstreamMappingIds);
+            // SELF 및 기타 다운스트림 매핑 평가 데이터 추가 조회
             if (!additionalMappingIds.isEmpty()) {
                 java.util.List<Evaluation> additionalEvals = evaluationMapper.findByMappingIds(additionalMappingIds);
                 for (Evaluation e : additionalEvals) {
@@ -168,31 +211,42 @@ public class PerformanceEvaluationController {
                 }
             }
 
-            // (F) 평가 요소 부서별 캐싱 (부서당 1회만 조회)
-            java.util.Map<Long, java.util.List<EvaluationElementDTO>> elementCacheByDeptId = new java.util.HashMap<>();
+            // (F) 평가 요소 부서/차수별 캐싱
+            java.util.Map<String, java.util.List<EvaluationElementDTO>> elementCache = new java.util.HashMap<>();
 
-            // (G) 가중치 유효성 부서별 캐싱
-            java.util.Map<Long, Boolean> weightValidCacheByDeptId = new java.util.HashMap<>();
+            // (G) 가중치 유효성 캐싱 (periodId_deptId)
+            java.util.Map<String, Boolean> weightValidCache = new java.util.HashMap<>();
 
-            // (H) 최종 등급 데이터 조회 (1회)
-            java.util.Map<Long, FinalGrade> gradeMap = finalGradeMapper.findByPeriodId(selectedPeriod.periodId()).stream()
-                    .collect(java.util.stream.Collectors.toMap(FinalGrade::getEmpId, g -> g, (a, b) -> a));
+            // (H) 최종 등급 데이터 조회 (관련 모든 차수 대상 벌크 조회)
+            java.util.Map<String, FinalGrade> gradeMap = finalGradeMapper.findByPeriodIds(relevantPeriodIds).stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                            g -> g.getPeriodId() + "_" + g.getEmpId(), 
+                            g -> g, (a, b) -> a));
 
-            // ========== 자가평가 제출 여부 확인 (메모리에서) ==========
+            // ========== 자가평가 제출 여부 확인 (내 정보) ==========
+            // 현재 활성 상태인 차수의 자가평가 상태를 우선 노출 (다수일 경우 첫 번째 것 기준 혹은 필요에 따라 확장)
             boolean selfPerfSubmitted = false;
             boolean selfCompSubmitted = false;
-            if (selfTask != null) {
-                java.util.List<Evaluation> selfEvals = evalGroupMap.getOrDefault(selfTask.mappingId(), java.util.Collections.emptyList());
+            if (!selfTasks.isEmpty()) {
+                final EvaluationPeriodDTO finalSelectedPeriod = selectedPeriod;
+                // 가장 최근 혹은 진행 중인 차수 기준 하나 선택 (UX 정책에 따라 조정 가능)
+                EvaluatorMappingDTO activeSelfTask = selfTasks.stream()
+                        .filter(s -> finalSelectedPeriod == null || s.periodId().equals(finalSelectedPeriod.periodId()))
+                        .findFirst()
+                        .orElse(selfTasks.get(0));
+                
+                java.util.List<Evaluation> selfEvals = evalGroupMap.getOrDefault(activeSelfTask.mappingId(), java.util.Collections.emptyList());
                 java.util.List<Long> submittedElementIds = selfEvals.stream()
                         .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
                         .map(Evaluation::getElementId)
                         .toList();
+                
                 if (!submittedElementIds.isEmpty()) {
-                    java.util.List<EvaluationElementDTO> allElements = getCachedElements(elementCacheByDeptId, selectedPeriod.periodId(), myDeptId);
-                    selfPerfSubmitted = allElements.stream()
+                    java.util.List<EvaluationElementDTO> myElements = getCachedElements(elementCache, activeSelfTask.periodId(), myDeptId);
+                    selfPerfSubmitted = myElements.stream()
                             .filter(el -> "PERFORMANCE".equals(el.elementTypeCode()))
                             .anyMatch(el -> submittedElementIds.contains(el.elementId()));
-                    selfCompSubmitted = allElements.stream()
+                    selfCompSubmitted = myElements.stream()
                             .filter(el -> "COMPETENCY".equals(el.elementTypeCode()))
                             .anyMatch(el -> submittedElementIds.contains(el.elementId()));
                 }
@@ -204,18 +258,19 @@ public class PerformanceEvaluationController {
             java.util.List<com.ees.eval.dto.PerformanceEvalRowDTO> rowList = new java.util.ArrayList<>();
             
             // 잠금 체크 사전 실행
-            java.util.List<Long> teamMappingIdList = teamTasks.stream()
-                    .map(EvaluatorMappingDTO::mappingId)
-                    .collect(java.util.stream.Collectors.toList());
             java.util.Map<Long, Boolean> teamLockMap = mappingService.checkEvaluationLockBulk(
-                    teamMappingIdList, allMappingsByEvaluatee, evalGroupMap);
+                    teamMappingIds, allMappingsByEvaluatee, evalGroupMap);
+
+            // 차수 ID -> 이름 매핑 맵 생성
+            java.util.Map<Long, String> periodNameMap = sortedPeriods.stream()
+                    .collect(java.util.stream.Collectors.toMap(EvaluationPeriodDTO::periodId, EvaluationPeriodDTO::periodName, (v1, v2) -> v1));
 
             for (EvaluatorMappingDTO task : teamTasks) {
                 Employee evaluatee = evaluateeMap.get(task.evaluateeId());
                 if (evaluatee == null) continue;
                 
                 Long evaluateeDeptId = evaluatee.getDeptId();
-                java.util.List<EvaluationElementDTO> elementsForTask = getCachedElements(elementCacheByDeptId, selectedPeriod.periodId(), evaluateeDeptId);
+                java.util.List<EvaluationElementDTO> elementsForTask = getCachedElements(elementCache, task.periodId(), evaluateeDeptId);
 
                 // 팀원 평가 데이터 (Manager)
                 java.util.List<Evaluation> evals = evalGroupMap.getOrDefault(task.mappingId(), java.util.Collections.emptyList());
@@ -236,7 +291,7 @@ public class PerformanceEvaluationController {
                 java.math.BigDecimal managerCompScore = calcScore(evals, elementsForTask, "COMPETENCY");
 
                 // 피평가자의 자가평가 데이터 (Self)
-                com.ees.eval.domain.EvaluatorMapping selfMapping = selfMappingByEvaluateeMap.get(task.evaluateeId());
+                com.ees.eval.domain.EvaluatorMapping selfMapping = selfMappingByEvaluateeAndPeriodMap.get(task.periodId() + "_" + task.evaluateeId());
                 boolean selfSubmittedForTask = false;
                 java.math.BigDecimal selfPerfScore = null;
                 java.math.BigDecimal selfCompScore = null;
@@ -250,9 +305,9 @@ public class PerformanceEvaluationController {
                 }
 
                 // 가중치 유효성
-                boolean weightValid = weightValidCacheByDeptId.computeIfAbsent(
-                        evaluateeDeptId != null ? evaluateeDeptId : -1L,
-                        k -> typeWeightService.isWeightSumValid(finalPeriodId, evaluateeDeptId, "STAFF"));
+                boolean weightValid = weightValidCache.computeIfAbsent(
+                        task.periodId() + "_" + (evaluateeDeptId != null ? evaluateeDeptId : -1L),
+                        k -> typeWeightService.isWeightSumValid(task.periodId(), evaluateeDeptId, "STAFF"));
 
                 // 평가 상태 통합 (완료, 진행중, 대기)
                 String evalStatus;
@@ -268,17 +323,18 @@ public class PerformanceEvaluationController {
                 } else if (!weightValid) {
                     ctaStatus = "WEIGHT_ERROR";
                 } else if (!selfSubmittedForTask) {
-                    ctaStatus = "WAITING"; // 자가평가 대기중
+                    ctaStatus = "WAITING";
                 } else {
-                    ctaStatus = "PRIMARY"; // 평가 진행 가능
+                    ctaStatus = "PRIMARY";
                 }
 
+                String gradeKey = task.periodId() + "_" + task.evaluateeId();
                 rowList.add(com.ees.eval.dto.PerformanceEvalRowDTO.builder()
                         .mappingId(task.mappingId())
                         .evaluateeId(task.evaluateeId())
                         .deptName(evaluatee.getDeptName())
                         .positionName(evaluatee.getPositionName())
-                        .titleName("팀원") // Employee 엔티티에는 Title 필드가 없으므로 기본값 처리
+                        .titleName(periodNameMap.getOrDefault(task.periodId(), "Unknown Period")) // 전체 조회 시 차수명을 성명 옆 등에 표시하기 위해 활용
                         .empId(evaluatee.getEmpId())
                         .name(evaluatee.getName())
                         .selfPerfScore(selfPerfScore)
@@ -288,8 +344,8 @@ public class PerformanceEvaluationController {
                         .evalStatus(evalStatus)
                         .ctaStatus(ctaStatus)
                         .deptId(evaluatee.getDeptId())
-                        .expectedGrade(gradeMap.containsKey(task.evaluateeId()) ? gradeMap.get(task.evaluateeId()).getFinalGradeCode() : "-")
-                        .totalScore(gradeMap.containsKey(task.evaluateeId()) ? gradeMap.get(task.evaluateeId()).getTotalScore() : null)
+                        .expectedGrade(gradeMap.containsKey(gradeKey) ? gradeMap.get(gradeKey).getFinalGradeCode() : "-")
+                        .totalScore(gradeMap.containsKey(gradeKey) ? gradeMap.get(gradeKey).getTotalScore() : null)
                         .build());
             }
 
@@ -302,7 +358,7 @@ public class PerformanceEvaluationController {
                                  r.empId().toString().contains(keyword))
                     .collect(java.util.stream.Collectors.toList());
 
-            // ========== 정렬 (부서 오름차순, 직급 내림차순, 이름 오름차순) ==========
+            // ========== 정렬 (기본: 부서, 직급, 이름 순) ==========
             filteredList.sort(java.util.Comparator
                     .comparing(com.ees.eval.dto.PerformanceEvalRowDTO::deptName, java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()))
                     .thenComparing(com.ees.eval.dto.PerformanceEvalRowDTO::positionName, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder()))
@@ -324,12 +380,7 @@ public class PerformanceEvaluationController {
             
             model.addAttribute("pageData", pageData);
             
-            // 뷰 렌더링에 필요한 필터 상태 유지
-            model.addAttribute("filterDeptId", filterDeptId);
-            model.addAttribute("keyword", keyword);
-            model.addAttribute("filterStatus", filterStatus);
-            
-            // 필터 드롭다운용 부서 목록 (팀원들이 속한 부서 고유 목록)
+            // 필터 드롭다운용 부서 목록 추출
             java.util.List<com.ees.eval.dto.DepartmentDTO> filterDepts = teamTasks.stream()
                     .map(t -> evaluateeMap.get(t.evaluateeId()))
                     .filter(java.util.Objects::nonNull)
@@ -338,32 +389,39 @@ public class PerformanceEvaluationController {
                             .deptName(e.getDeptName())
                             .build())
                     .filter(d -> d.deptId() != null)
-                    // distinct by deptId
                     .collect(java.util.stream.Collectors.collectingAndThen(
                             java.util.stream.Collectors.toMap(
-                                    com.ees.eval.dto.DepartmentDTO::deptId,
-                                    d -> d,
-                                    (existing, replacement) -> existing
+                                    com.ees.eval.dto.DepartmentDTO::deptId, d -> d, (e1, e2) -> e1
                             ),
                             m -> new java.util.ArrayList<>(m.values())
                     ));
             filterDepts.sort(java.util.Comparator.comparing(com.ees.eval.dto.DepartmentDTO::deptName));
             model.addAttribute("departments", filterDepts);
 
-            // 자가평가 가중치 유효성
-            final Long finalMyDeptId = myDeptId;
-            boolean selfWeightValid = weightValidCacheByDeptId.computeIfAbsent(
-                    myDeptId != null ? myDeptId : -1L,
-                    k -> typeWeightService.isWeightSumValid(finalPeriodId, finalMyDeptId, "STAFF"));
+            // 자가평가 가중치 유효성 (현재 선택된 차수 또는 첫 번째 차수 기준)
+            Long targetWeightPeriodId = (selectedPeriod != null) ? selectedPeriod.periodId() : relevantPeriodIds.get(0);
+            boolean selfWeightValid = weightValidCache.computeIfAbsent(
+                    targetWeightPeriodId + "_" + (myDeptId != null ? myDeptId : -1L),
+                    k -> typeWeightService.isWeightSumValid(targetWeightPeriodId, myDeptId, "STAFF"));
             model.addAttribute("selfWeightValid", selfWeightValid);
 
-            // 평가 시작 전(PLANNED) 알림 처리
             if (selectedPeriod != null && "PLANNED".equals(selectedPeriod.statusCode())) {
                 model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
+            } else if (pageData.totalCount() == 0) {
+                model.addAttribute("infoMessage", "조회된 평가 데이터가 없습니다.");
             }
         } else {
-            model.addAttribute("infoMessage", "진행 중인 평가 차수가 없습니다.");
+            model.addAttribute("infoMessage", "조회된 평가 데이터가 없습니다.");
+            // 빈 페이지 데이터 설정
+            model.addAttribute("pageData", new com.ees.eval.dto.PerformanceEvalPageDTO(
+                    Collections.emptyList(), 1, 1, 0, 10));
         }
+
+        // 필터 상태 유지
+        model.addAttribute("periodId", periodId);
+        model.addAttribute("filterDeptId", filterDeptId);
+        model.addAttribute("keyword", keyword);
+        model.addAttribute("filterStatus", filterStatus);
 
         return "eval/performance/list";
     }
@@ -415,6 +473,13 @@ public class PerformanceEvaluationController {
 
         // 매핑 정보 조회 (피평가자 정보, 차수 정보 포함)
         EvaluatorMappingDTO mapping = mappingService.getMappingById(mappingId);
+        EvaluationPeriodDTO period = periodService.getPeriodById(mapping.periodId());
+
+        // 평가 차수가 준비 중(PLANNED)인 경우 접근 차단
+        if (period != null && "PLANNED".equals(period.statusCode())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "평가 시작 전입니다. 평가 기간에 다시 접속해 주세요.");
+            return "redirect:/eval/performance?periodId=" + mapping.periodId();
+        }
 
         // 평가 기간 활성 여부 확인
         boolean isPeriodActive = periodService.isPeriodActive(mapping.periodId());

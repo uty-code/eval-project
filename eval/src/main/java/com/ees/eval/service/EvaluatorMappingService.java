@@ -165,5 +165,5 @@ public interface EvaluatorMappingService {
      * @return 다면평가 페이징 데이터 (MultiDimensionalEvalPageDTO)
      */
     com.ees.eval.dto.MultiDimensionalEvalPageDTO getMultiDimensionalTasks(
-            Long periodId, Long evaluatorId, Long filterDeptId, String filterStatus, String keyword, int page, int pageSize);
+            Long periodId, Long evaluatorId, Long filterDeptId, String filterStatus, String keyword, int page, int pageSize, boolean isPeriodActive);
 }

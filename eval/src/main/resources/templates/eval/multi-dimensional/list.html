@@ -168,6 +168,18 @@
                 margin-top: 1.5rem;
                 gap: 0.25rem;
             }
+
+            /* 주요 정보 열 너비 고정 (간격 일정하게 유지) */
+            .col-period { width: 120px; }
+            .col-dept   { width: 120px; }
+            .col-title  { width: 100px; }
+            .col-empid  { width: 100px; }
+            .col-name   { width: 100px; }
+
+            .result-table th, .result-table td {
+                padding-left: 0.5rem !important;
+                padding-right: 0.5rem !important;
+            }
         </style>
     </th:block>
 </head>
@@ -183,20 +195,7 @@
                 <h1 class="text-white fs-3 mb-1"><i class="bi bi-people-fill text-primary me-2"></i>다면 평가</h1>
                 <p class="text-muted mb-0 small">배정된 부서장/상급자 평가를 진행해주세요.</p>
             </div>
-            <div>
-                <form id="periodForm" th:action="@{/eval/multi-dimensional}" method="get"
-                    class="d-inline-flex gap-2 align-items-center bg-dark p-2 rounded-pill shadow-sm"
-                    style="border: 1px solid var(--glass-border);">
-                    <select name="periodId"
-                        class="form-select form-select-sm bg-transparent text-white border-0 fw-bold"
-                        onchange="document.getElementById('periodForm').submit();"
-                        style="width: 200px; box-shadow: none;">
-                        <option class="bg-dark" th:each="p : ${periods}" th:value="${p.periodId()}"
-                            th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
-                            th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수 선택</option>
-                    </select>
-                </form>
-            </div>
+            <div></div>
         </div>
 
         <!-- 에러/성공 메시지 영역 -->
@@ -218,23 +217,32 @@
         </div>
 
         <!-- ━━━━ 다면평가 리스트 영역 (HTMX 갱신 영역) ━━━━ -->
-        <div th:if="${selectedPeriod != null}" id="eval-table-container">
+        <div id="eval-table-container">
 
-            <div th:if="${selectedPeriod.statusCode() == 'PLANNED'}" class="ees-card p-5 text-center text-muted">
+            <div th:if="${selectedPeriod != null && selectedPeriod.statusCode() == 'PLANNED'}" class="ees-card p-5 text-center text-muted">
                 <i class="bi bi-clock-history fs-1 mb-3 d-block opacity-25 text-info"></i>
                 <h5 class="fw-bold text-white mb-2">다면평가 준비 중</h5>
                 <p class="mb-0">평가가 시작되면 대상 리스트가 활성화됩니다.</p>
             </div>
 
-            <div th:if="${selectedPeriod.statusCode() != 'PLANNED'}">
+            <div th:if="${selectedPeriod == null || selectedPeriod.statusCode() != 'PLANNED'}">
                 <!-- 필터 섹션 -->
                 <div class="ees-card mb-4 p-3">
                     <form id="filterForm" hx-get="/eval/multi-dimensional" hx-target="#eval-table-container"
                         hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace">
-                        <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
-
                         <div class="row g-3 align-items-end">
                             <div class="col-md-3">
+                                <label class="form-label text-muted small fw-semibold">평가 차수</label>
+                                    <select name="periodId"
+                                            class="form-select bg-transparent border-secondary border-opacity-50 fw-bold"
+                                            style="color: #fff; font-size: 0.85rem; border-radius: 8px;">
+                                        <option value="">전체 차수 통합</option>
+                                        <option th:each="p : ${periods}" th:value="${p.periodId()}"
+                                                th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
+                                                th:selected="${selectedPeriod?.periodId() == p.periodId()}"></option>
+                                    </select>
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label text-muted small fw-semibold">부서 필터</label>
                                 <select name="filterDeptId"
                                     class="form-select bg-transparent border-secondary border-opacity-50"
@@ -244,7 +252,7 @@
                                         th:text="${d.deptName()}" th:selected="${filterDeptId == d.deptId()}"></option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label text-muted small fw-semibold">평가 상태</label>
                                 <select name="filterStatus"
                                     class="form-select bg-transparent border-secondary border-opacity-50"
@@ -257,7 +265,7 @@
                                     <option value="WAITING" th:selected="${filterStatus == 'WAITING'}">평가 대기</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label text-muted small fw-semibold">성명 / 사번 검색</label>
                                 <input type="text" name="keyword"
                                     class="form-control bg-transparent border-secondary border-opacity-50 text-white"
@@ -285,29 +293,31 @@
                         <table class="result-table">
                             <thead>
                                 <tr>
-                                    <th>부서명</th>
-                                    <th>직책</th>
-                                    <th>사번</th>
-                                    <th>성명</th>
-                                    <th>관계</th>
-                                    <th>다면 평가</th>
-                                    <th>평가 상태</th>
+                                    <th class="col-period">평가 차수</th>
+                                    <th class="col-dept">부서명</th>
+                                    <th class="col-title">직책</th>
+                                    <th class="col-empid">사번</th>
+                                    <th class="col-name" style="border-right: 1px solid rgba(255, 255, 255, .35);">성명</th>
+                                    <th style="border-right: 1px solid rgba(255, 255, 255, .35);">관계</th>
+                                    <th style="border-right: 1px solid rgba(255, 255, 255, .35);">다면 평가</th>
+                                    <th style="border-right: 1px solid rgba(255, 255, 255, .35);">평가 상태</th>
                                     <th>진행</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr th:each="r : ${pageData.tasks()}">
-                                    <td th:text="${r.deptName()}">-</td>
-                                    <td th:text="${r.titleName()}">-</td>
-                                    <td th:text="${r.empId()}">-</td>
-                                    <td class="emp-name" th:text="${r.name()}">-</td>
-                                    <td th:text="${r.relationName()}">부서원→부서장</td>
-                                    <td class="fw-bold" style="color: #a855f7;">
+                                    <td class="small text-muted col-period text-center" th:text="${r.periodName()}">2024 상반기</td>
+                                    <td class="col-dept" th:text="${r.deptName()}">-</td>
+                                    <td class="col-title" th:text="${r.titleName()}">-</td>
+                                    <td class="col-empid" th:text="${r.empId()}">-</td>
+                                    <td class="emp-name col-name" style="border-right: 1px solid rgba(255, 255, 255, .35);" th:text="${r.name()}">-</td>
+                                    <td style="border-right: 1px solid rgba(255, 255, 255, .35);" th:text="${r.relationName()}">부서원→부서장</td>
+                                    <td class="fw-bold" style="color: #a855f7; border-right: 1px solid rgba(255, 255, 255, .35);">
                                         <span th:if="${r.score() != null}"
                                             th:text="${#numbers.formatDecimal(r.score(), 1, 1)}">0.0</span>
                                         <span th:if="${r.score() == null}">-</span>
                                     </td>
-                                    <td>
+                                    <td style="border-right: 1px solid rgba(255, 255, 255, .35);">
                                         <span class="status-badge" th:classappend="${'status-' + r.statusType()}"
                                             th:text="${r.displayStatus()}">-</span>
                                     </td>
@@ -318,11 +328,14 @@
                                             <i class="bi bi-hourglass-split"></i> 자가 대기
                                         </button>
 
-                                        <!-- 잠금됨 -->
-                                        <button th:if="${r.ctaType().name() == 'LOCKED'}"
-                                            class="action-btn action-locked" disabled>
-                                            <i class="bi bi-lock-fill"></i> 평가 잠김
-                                        </button>
+                                        <!-- 잠금됨 / 기간종료 (조회 모드) -->
+                                        <a th:if="${r.ctaType().name() == 'LOCKED'}" href="#"
+                                            class="action-btn" style="background-color: #475569; color: #fff;"
+                                            th:attr="hx-get=@{/eval/multi-dimensional/form(mappingId=${r.mappingId()})}"
+                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                            hx-push-url="true" hx-sync="body:replace">
+                                            <i class="bi bi-search"></i> 조회
+                                        </a>
 
                                         <!-- 평가 진행/수정 -->
                                         <a th:if="${r.ctaType().name() == 'EDIT'}" href="#"
@@ -352,7 +365,7 @@
                     <div th:if="${pageData.totalPages() > 1}" class="pagination-container pb-4">
                         <button class="btn btn-sm btn-outline-secondary text-white border-0"
                             th:classappend="${!pageData.hasPrevious()} ? 'disabled'"
-                            th:attr="hx-get=@{/eval/multi-dimensional(periodId=${selectedPeriod.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() - 1})}"
+                            th:attr="hx-get=@{/eval/multi-dimensional(periodId=${selectedPeriod?.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() - 1})}"
                             hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
                             hx-push-url="true" hx-sync="this:replace">
                             <i class="bi bi-chevron-left"></i>
@@ -361,14 +374,14 @@
                         <button th:each="i : ${#numbers.sequence(1, pageData.totalPages())}"
                             th:class="${i == pageData.currentPage()} ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-secondary text-white border-0'"
                             th:text="${i}"
-                            th:attr="hx-get=@{/eval/multi-dimensional(periodId=${selectedPeriod.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${i})}"
+                            th:attr="hx-get=@{/eval/multi-dimensional(periodId=${selectedPeriod?.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${i})}"
                             hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
                             hx-push-url="true" hx-sync="this:replace">
                         </button>
 
                         <button class="btn btn-sm btn-outline-secondary text-white border-0"
                             th:classappend="${!pageData.hasNext()} ? 'disabled'"
-                            th:attr="hx-get=@{/eval/multi-dimensional(periodId=${selectedPeriod.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() + 1})}"
+                            th:attr="hx-get=@{/eval/multi-dimensional(periodId=${selectedPeriod?.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() + 1})}"
                             hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
                             hx-push-url="true" hx-sync="this:replace">
                             <i class="bi bi-chevron-right"></i>
