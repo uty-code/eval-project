@@ -59,57 +59,79 @@ public class MultiDimensionalEvaluationController {
                        @RequestParam(required = false) String keyword,
                        @RequestParam(required = false) String filterStatus,
                        @RequestParam(defaultValue = "1") int page,
-                       @AuthenticationPrincipal UserDetails userDetails) {
+                       @AuthenticationPrincipal UserDetails userDetails,
+                       jakarta.servlet.http.HttpServletRequest request) {
 
         Long empId = Long.parseLong(userDetails.getUsername());
         model.addAttribute("activeMenu", "multi-dimensional-eval");
 
-        List<EvaluationPeriodDTO> periods = periodService.getInProgressPeriods();
-        model.addAttribute("periods", periods);
+        // 1. 전체 차수 목록 로드 (필터용)
+        List<EvaluationPeriodDTO> allPeriods = periodService.getAllPeriods();
+        model.addAttribute("periods", allPeriods);
 
-        EvaluationPeriodDTO selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
+        // 2. 파라미터 존재 여부 확인 (최초 진입 vs 명시적 전체 선택 구분)
+        boolean hasPeriodParam = request.getParameterMap().containsKey("periodId");
+        
+        // 3. 최초 진입 시 리다이렉트 처리
+        if (!hasPeriodParam) {
+            EvaluationPeriodDTO defaultPeriod = periodService.resolveSelectedPeriod(null, allPeriods);
+            if (defaultPeriod != null) {
+                return "redirect:/eval/multi-dimensional?periodId=" + defaultPeriod.periodId();
+            }
+        }
 
-        if (selectedPeriod != null) {
-            model.addAttribute("selectedPeriod", selectedPeriod);
+        // 4. 선택된 차수 정보 결정 (null이면 전체 통합 조회)
+        EvaluationPeriodDTO selectedPeriod = null;
+        if (periodId != null) {
+            selectedPeriod = allPeriods.stream()
+                    .filter(p -> p.periodId().equals(periodId))
+                    .findFirst()
+                    .orElse(null);
+        }
+        model.addAttribute("selectedPeriod", selectedPeriod);
 
-            // 서비스 레이어에 필터링 및 페이징 위임 (Thin Controller)
-            int pageSize = 10;
-            com.ees.eval.dto.MultiDimensionalEvalPageDTO pageData = mappingService.getMultiDimensionalTasks(
-                    selectedPeriod.periodId(), empId, filterDeptId, filterStatus, keyword, page, pageSize);
-            
-            model.addAttribute("pageData", pageData);
-            
-            // 필터 상태 유지
-            model.addAttribute("filterDeptId", filterDeptId);
-            model.addAttribute("keyword", keyword);
-            model.addAttribute("filterStatus", filterStatus);
+        // 5. 데이터 조회
+        int pageSize = 10;
+        Long targetPeriodId = (selectedPeriod != null) ? selectedPeriod.periodId() : null;
+        boolean isPeriodActive = (selectedPeriod != null) && periodService.isPeriodActive(selectedPeriod.periodId());
+        
+        model.addAttribute("isPeriodActive", isPeriodActive);
 
-            // 필터 드롭다운용 부서 목록 추출
-            List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(selectedPeriod.periodId(), empId);
-            List<Long> evaluateeIds = myTasks.stream()
-                    .filter(m -> "SUBORDINATE".equals(m.relationTypeCode()))
-                    .map(EvaluatorMappingDTO::evaluateeId)
+        com.ees.eval.dto.MultiDimensionalEvalPageDTO pageData = mappingService.getMultiDimensionalTasks(
+                targetPeriodId, empId, filterDeptId, filterStatus, keyword, page, pageSize, isPeriodActive);
+        
+        model.addAttribute("pageData", pageData);
+        
+        // 필터 상태 유지
+        model.addAttribute("filterDeptId", filterDeptId);
+        model.addAttribute("keyword", keyword);
+        model.addAttribute("filterStatus", filterStatus);
+
+        // 6. 필터 드롭다운용 부서 목록 추출 (전체 조회 시에도 대응)
+        List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(targetPeriodId, empId);
+        List<Long> evaluateeIds = myTasks.stream()
+                .filter(m -> "SUBORDINATE".equals(m.relationTypeCode()))
+                .map(EvaluatorMappingDTO::evaluateeId)
+                .distinct()
+                .toList();
+        
+        if (!evaluateeIds.isEmpty()) {
+            List<com.ees.eval.domain.Employee> evaluatees = employeeMapper.findByIds(evaluateeIds);
+            List<com.ees.eval.dto.DepartmentDTO> filterDepts = evaluatees.stream()
+                    .map(e -> com.ees.eval.dto.DepartmentDTO.builder()
+                            .deptId(e.getDeptId())
+                            .deptName(e.getDeptName())
+                            .build())
                     .distinct()
+                    .sorted(java.util.Comparator.comparing(com.ees.eval.dto.DepartmentDTO::deptName))
                     .toList();
-            
-            if (!evaluateeIds.isEmpty()) {
-                List<com.ees.eval.domain.Employee> evaluatees = employeeMapper.findByIds(evaluateeIds);
-                List<com.ees.eval.dto.DepartmentDTO> filterDepts = evaluatees.stream()
-                        .map(e -> com.ees.eval.dto.DepartmentDTO.builder()
-                                .deptId(e.getDeptId())
-                                .deptName(e.getDeptName())
-                                .build())
-                        .distinct()
-                        .sorted(java.util.Comparator.comparing(com.ees.eval.dto.DepartmentDTO::deptName))
-                        .toList();
-                model.addAttribute("departments", filterDepts);
-            }
+            model.addAttribute("departments", filterDepts);
+        }
 
-            if ("PLANNED".equals(selectedPeriod.statusCode())) {
-                model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
-            }
-        } else {
-            model.addAttribute("infoMessage", "진행 중인 평가 차수가 없습니다.");
+        if (selectedPeriod != null && "PLANNED".equals(selectedPeriod.statusCode())) {
+            model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
+        } else if (selectedPeriod == null && pageData.totalCount() == 0) {
+            model.addAttribute("infoMessage", "조회된 평가 데이터가 없습니다.");
         }
 
         return "eval/multi-dimensional/list";
@@ -132,11 +154,8 @@ public class MultiDimensionalEvaluationController {
             return "redirect:/eval/multi-dimensional";
         }
 
-        // 평가 기간 유효성 검증 (상태 + 날짜)
-        if (!periodService.isPeriodActive(mapping.periodId())) {
-            redirectAttributes.addFlashAttribute("errorMessage", "평가 기간이 아니거나 이미 종료되었습니다.");
-            return "redirect:/eval/multi-dimensional?periodId=" + mapping.periodId();
-        }
+        boolean isPeriodActive = periodService.isPeriodActive(mapping.periodId());
+        model.addAttribute("isPeriodActive", isPeriodActive);
 
         // 가중치 검증 (피평가자가 부서장이므로 LEADER 기준)
         Employee evaluatee = employeeMapper.findById(mapping.evaluateeId()).orElse(null);
@@ -167,9 +186,10 @@ public class MultiDimensionalEvaluationController {
                 .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
         model.addAttribute("submitted", submitted);
 
-        // 역순 진행 방지 (상위 평가자가 제출했는지 확인)
+        // 역순 진행 방지 (상위 평가자가 제출했는지 확인) 및 기간 종료 여부 통합 체크
         java.util.Map<String, Object> lockInfo = mappingService.checkEvaluationLock(mappingId);
-        model.addAttribute("isLocked", lockInfo.get("isLocked"));
+        boolean isLocked = (boolean) lockInfo.get("isLocked") || !isPeriodActive;
+        model.addAttribute("isLocked", isLocked);
         model.addAttribute("lockedBy", lockInfo.get("lockedBy"));
 
         // 피평가자(부서장)의 자가평가 데이터 조회 (다면평가 참고용)

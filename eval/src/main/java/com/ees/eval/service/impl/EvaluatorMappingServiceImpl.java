@@ -906,7 +906,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     @Override
     @Transactional(readOnly = true)
     public com.ees.eval.dto.MultiDimensionalEvalPageDTO getMultiDimensionalTasks(
-            Long periodId, Long evaluatorId, Long filterDeptId, String filterStatus, String keyword, int page, int pageSize) {
+            Long periodId, Long evaluatorId, Long filterDeptId, String filterStatus, String keyword, int page, int pageSize, boolean isPeriodActive) {
         
         // 1. 내가 평가해야 할 전체 다면평가 태스크 조회 (DB 레벨 필터링 적용)
         List<EvaluatorMapping> myAllTasks = mappingMapper.findByEvaluatorId(periodId, evaluatorId, RELATION_SUBORDINATE);
@@ -976,10 +976,18 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                             .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode())));
 
             MultiDimensionalEvalCtaType ctaType;
-            if (isLocked) ctaType = MultiDimensionalEvalCtaType.LOCKED;
-            else if (!selfSubmitted) ctaType = MultiDimensionalEvalCtaType.WAITING_SELF;
-            else if (isSubmitted) ctaType = MultiDimensionalEvalCtaType.VIEW;
-            else ctaType = MultiDimensionalEvalCtaType.EDIT;
+            if (!isPeriodActive) {
+                // 평가 기간 종료 시: 이전 데이터를 볼 수 있도록 '조회' 모드로 통일
+                ctaType = MultiDimensionalEvalCtaType.VIEW;
+            } else if (isLocked) {
+                ctaType = MultiDimensionalEvalCtaType.LOCKED;
+            } else if (!selfSubmitted) {
+                ctaType = MultiDimensionalEvalCtaType.WAITING_SELF;
+            } else if (isSubmitted) {
+                ctaType = MultiDimensionalEvalCtaType.VIEW;
+            } else {
+                ctaType = MultiDimensionalEvalCtaType.EDIT;
+            }
 
             // (E) 상태 필터링
             if (filterStatus != null && !filterStatus.isEmpty() && !statusType.name().equals(filterStatus)) continue;
@@ -1029,6 +1037,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                     .deptName(evaluatee.getDeptName())
                     .titleName(evaluatee.getPositionName() != null ? evaluatee.getPositionName() : "부서장")
                     .relationName("부서원→부서장") 
+                    .periodName(task.getPeriodName())
                     .statusType(statusType)
                     .displayStatus(statusType.getDescription())
                     .ctaType(ctaType)
@@ -1039,9 +1048,17 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                     .build());
         }
 
-        // 4. 정렬 (부서 오름차순, 이름 오름차순)
-        rowList.sort(Comparator.comparing(com.ees.eval.dto.MultiDimensionalEvalRowDTO::deptName, Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(com.ees.eval.dto.MultiDimensionalEvalRowDTO::name));
+        // 4. 정렬 (단일 차수면 부서/이름순, 전체 차수면 SQL의 최신순 유지 또는 기간/부서/이름순)
+        if (periodId != null) {
+            rowList.sort(Comparator.comparing(com.ees.eval.dto.MultiDimensionalEvalRowDTO::deptName, Comparator.nullsLast(Comparator.naturalOrder()))
+                    .thenComparing(com.ees.eval.dto.MultiDimensionalEvalRowDTO::name));
+        } else {
+            // 전체 차수 통합일 경우: SQL에서 이미 기간 역순으로 정렬되어 오지만, 
+            // 자바에서 한 번 더 기간(내림차순) -> 부서(오름차순) -> 이름(오름차순)으로 안정적인 정렬 수행
+            rowList.sort(Comparator.comparing(com.ees.eval.dto.MultiDimensionalEvalRowDTO::periodName, Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(com.ees.eval.dto.MultiDimensionalEvalRowDTO::deptName, Comparator.nullsLast(Comparator.naturalOrder()))
+                    .thenComparing(com.ees.eval.dto.MultiDimensionalEvalRowDTO::name));
+        }
 
         // 5. 페이징 처리
         int totalCount = rowList.size();

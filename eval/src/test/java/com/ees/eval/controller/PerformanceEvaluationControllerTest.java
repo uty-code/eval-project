@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.ees.eval.mapper.FinalGradeMapper;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -59,6 +60,9 @@ class PerformanceEvaluationControllerTest {
     @Mock
     private EmployeeMapper employeeMapper;
 
+    @Mock
+    private FinalGradeMapper finalGradeMapper;
+
     @InjectMocks
     private PerformanceEvaluationController performanceEvaluationController;
 
@@ -101,7 +105,7 @@ class PerformanceEvaluationControllerTest {
                         .param("mappingId", mappingId.toString())
                         .param("evalType", "PERFORMANCE"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/eval/performance?periodId=" + periodId + "&evalType=PERFORMANCE"))
+                .andExpect(redirectedUrl("/eval/performance?periodId=" + periodId))
                 .andExpect(flash().attribute("errorMessage", "평가 시작 전입니다. 평가 기간에 다시 접속해 주세요."));
     }
 
@@ -121,13 +125,15 @@ class PerformanceEvaluationControllerTest {
         emp.setDeptId(1L);
 
         given(periodService.getAllPeriods()).willReturn(Collections.singletonList(period));
-        given(periodService.getPeriodById(periodId)).willReturn(period);
         given(employeeMapper.findById(empId)).willReturn(Optional.of(emp));
+
+        given(mappingService.getMyEvaluationTasks(periodId, empId)).willReturn(Collections.singletonList(
+                EvaluatorMappingDTO.builder().periodId(periodId).evaluateeId(2001L).relationTypeCode("MANAGER").build()
+        ));
 
         // When & Then
         mockMvc.perform(get("/eval/performance")
-                        .param("periodId", periodId.toString())
-                        .param("evalType", "PERFORMANCE"))
+                        .param("periodId", periodId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("eval/performance/list"))
                 .andExpect(model().attribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다."));
