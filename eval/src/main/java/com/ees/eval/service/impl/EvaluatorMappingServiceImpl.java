@@ -19,6 +19,10 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import com.ees.eval.dto.MappingAnomalyDTO;
+import com.ees.eval.dto.MultiDimensionalEvalRowDTO;
+import com.ees.eval.dto.MultiDimensionalEvalPageDTO;
+import com.ees.eval.dto.enums.MultiDimensionalEvalStatus;
+import com.ees.eval.dto.enums.MultiDimensionalEvalCtaType;
 
 /**
  * EvaluatorMappingService의 실제 비즈니스 로직 구현체입니다.
@@ -35,6 +39,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     private final DepartmentMapper departmentMapper;
     private final EvaluationPeriodMapper periodMapper;
     private final EvaluationMapper evaluationMapper;
+    private final com.ees.eval.mapper.EvaluationElementMapper elementMapper;
 
     /** 평가자 매핑 수정이 허용되는 유일한 상태 */
     private static final String STATUS_PLANNED = "PLANNED";
@@ -891,5 +896,163 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         }
 
         return result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public com.ees.eval.dto.MultiDimensionalEvalPageDTO getMultiDimensionalTasks(
+            Long periodId, Long evaluatorId, Long filterDeptId, String filterStatus, String keyword, int page, int pageSize) {
+        
+        // 1. 내가 평가해야 할 전체 다면평가 태스크 조회
+        List<EvaluatorMapping> myAllTasks = mappingMapper.findByEvaluatorId(periodId, evaluatorId).stream()
+                .filter(m -> RELATION_SUBORDINATE.equals(m.getRelationTypeCode())) // 다면평가(부서원)만 필터링
+                .toList();
+        
+        if (myAllTasks.isEmpty()) {
+            return new com.ees.eval.dto.MultiDimensionalEvalPageDTO(Collections.emptyList(), 1, 1, 0, pageSize);
+        }
+
+        // 2. 관련 데이터 벌크 조회 (최적화: N+1 방지)
+        List<Long> evaluateeIds = myAllTasks.stream().map(EvaluatorMapping::getEvaluateeId).distinct().toList();
+        Map<Long, Employee> evaluateeMap = employeeMapper.findByIds(evaluateeIds).stream()
+                .collect(Collectors.toMap(Employee::getEmpId, e -> e));
+        
+        // 해당 피평가자들의 모든 매핑 정보 (잠금 체크 및 자가평가 확인용)
+        Map<Long, List<EvaluatorMapping>> allMappingsByEvaluatee = mappingMapper.findByEvaluateeIds(periodId, evaluateeIds).stream()
+                .collect(Collectors.groupingBy(EvaluatorMapping::getEvaluateeId));
+        
+        // 전체 평가 데이터 (제출 여부 확인용)
+        List<Long> allMappingIds = allMappingsByEvaluatee.values().stream()
+                .flatMap(List::stream)
+                .map(EvaluatorMapping::getMappingId)
+                .toList();
+        
+        Map<Long, List<Evaluation>> evalGroupMapTmp = new HashMap<>();
+        if (!allMappingIds.isEmpty()) {
+            List<Evaluation> allEvals = evaluationMapper.findByMappingIds(allMappingIds);
+            evalGroupMapTmp = allEvals.stream().collect(Collectors.groupingBy(Evaluation::getMappingId));
+        }
+        final Map<Long, List<Evaluation>> evalGroupMap = evalGroupMapTmp;
+
+        // 3. 필터링 및 상태 계산
+        List<com.ees.eval.dto.MultiDimensionalEvalRowDTO> rowList = new ArrayList<>();
+        for (EvaluatorMapping task : myAllTasks) {
+            Employee evaluatee = evaluateeMap.get(task.getEvaluateeId());
+            if (evaluatee == null) continue;
+
+            // (A) 기본 필터링 (부서, 키워드)
+            if (filterDeptId != null && !filterDeptId.equals(evaluatee.getDeptId())) continue;
+            if (keyword != null && !keyword.isEmpty() && 
+                !(evaluatee.getName().contains(keyword) || evaluatee.getEmpId().toString().contains(keyword))) {
+                continue;
+            }
+
+            // (B) 상태 계산 로직
+            List<Evaluation> myEvals = evalGroupMap.getOrDefault(task.getMappingId(), Collections.emptyList());
+            boolean isSubmitted = myEvals.stream().anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
+            boolean isInProgress = !isSubmitted && !myEvals.isEmpty();
+
+            MultiDimensionalEvalStatus statusType = isSubmitted ? MultiDimensionalEvalStatus.SUBMITTED :
+                                                   isInProgress ? MultiDimensionalEvalStatus.IN_PROGRESS :
+                                                   MultiDimensionalEvalStatus.WAITING;
+
+            // (C) 자가평가 제출 여부 확인
+            List<EvaluatorMapping> peerMappings = allMappingsByEvaluatee.getOrDefault(task.getEvaluateeId(), Collections.emptyList());
+            Long selfMappingId = peerMappings.stream()
+                    .filter(m -> RELATION_SELF.equals(m.getRelationTypeCode()))
+                    .map(EvaluatorMapping::getMappingId)
+                    .findFirst().orElse(null);
+            
+            boolean selfSubmitted = selfMappingId != null && evalGroupMap.getOrDefault(selfMappingId, Collections.emptyList()).stream()
+                    .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()));
+
+            // (D) 잠금 상태 (상위 평가자가 제출했는지)
+            boolean isLocked = peerMappings.stream()
+                    .filter(m -> RELATION_MANAGER.equals(m.getRelationTypeCode()) || RELATION_EXECUTIVE.equals(m.getRelationTypeCode()))
+                    .anyMatch(m -> evalGroupMap.getOrDefault(m.getMappingId(), Collections.emptyList()).stream()
+                            .anyMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode())));
+
+            MultiDimensionalEvalCtaType ctaType;
+            if (isLocked) ctaType = MultiDimensionalEvalCtaType.LOCKED;
+            else if (!selfSubmitted) ctaType = MultiDimensionalEvalCtaType.WAITING_SELF;
+            else if (isSubmitted) ctaType = MultiDimensionalEvalCtaType.VIEW;
+            else ctaType = MultiDimensionalEvalCtaType.EDIT;
+
+            // (E) 상태 필터링
+            if (filterStatus != null && !filterStatus.isEmpty() && !statusType.name().equals(filterStatus)) continue;
+
+            // (F) 점수 계산 (환산 점수)
+            java.math.BigDecimal totalScore = java.math.BigDecimal.ZERO;
+            if (isSubmitted) {
+                // 해당 차수의 평가 요소를 가져와서 가중치 적용 계산
+                List<com.ees.eval.domain.EvaluationElement> elements = elementMapper.findByPeriodId(task.getPeriodId(), evaluatee.getDeptId());
+                if (elements.isEmpty()) {
+                    // 부서 전용 항목이 없으면 전사 공통 항목 조회
+                    elements = elementMapper.findByPeriodId(task.getPeriodId(), null);
+                }
+                
+                Map<Long, com.ees.eval.domain.EvaluationElement> elementMap = elements.stream()
+                        .collect(Collectors.toMap(com.ees.eval.domain.EvaluationElement::getElementId, e -> e, (a, b) -> a));
+                
+                java.math.BigDecimal weightedSum = java.math.BigDecimal.ZERO;
+                java.math.BigDecimal totalWeight = java.math.BigDecimal.ZERO;
+                
+                for (Evaluation e : myEvals) {
+                    com.ees.eval.domain.EvaluationElement el = elementMap.get(e.getElementId());
+                    if (el != null && e.getScore() != null) {
+                        java.math.BigDecimal maxScore = el.getMaxScore();
+                        if (maxScore.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                            java.math.BigDecimal normalized = java.math.BigDecimal.valueOf(e.getScore())
+                                    .divide(maxScore, 10, java.math.RoundingMode.HALF_UP)
+                                    .multiply(el.getWeight());
+                            weightedSum = weightedSum.add(normalized);
+                            totalWeight = totalWeight.add(el.getWeight());
+                        }
+                    }
+                }
+                if (totalWeight.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                    totalScore = weightedSum.divide(totalWeight, 10, java.math.RoundingMode.HALF_UP)
+                            .multiply(java.math.BigDecimal.valueOf(100))
+                            .setScale(1, java.math.RoundingMode.HALF_UP);
+                }
+            }
+
+            rowList.add(com.ees.eval.dto.MultiDimensionalEvalRowDTO.builder()
+                    .mappingId(task.getMappingId())
+                    .evaluateeId(task.getEvaluateeId())
+                    .empId(evaluatee.getEmpId().toString())
+                    .name(evaluatee.getName())
+                    .deptId(evaluatee.getDeptId())
+                    .deptName(evaluatee.getDeptName())
+                    .titleName(evaluatee.getPositionName() != null ? evaluatee.getPositionName() : "부서장")
+                    .relationName("부서원→부서장") 
+                    .statusType(statusType)
+                    .displayStatus(statusType.getDescription())
+                    .ctaType(ctaType)
+                    .displayCta(ctaType.getDescription())
+                    .canWrite(ctaType == MultiDimensionalEvalCtaType.EDIT)
+                    .canView(ctaType == MultiDimensionalEvalCtaType.VIEW || ctaType == MultiDimensionalEvalCtaType.LOCKED)
+                    .score(isSubmitted ? totalScore : null)
+                    .build());
+        }
+
+        // 4. 정렬 (부서 오름차순, 이름 오름차순)
+        rowList.sort(Comparator.comparing(com.ees.eval.dto.MultiDimensionalEvalRowDTO::deptName, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(com.ees.eval.dto.MultiDimensionalEvalRowDTO::name));
+
+        // 5. 페이징 처리
+        int totalCount = rowList.size();
+        int totalPages = (int) Math.ceil((double) totalCount / pageSize);
+        if (totalPages == 0) totalPages = 1;
+        int currentPage = Math.max(1, Math.min(page, totalPages));
+        int startIndex = (currentPage - 1) * pageSize;
+        int endIndex = Math.min(startIndex + pageSize, totalCount);
+
+        List<com.ees.eval.dto.MultiDimensionalEvalRowDTO> pagedList = rowList.subList(startIndex, endIndex);
+
+        return new com.ees.eval.dto.MultiDimensionalEvalPageDTO(pagedList, currentPage, totalPages, totalCount, pageSize);
     }
 }
