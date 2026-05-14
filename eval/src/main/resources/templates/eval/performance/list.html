@@ -81,6 +81,25 @@
             .status-wait { background: rgba(245,158,11,.15); color: #fcd34d; border: 1px solid rgba(245,158,11,.3); }
             .status-none { background: rgba(255,255,255,.06); color: rgba(255,255,255,.4); }
 
+            /* ===== 등급 배지 ===== */
+            .grade-badge {
+                font-size: .75rem;
+                padding: .25rem .7rem;
+                border-radius: 6px;
+                font-weight: 800;
+                display: inline-block;
+                min-width: 32px;
+                text-align: center;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+            .grade-s { background: linear-gradient(135deg, #a855f7, #eab308); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+            .grade-a { background: #3b82f6; color: #fff; }
+            .grade-b { background: #10b981; color: #fff; }
+            .grade-c { background: #64748b; color: #fff; }
+            .grade-d { background: #ef4444; color: #fff; }
+            .grade-none { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); }
+            .total-score { font-size: 0.7rem; color: rgba(255,255,255,0.5); font-weight: 400; margin-left: 4px; }
+
             /* ===== 버튼 배지 ===== */
             .action-btn {
                 font-size: .75rem;
@@ -237,12 +256,14 @@
                                     <th colspan="4" class="th-group th-group-info" style="border-right:2px solid rgba(255,255,255,.35)">피평가자 정보</th>
                                     <th colspan="2" class="th-group th-group-mbo" style="border-right:2px solid rgba(255,255,255,.35)">성과평가 (MBO)</th>
                                     <th colspan="2" class="th-group th-group-comp" style="border-right:2px solid rgba(255,255,255,.35)">역량평가 (COMP)</th>
+
                                     <th colspan="2" class="th-group th-group-action">평가 진행/상태</th>
                                 </tr>
                                 <tr>
                                     <th>부서명</th><th>직책</th><th>사번</th><th style="border-right:2px solid rgba(255,255,255,.35)">성명</th>
                                     <th>자가평가 점수</th><th style="border-right:2px solid rgba(255,255,255,.35)">1차평가 점수</th>
                                     <th>자가평가 점수</th><th style="border-right:2px solid rgba(255,255,255,.35)">1차평가 점수</th>
+
                                     <th>상태</th><th>진행</th>
                                 </tr>
                             </thead>
@@ -261,6 +282,8 @@
                                     <td class="score-val" th:text="${r.selfCompScore() != null ? r.selfCompScore() : '-'}">-</td>
                                     <td class="score-val" th:text="${r.managerCompScore() != null ? r.managerCompScore() : '-'}" style="border-right:2px solid rgba(255,255,255,.35)">-</td>
                                     
+
+
                                     <!-- 상태 -->
                                     <td>
                                         <span class="status-badge"

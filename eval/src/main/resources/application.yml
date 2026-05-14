@@ -44,7 +44,7 @@ mybatis:
 logging:
   level:
     root: INFO
-    com.ees.eval: INFO
+    com.ees.eval: DEBUG
 
 ---
 # [dev] 로컬 개발 환경 - 학교 공용 DB

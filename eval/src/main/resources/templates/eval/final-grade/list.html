@@ -6,63 +6,91 @@
     <title>최종 등급 확정 - EES</title>
     <th:block th:fragment="extraStyles">
         <style>
-            .eval-list-container {
-                background: var(--glass);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                border-radius: 1rem;
-                box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-                border: 1px solid var(--glass-border);
-                overflow: hidden;
-                margin-top: 20px;
+            /* ===== 테이블 ===== */
+            .result-table-wrap { padding: 1rem 1.5rem 1.5rem; overflow-x: auto; }
+            .result-table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                font-size: .78rem;
+                border-top: 1px solid rgba(255,255,255,.35);
+                border-left: 1px solid rgba(255,255,255,.35);
+                border-right: 1px solid rgba(255,255,255,.35);
+                min-width: 900px;
             }
-
-            .eval-list-item {
-                display: flex;
-                align-items: center;
-                padding: 18px 24px;
-                border-bottom: 1px solid var(--glass-border);
-                transition: background-color 0.2s ease;
-            }
-
-            .eval-list-item:last-child {
-                border-bottom: none;
-            }
-
-            .eval-list-item:hover {
-                background-color: rgba(255, 255, 255, 0.05);
-            }
-
-            .eval-name {
-                font-size: 1.1rem;
-                font-weight: 700;
-                color: var(--text-main);
-                min-width: 140px;
-            }
-
-            .badge-dept {
-                background-color: var(--surface-light);
-                color: var(--text-main);
-                font-size: 0.85rem;
+            .result-table thead th {
+                padding: .65rem .5rem;
+                text-align: center;
                 font-weight: 600;
-                padding: 4px 12px;
-                border-radius: 6px;
-                margin-right: 16px;
-                border: 1px solid var(--glass-border);
+                color: rgba(255,255,255,.7);
+                white-space: nowrap;
+                border-bottom: 1px solid rgba(255,255,255,.35);
             }
+            .th-group { font-size: .8rem; font-weight: 700; letter-spacing: .5px; }
+            .th-group-info { color: rgba(255,255,255,.5); }
+            .result-table thead th.th-group-mbo { color: #6366f1 !important; }
+            .result-table thead th.th-group-comp { color: #10b981 !important; }
+            .result-table thead th.th-group-multi { color: #f59e0b !important; }
+            .result-table thead th.th-group-action { color: #f59e0b !important; }
+            .result-table tbody td {
+                padding: .75rem .5rem;
+                text-align: center;
+                color: rgba(255,255,255,.8);
+                border-bottom: 1px solid rgba(255,255,255,.35);
+                vertical-align: middle;
+            }
+            .result-table tbody tr:hover { background: rgba(255,255,255,.03); }
+            .emp-name { color: #a855f7; font-weight: 700; }
+            .score-val { font-weight: 600; color: #fff; }
 
-            .badge-status {
-                background-color: rgba(245, 158, 11, 0.2);
-                color: #fbd38d;
-                border: 1px solid rgba(245, 158, 11, 0.3);
-                font-size: 0.85rem;
+            /* ===== 상태 배지 ===== */
+            .status-badge {
+                font-size: .65rem;
+                padding: .3rem .6rem;
+                border-radius: 12px;
                 font-weight: 600;
-                padding: 4px 12px;
+                white-space: nowrap;
+                display: inline-block;
+            }
+            .status-done { background: rgba(16,185,129,.15); color: #34d399; border: 1px solid rgba(16,185,129,.3); }
+            .status-wait { background: rgba(245,158,11,.15); color: #fcd34d; border: 1px solid rgba(245,158,11,.3); }
+
+            /* ===== 등급 배지 ===== */
+            .grade-badge {
+                font-size: .75rem;
+                padding: .25rem .7rem;
                 border-radius: 6px;
+                font-weight: 800;
+                display: inline-block;
+                min-width: 32px;
+                text-align: center;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+            .grade-s { background: linear-gradient(135deg, #a855f7, #eab308); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+            .grade-a { background: #3b82f6; color: #fff; }
+            .grade-b { background: #10b981; color: #fff; }
+            .grade-c { background: #64748b; color: #fff; }
+            .grade-d { background: #ef4444; color: #fff; }
+            .grade-none { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); }
+            .total-score { font-size: 0.7rem; color: rgba(255,255,255,0.5); font-weight: 400; margin-left: 4px; }
+
+            /* ===== 버튼 배지 ===== */
+            .action-btn {
+                font-size: .75rem;
+                padding: .35rem .8rem;
+                border-radius: 6px;
+                font-weight: 600;
+                border: none;
+                transition: all 0.2s;
+                text-decoration: none;
                 display: inline-flex;
                 align-items: center;
-                gap: 6px;
+                gap: 0.3rem;
             }
+            .action-primary { background: linear-gradient(90deg, #6366f1, #a855f7); color: #fff; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+            .action-primary:hover { background: linear-gradient(90deg, #4f46e5, #9333ea); color: #fff; transform: translateY(-1px); }
+            .action-locked { background-color: #92400e; color: #fff; cursor: not-allowed; opacity: 0.8; }
+            .action-waiting { background-color: #4b5563; color: #d1d5db; cursor: not-allowed; opacity: 0.8; }
         </style>
     </th:block>
 </head>
@@ -98,6 +126,12 @@
             <div th:text="${errorMessage}"></div>
         </div>
 
+        <div th:if="${successMessage}" class="alert d-flex align-items-center mb-3" role="alert"
+            style="background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #86efac; border-radius: 0.75rem;">
+            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+            <div th:text="${successMessage}"></div>
+        </div>
+
         <!-- 정보 메시지 -->
         <div th:if="${infoMessage}"
             class="ees-card p-4 text-center mb-4"
@@ -107,7 +141,6 @@
         </div>
 
         <div sec:authorize="hasAnyRole('EXECUTIVE', 'ADMIN')" th:if="${selectedPeriod != null}">
-
 
             <div th:if="${selectedPeriod.statusCode() != 'PLANNED'}">
                 <h5 class="text-white fw-bold mb-3 mt-2"><i class="bi bi-people-fill text-primary me-2"></i>최종 등급 확정 대상자</h5>
@@ -119,7 +152,7 @@
                 </div>
                 
                 <div th:if="${tasks != null && !tasks.isEmpty()}">
-                    <!-- 사원 관리와 동일하게 탭을 카드 밖으로 배치 -->
+                    <!-- 탭 -->
                     <div class="nav-tabs-custom mb-3">
                         <button class="nav-link-custom" th:classappend="${activeTab == 'leader' ? 'active' : ''}" id="leader-tab" 
                             data-target="#leader-content" type="button" role="tab">
@@ -133,87 +166,162 @@
 
                     <div class="ees-card overflow-hidden">
                         <div class="tab-content" id="evalTabContent">
-                            <!-- 부서장 리스트 -->
+
+                            <!-- ══════════ 부서장 탭 (다면평가: 자가/1차/2차) ══════════ -->
                             <div class="tab-pane fade" th:classappend="${activeTab == 'leader' ? 'show active' : ''}" id="leader-content" role="tabpanel">
-                                <div th:each="task : ${tasks}" th:if="${task.isLeader()}" class="eval-list-item">
-                                    <div class="eval-name" th:text="${task.evaluateeName()}">대상자 이름</div>
-                                    
-                                    <div th:if="${teamSubmittedMap == null || !teamSubmittedMap.getOrDefault(task.mappingId(), false)}"
-                                        class="badge-status">
-                                        <i class="bi bi-hourglass-split"></i> 확정 대기
-                                    </div>
-                                    <div th:if="${teamSubmittedMap != null && teamSubmittedMap.getOrDefault(task.mappingId(), false)}"
-                                        class="badge-status"
-                                        style="background:rgba(34,197,94,0.15);color:#86efac;border-color:rgba(34,197,94,0.3);">
-                                        <i class="bi bi-check-circle-fill"></i> 확정 완료
-                                    </div>
-                                    
-                                    <div class="flex-grow-1"></div>
-                                    
-                                    <div>
-                                        <a th:if="${evaluateeSelfSubmittedMap != null && evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false) && teamWeightValidMap != null && teamWeightValidMap.getOrDefault(task.mappingId(), false)}"
-                                            href="#" class="btn ees-btn-glass-primary btn-sm"
-                                            th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='leader')}"
-                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
-                                            hx-push-url="true">
-                                            <i class="bi bi-pencil-square"></i> <span
-                                                th:text="${teamSubmittedMap != null && teamSubmittedMap.getOrDefault(task.mappingId(), false)} ? '확정 내용 수정' : '등급 확정 시작'"></span>
-                                        </a>
-                                        <button th:if="${teamWeightValidMap == null || !teamWeightValidMap.getOrDefault(task.mappingId(), false)}"
-                                            class="btn-evaluate" style="background-color: #92400e; cursor: not-allowed; opacity: 0.7;" disabled>
-                                            <i class="bi bi-lock-fill"></i> 가중치 미설정
-                                        </button>
-                                        <button th:if="${teamWeightValidMap != null && teamWeightValidMap.getOrDefault(task.mappingId(), false) && (evaluateeSelfSubmittedMap == null || !evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false))}"
-                                            class="btn-evaluate" style="background-color: #4b5563; cursor: not-allowed; opacity: 0.7;" disabled>
-                                            <i class="bi bi-lock-fill"></i> 자가평가 대기중
-                                        </button>
-                                    </div>
-                                </div>
                                 <div th:if="${leaderCount == 0}" class="p-5 text-center text-muted">
                                     부서장 확정 대상자가 없습니다.
                                 </div>
+                                <div th:if="${leaderCount > 0}" class="result-table-wrap">
+                                    <table class="result-table">
+                                        <thead>
+                                            <tr>
+                                                <th colspan="4" class="th-group th-group-info" style="border-right:2px solid rgba(255,255,255,.35)">피평가자 정보</th>
+                                                <th colspan="3" class="th-group th-group-multi" style="border-right:2px solid rgba(255,255,255,.35)">다면평가</th>
+                                                <th class="th-group" style="color: #cbd5e1; border-right:2px solid rgba(255,255,255,.35)">예상 등급</th>
+                                                <th colspan="2" class="th-group th-group-action">확정 진행/상태</th>
+                                            </tr>
+                                            <tr>
+                                                <th>부서명</th><th>직급</th><th>사번</th><th style="border-right:2px solid rgba(255,255,255,.35)">성명</th>
+                                                <th>자가평가</th><th>1차평가</th><th style="border-right:2px solid rgba(255,255,255,.35)">2차평가</th>
+                                                <th style="border-right:2px solid rgba(255,255,255,.35)">현재 기준</th>
+                                                <th>상태</th><th>진행</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr th:each="task : ${tasks}" th:if="${task.isLeader()}">
+                                                <td th:text="${task.deptName()}">-</td>
+                                                <td th:text="${task.titleName() ?: '-'}">-</td>
+                                                <td th:text="${task.empId()}">-</td>
+                                                <td class="emp-name" th:text="${task.evaluateeName()}" style="border-right:2px solid rgba(255,255,255,.35)">-</td>
+
+                                                <!-- 다면평가 점수: 자가 / 1차 / 2차 -->
+                                                <td class="score-val" th:text="${task.selfMultiScore() != null ? task.selfMultiScore() : '-'}">-</td>
+                                                <td class="score-val" th:text="${task.managerMultiScore() != null ? task.managerMultiScore() : '-'}">-</td>
+                                                <td class="score-val" th:text="${task.executiveMultiScore() != null ? task.executiveMultiScore() : '-'}" style="border-right:2px solid rgba(255,255,255,.35)">-</td>
+
+                                                <!-- 예상 등급 -->
+                                                <td style="border-right:2px solid rgba(255,255,255,.35)">
+                                                    <div class="d-flex align-items-center justify-content-center">
+                                                        <span class="grade-badge" 
+                                                              th:classappend="${task.expectedGrade() == 'S' ? 'grade-s' : (task.expectedGrade() == 'A' ? 'grade-a' : (task.expectedGrade() == 'B' ? 'grade-b' : (task.expectedGrade() == 'C' ? 'grade-c' : (task.expectedGrade() == 'D' ? 'grade-d' : 'grade-none'))))}"
+                                                              th:text="${task.expectedGrade()}">-</span>
+                                                        <span class="total-score" th:if="${task.totalScore() != null}" th:text="${'(' + task.totalScore() + ')'}"></span>
+                                                    </div>
+                                                </td>
+
+                                                <!-- 상태 -->
+                                                <td>
+                                                    <span class="status-badge"
+                                                          th:classappend="${task.allSubmitted() ? 'status-done' : 'status-wait'}"
+                                                          th:text="${task.allSubmitted() ? '확정완료' : '확정대기'}">-</span>
+                                                </td>
+
+                                                <!-- 진행 버튼 -->
+                                                <td>
+                                                    <button th:if="${!task.weightValid()}"
+                                                        class="action-btn action-locked" disabled>
+                                                        <i class="bi bi-lock-fill"></i> 가중치 미설정
+                                                    </button>
+                                                    <button th:if="${task.weightValid() && !task.selfSubmitted()}"
+                                                        class="action-btn action-waiting" disabled>
+                                                        <i class="bi bi-lock-fill"></i> 자가평가 대기중
+                                                    </button>
+                                                    <a th:if="${task.selfSubmitted() && task.weightValid()}"
+                                                        href="#" class="action-btn action-primary"
+                                                        th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='leader')}"
+                                                        hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                                        hx-push-url="true">
+                                                        <i class="bi bi-pencil-square"></i> <span th:text="${task.allSubmitted() ? '확정 내용 수정' : '등급 확정 시작'}"></span>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
 
-                            <!-- 일반사원 리스트 -->
+                            <!-- ══════════ 일반사원 탭 (성과평가 + 역량평가: 각 자가/1차/2차) ══════════ -->
                             <div class="tab-pane fade" th:classappend="${activeTab == 'staff' ? 'show active' : ''}" id="staff-content" role="tabpanel">
-                                <div th:each="task : ${tasks}" th:if="${!task.isLeader()}" class="eval-list-item">
-                                    <div class="eval-name" th:text="${task.evaluateeName()}">대상자 이름</div>
-                                    
-                                    <div th:if="${teamSubmittedMap == null || !teamSubmittedMap.getOrDefault(task.mappingId(), false)}"
-                                        class="badge-status">
-                                        <i class="bi bi-hourglass-split"></i> 확정 대기
-                                    </div>
-                                    <div th:if="${teamSubmittedMap != null && teamSubmittedMap.getOrDefault(task.mappingId(), false)}"
-                                        class="badge-status"
-                                        style="background:rgba(34,197,94,0.15);color:#86efac;border-color:rgba(34,197,94,0.3);">
-                                        <i class="bi bi-check-circle-fill"></i> 확정 완료
-                                    </div>
-                                    
-                                    <div class="flex-grow-1"></div>
-                                    
-                                    <div>
-                                        <a th:if="${evaluateeSelfSubmittedMap != null && evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false) && teamWeightValidMap != null && teamWeightValidMap.getOrDefault(task.mappingId(), false)}"
-                                            href="#" class="btn ees-btn-glass-primary btn-sm"
-                                            th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='staff')}"
-                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
-                                            hx-push-url="true">
-                                            <i class="bi bi-pencil-square"></i> <span
-                                                th:text="${teamSubmittedMap != null && teamSubmittedMap.getOrDefault(task.mappingId(), false)} ? '확정 내용 수정' : '등급 확정 시작'"></span>
-                                        </a>
-                                        <button th:if="${teamWeightValidMap == null || !teamWeightValidMap.getOrDefault(task.mappingId(), false)}"
-                                            class="btn-evaluate" style="background-color: #92400e; cursor: not-allowed; opacity: 0.7;" disabled>
-                                            <i class="bi bi-lock-fill"></i> 가중치 미설정
-                                        </button>
-                                        <button th:if="${teamWeightValidMap != null && teamWeightValidMap.getOrDefault(task.mappingId(), false) && (evaluateeSelfSubmittedMap == null || !evaluateeSelfSubmittedMap.getOrDefault(task.mappingId(), false))}"
-                                            class="btn-evaluate" style="background-color: #4b5563; cursor: not-allowed; opacity: 0.7;" disabled>
-                                            <i class="bi bi-lock-fill"></i> 자가평가 대기중
-                                        </button>
-                                    </div>
-                                </div>
                                 <div th:if="${staffCount == 0}" class="p-5 text-center text-muted">
                                     일반사원 확정 대상자가 없습니다.
                                 </div>
+                                <div th:if="${staffCount > 0}" class="result-table-wrap">
+                                    <table class="result-table">
+                                        <thead>
+                                            <tr>
+                                                <th colspan="4" class="th-group th-group-info" style="border-right:2px solid rgba(255,255,255,.35)">피평가자 정보</th>
+                                                <th colspan="3" class="th-group th-group-mbo" style="border-right:2px solid rgba(255,255,255,.35)">성과평가 (MBO)</th>
+                                                <th colspan="3" class="th-group th-group-comp" style="border-right:2px solid rgba(255,255,255,.35)">역량평가 (COMP)</th>
+                                                <th class="th-group" style="color: #cbd5e1; border-right:2px solid rgba(255,255,255,.35)">예상 등급</th>
+                                                <th colspan="2" class="th-group th-group-action">확정 진행/상태</th>
+                                            </tr>
+                                            <tr>
+                                                <th>부서명</th><th>직급</th><th>사번</th><th style="border-right:2px solid rgba(255,255,255,.35)">성명</th>
+                                                <th>자가평가</th><th>1차평가</th><th style="border-right:2px solid rgba(255,255,255,.35)">2차평가</th>
+                                                <th>자가평가</th><th>1차평가</th><th style="border-right:2px solid rgba(255,255,255,.35)">2차평가</th>
+                                                <th style="border-right:2px solid rgba(255,255,255,.35)">현재 기준</th>
+                                                <th>상태</th><th>진행</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr th:each="task : ${tasks}" th:if="${!task.isLeader()}">
+                                                <td th:text="${task.deptName()}">-</td>
+                                                <td th:text="${task.titleName() ?: '-'}">-</td>
+                                                <td th:text="${task.empId()}">-</td>
+                                                <td class="emp-name" th:text="${task.evaluateeName()}" style="border-right:2px solid rgba(255,255,255,.35)">-</td>
+
+                                                <!-- 성과평가(MBO) 점수: 자가 / 1차 / 2차 -->
+                                                <td class="score-val" th:text="${task.selfPerfScore() != null ? task.selfPerfScore() : '-'}">-</td>
+                                                <td class="score-val" th:text="${task.managerPerfScore() != null ? task.managerPerfScore() : '-'}">-</td>
+                                                <td class="score-val" th:text="${task.executivePerfScore() != null ? task.executivePerfScore() : '-'}" style="border-right:2px solid rgba(255,255,255,.35)">-</td>
+
+                                                <!-- 역량평가(COMP) 점수: 자가 / 1차 / 2차 -->
+                                                <td class="score-val" th:text="${task.selfCompScore() != null ? task.selfCompScore() : '-'}">-</td>
+                                                <td class="score-val" th:text="${task.managerCompScore() != null ? task.managerCompScore() : '-'}">-</td>
+                                                <td class="score-val" th:text="${task.executiveCompScore() != null ? task.executiveCompScore() : '-'}" style="border-right:2px solid rgba(255,255,255,.35)">-</td>
+
+                                                <!-- 예상 등급 -->
+                                                <td style="border-right:2px solid rgba(255,255,255,.35)">
+                                                    <div class="d-flex align-items-center justify-content-center">
+                                                        <span class="grade-badge" 
+                                                              th:classappend="${task.expectedGrade() == 'S' ? 'grade-s' : (task.expectedGrade() == 'A' ? 'grade-a' : (task.expectedGrade() == 'B' ? 'grade-b' : (task.expectedGrade() == 'C' ? 'grade-c' : (task.expectedGrade() == 'D' ? 'grade-d' : 'grade-none'))))}"
+                                                              th:text="${task.expectedGrade()}">-</span>
+                                                        <span class="total-score" th:if="${task.totalScore() != null}" th:text="${'(' + task.totalScore() + ')'}"></span>
+                                                    </div>
+                                                </td>
+
+                                                <!-- 상태 -->
+                                                <td>
+                                                    <span class="status-badge"
+                                                          th:classappend="${task.allSubmitted() ? 'status-done' : 'status-wait'}"
+                                                          th:text="${task.allSubmitted() ? '확정완료' : '확정대기'}">-</span>
+                                                </td>
+
+                                                <!-- 진행 버튼 -->
+                                                <td>
+                                                    <button th:if="${!task.weightValid()}"
+                                                        class="action-btn action-locked" disabled>
+                                                        <i class="bi bi-lock-fill"></i> 가중치 미설정
+                                                    </button>
+                                                    <button th:if="${task.weightValid() && !task.selfSubmitted()}"
+                                                        class="action-btn action-waiting" disabled>
+                                                        <i class="bi bi-lock-fill"></i> 자가평가 대기중
+                                                    </button>
+                                                    <a th:if="${task.selfSubmitted() && task.weightValid()}"
+                                                        href="#" class="action-btn action-primary"
+                                                        th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='staff')}"
+                                                        hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                                        hx-push-url="true">
+                                                        <i class="bi bi-pencil-square"></i> <span th:text="${task.allSubmitted() ? '확정 내용 수정' : '등급 확정 시작'}"></span>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
