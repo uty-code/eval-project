@@ -45,16 +45,19 @@ public record EvaluationResultDTO(
         String jobTitle,
         boolean isLeader,
         // 성과/업무 평가 (MBO) — 일반사원용
+        BigDecimal mboSelfScore,
         BigDecimal mbo1stScore,
         BigDecimal mbo2ndScore,
         BigDecimal mboFinalScore,
         String mboStatus,
         // 역량 평가 (COMP) — 일반사원용
+        BigDecimal compSelfScore,
         BigDecimal comp1stScore,
         BigDecimal comp2ndScore,
         BigDecimal compFinalScore,
         String compStatus,
         // 다면 평가 (MULTI) — 부서장용
+        BigDecimal multiSelfScore,
         BigDecimal multi1stScore,
         BigDecimal multi2ndScore,
         BigDecimal multiFinalScore,

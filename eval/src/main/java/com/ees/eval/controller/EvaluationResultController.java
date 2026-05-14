@@ -120,9 +120,9 @@ public class EvaluationResultController {
 
         model.addAttribute("results", results);
 
-        // 4. 등급 분포 통계
+        // 4. 등급 분포 통계 (최종 확정된 건만 집계)
         Map<String, Long> gradeDistribution = results.stream()
-                .filter(r -> r.gradeCode() != null && !r.gradeCode().trim().isEmpty())
+                .filter(r -> r.isConfirmed() && r.gradeCode() != null && !r.gradeCode().trim().isEmpty())
                 .collect(Collectors.groupingBy(EvaluationResultDTO::gradeCode, Collectors.counting()));
         
         long gradedCount = gradeDistribution.values().stream().mapToLong(Long::longValue).sum();
