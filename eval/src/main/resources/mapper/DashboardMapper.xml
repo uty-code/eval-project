@@ -137,6 +137,7 @@
         JOIN evaluation_periods_51 ep ON fg.period_id = ep.period_id
         WHERE fg.emp_id = #{empId}
           AND fg.is_deleted = 'n'
+          AND ep.status_code IN ('COMPLETED', 'CLOSED')
         ORDER BY ep.period_year DESC, ep.period_id DESC
     </select>
 </mapper>
