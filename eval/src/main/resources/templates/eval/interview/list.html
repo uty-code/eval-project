@@ -5,44 +5,45 @@
     <title>면담 관리 - EES</title>
     <th:block th:fragment="extraStyles">
         <style>
-            .interview-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                gap: 20px;
+            /* ===== 테이블 ===== */
+            .result-table-wrap { padding: 1rem 1.5rem 1.5rem; overflow-x: auto; background: var(--glass); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid var(--glass-border); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); }
+            .result-table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                font-size: .78rem;
+                border-top: 1px solid rgba(255,255,255,.35);
+                border-left: 1px solid rgba(255,255,255,.35);
+                border-right: 1px solid rgba(255,255,255,.35);
+                min-width: 700px;
             }
-            .member-card {
-                background: var(--glass);
-                backdrop-filter: blur(12px);
-                border-radius: 12px;
-                border: 1px solid var(--glass-border);
-                padding: 24px;
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                position: relative;
-                overflow: hidden;
+            .result-table thead th {
+                padding: .65rem .5rem;
+                text-align: center;
+                font-weight: 600;
+                color: rgba(255,255,255,.7);
+                white-space: nowrap;
+                border-bottom: 1px solid rgba(255,255,255,.35);
             }
-            .member-card:hover {
-                transform: translateY(-5px);
-                border-color: var(--info);
-                box-shadow: 0 12px 40px rgba(0, 188, 212, 0.15);
+            .th-group { font-size: .8rem; font-weight: 700; letter-spacing: .5px; }
+            .th-group-info { color: rgba(255,255,255,.5); }
+            .result-table tbody td {
+                padding: .75rem .5rem;
+                text-align: center;
+                color: rgba(255,255,255,.8);
+                border-bottom: 1px solid rgba(255,255,255,.35);
+                vertical-align: middle;
             }
-            .status-indicator {
-                position: absolute;
-                top: 0;
-                right: 0;
-                padding: 4px 12px;
-                font-size: 0.7rem;
-                font-weight: 700;
-                border-bottom-left-radius: 12px;
-                text-transform: uppercase;
+            .result-table tbody tr:hover { background: rgba(255,255,255,.03); }
+            
+            .emp-info-cell {
+                display: flex;
+                align-items: center;
+                gap: 12px;
             }
-            .status-not-started { background: rgba(255,255,255,0.05); color: var(--text-muted); }
-            .status-draft { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-            .status-completed { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-
-            .member-info { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
-            .avatar-placeholder {
-                width: 48px;
-                height: 48px;
+            .emp-avatar {
+                width: 36px;
+                height: 36px;
                 background: linear-gradient(135deg, var(--info), var(--primary));
                 border-radius: 50%;
                 display: flex;
@@ -50,36 +51,62 @@
                 justify-content: center;
                 font-weight: 700;
                 color: #fff;
-                font-size: 1.2rem;
+                font-size: 0.9rem;
             }
-            .member-name { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
-            .member-role { font-size: 0.8rem; color: var(--text-muted); }
+            
+            /* ===== 상태 배지 ===== */
+            .status-badge {
+                font-size: .65rem;
+                padding: .3rem .6rem;
+                border-radius: 12px;
+                font-weight: 600;
+                white-space: nowrap;
+                display: inline-block;
+            }
+            .status-done { background: rgba(16,185,129,.15); color: #34d399; border: 1px solid rgba(16,185,129,.3); }
+            .status-wait { background: rgba(245,158,11,.15); color: #fcd34d; border: 1px solid rgba(245,158,11,.3); }
+            .status-none { background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); }
 
-            .content-snippet {
+            /* ===== 버튼 배지 ===== */
+            .action-btn {
+                font-size: .75rem;
+                padding: .35rem .8rem;
+                border-radius: 6px;
+                font-weight: 600;
+                border: none;
+                transition: all 0.2s;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+            }
+            .action-primary { background: linear-gradient(90deg, #6366f1, #a855f7); color: #fff; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+            .action-primary:hover { background: linear-gradient(90deg, #4f46e5, #9333ea); color: #fff; transform: translateY(-1px); }
+            .action-locked { background-color: #92400e; color: #fff; cursor: not-allowed; opacity: 0.8; }
+            .action-waiting { background-color: #4b5563; color: #d1d5db; cursor: not-allowed; opacity: 0.8; }
+            
+            .snippet-text {
                 font-size: 0.85rem;
                 color: var(--text-muted);
-                margin-bottom: 20px;
-                min-height: 40px;
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
+                max-width: 250px;
                 overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
-
-            .btn-enter {
-                width: 100%;
-                padding: 10px;
-                border-radius: 8px;
-                font-weight: 600;
-                font-size: 0.9rem;
-                transition: all 0.2s;
+            
+            .relation-badge {
+                font-size: 0.7rem;
+                padding: 2px 8px;
+                border-radius: 4px;
+                background: rgba(var(--info-rgb), 0.1);
+                color: var(--info);
+                border: 1px solid rgba(var(--info-rgb), 0.2);
             }
         </style>
     </th:block>
 </head>
 <body>
 <div id="page-content" class="container-fluid py-4" th:fragment="content">
-    <!-- Re-include styles for HTMX swaps -->
     <th:block th:replace="~{::extraStyles}"></th:block>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -88,7 +115,6 @@
             <p class="text-muted small mb-0">부서원들의 성과와 역량에 대한 심층적인 정성평가를 기록하고 관리합니다.</p>
         </div>
         
-        <!-- 차수 선택 -->
         <div class="dropdown">
             <button class="btn ees-btn-glass dropdown-toggle" type="button" data-bs-toggle="dropdown">
                 <i class="bi bi-calendar-event me-2"></i>
@@ -109,37 +135,58 @@
         </div>
     </div>
 
-    <!-- 1. 내가 작성해야 할 목록 (평가자용) -->
+    <!-- 1. 면담 대상자 목록 (평가자용) -->
     <div th:if="${tasks != null && !tasks.isEmpty()}" class="mb-5">
         <h5 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
-            <i class="bi bi-pencil-square text-info"></i> 면담 대상자 목록
+            <i class="bi bi-people-fill text-info"></i> 면담 대상자 목록
         </h5>
-        <div class="interview-grid">
-            <div th:each="task : ${tasks}" class="member-card">
-                <div class="status-indicator" 
-                     th:classappend="${task.statusCode() == 'COMPLETED' ? 'status-completed' : (task.statusCode() == 'DRAFT' ? 'status-draft' : 'status-not-started')}"
-                     th:text="${task.statusCode() == 'COMPLETED' ? '확정' : (task.statusCode() == 'DRAFT' ? '작성 중' : '미작성')}">
-                </div>
-
-                <div class="member-info">
-                    <div class="avatar-placeholder" th:text="${#strings.substring(task.evaluateeName(), 0, 1)}"></div>
-                    <div>
-                        <div class="member-name" th:text="${task.evaluateeName()}">홍길동</div>
-                        <div class="member-role" th:text="${task.relationTypeCode() == 'MANAGER' ? '팀원' : '본부원'}">팀원</div>
-                    </div>
-                </div>
-
-                <div class="content-snippet" th:text="${task.contentSnippet() ?: '아직 작성된 내용이 없습니다.'}"></div>
-
-                <a th:href="@{/eval/interview/form(mappingId=${task.mappingId()})}"
-                   hx-get th:attr="hx-get=@{/eval/interview/form(mappingId=${task.mappingId()})}"
-                   hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
-                   class="btn btn-enter"
-                   th:classappend="${task.statusCode() == 'COMPLETED' ? 'ees-btn-glass' : 'ees-btn-glass-primary'}">
-                    <i class="bi" th:classappend="${task.statusCode() == 'COMPLETED' ? 'bi-search' : 'bi-pencil-fill'}"></i>
-                    <span th:text="${task.statusCode() == 'COMPLETED' ? '내용 보기' : '작성하기'}">작성하기</span>
-                </a>
-            </div>
+        
+        <div class="result-table-wrap">
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th colspan="4" class="th-group th-group-info" style="border-right:2px solid rgba(255,255,255,.35)">피평가자 정보</th>
+                        <th rowspan="2" class="th-group text-start px-4" style="width: 40%; border-right:2px solid rgba(255,255,255,.35)">면담 내용 미리보기</th>
+                        <th rowspan="2" class="th-group" style="border-right:2px solid rgba(255,255,255,.35)">상태</th>
+                        <th rowspan="2" class="th-group">진행</th>
+                    </tr>
+                    <tr>
+                        <th>부서명</th>
+                        <th>직급</th>
+                        <th>사번</th>
+                        <th style="border-right:2px solid rgba(255,255,255,.35)">성명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="task : ${tasks}">
+                        <td th:text="${task.deptName()}">개발팀</td>
+                        <td th:text="${task.titleName()}">대리</td>
+                        <td th:text="${task.empId()}">1001</td>
+                        <td class="fw-bold" style="border-right:2px solid rgba(255,255,255,.35)" th:text="${task.evaluateeName()}">홍길동</td>
+                        <td class="text-start px-4" style="border-right:2px solid rgba(255,255,255,.35)">
+                            <div class="snippet-text" style="max-width: 100%;" 
+                                 th:text="${#strings.isEmpty(task.contentSnippet()) ? '작성된 면담 내용이 없습니다.' : task.contentSnippet()}"
+                                 th:classappend="${#strings.isEmpty(task.contentSnippet()) ? 'opacity-50' : ''}">
+                            </div>
+                        </td>
+                        <td style="border-right:2px solid rgba(255,255,255,.35)">
+                            <span class="status-badge" 
+                                  th:classappend="${task.statusCode() == 'COMPLETED' ? 'status-done' : (task.statusCode() == 'DRAFT' ? 'status-wait' : 'status-none')}"
+                                  th:text="${task.statusCode() == 'COMPLETED' ? '확정완료' : (task.statusCode() == 'DRAFT' ? '작성중' : '미작성')}">
+                            </span>
+                        </td>
+                        <td>
+                            <a th:href="@{/eval/interview/form(mappingId=${task.mappingId()})}"
+                               hx-get th:attr="hx-get=@{/eval/interview/form(mappingId=${task.mappingId()})}"
+                               hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                               class="action-btn action-primary">
+                                <i class="bi" th:classappend="${(task.statusCode() == 'COMPLETED' || task.relationTypeCode() == 'EXECUTIVE') ? 'bi-search' : 'bi-pencil-square'}"></i>
+                                <span th:text="${(task.statusCode() == 'COMPLETED' || task.relationTypeCode() == 'EXECUTIVE') ? '내용 조회' : '면담 작성'}"></span>
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -148,34 +195,61 @@
         <h5 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
             <i class="bi bi-file-earmark-person text-success"></i> 나의 면담 결과
         </h5>
-        <div class="interview-grid">
-            <div th:each="result : ${myResults}" class="member-card">
-                <div class="status-indicator" 
-                     th:classappend="${result.statusCode() == 'COMPLETED' ? 'status-completed' : (result.statusCode() == 'DRAFT' ? 'status-draft' : 'status-not-started')}"
-                     th:text="${result.statusCode() == 'COMPLETED' ? '확정' : (result.statusCode() == 'DRAFT' ? '작성 중' : '미확인')}">
-                </div>
-
-                <div class="member-info">
-                    <div class="avatar-placeholder" style="background: linear-gradient(135deg, #22c55e, #16a34a);" th:text="${#strings.substring(result.evaluateeName(), 0, 1)}"></div>
-                    <div>
-                        <div class="member-name" th:text="${result.evaluateeName()}">이팀장</div>
-                        <div class="member-role" th:text="${result.relationTypeCode() == 'MANAGER' ? '팀장' : '본부장'}">팀장</div>
-                    </div>
-                </div>
-
-                <div class="content-snippet" th:text="${result.contentSnippet() ?: '작성된 면담 내용이 아직 없습니다.'}"></div>
-
-                <a th:if="${result.statusCode() != 'NOT_STARTED'}"
-                   th:href="@{/eval/interview/form(mappingId=${result.mappingId()})}"
-                   hx-get th:attr="hx-get=@{/eval/interview/form(mappingId=${result.mappingId()})}"
-                   hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
-                   class="btn btn-enter ees-btn-glass-primary">
-                    <i class="bi bi-search"></i> 결과 조회하기
-                </a>
-                <button th:if="${result.statusCode() == 'NOT_STARTED'}" class="btn btn-enter ees-btn-glass" disabled>
-                    <i class="bi bi-clock"></i> 작성 대기 중
-                </button>
-            </div>
+        
+        <div class="result-table-wrap">
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th colspan="3" class="th-group th-group-info" style="border-right:2px solid rgba(255,255,255,.35)">평가자 정보</th>
+                        <th rowspan="2" class="th-group text-start px-4" style="width: 45%; border-right:2px solid rgba(255,255,255,.35)">면담 내용 미리보기</th>
+                        <th rowspan="2" class="th-group" style="border-right:2px solid rgba(255,255,255,.35)">상태</th>
+                        <th rowspan="2" class="th-group">진행</th>
+                    </tr>
+                    <tr>
+                        <th>부서명</th>
+                        <th>직급</th>
+                        <th style="border-right:2px solid rgba(255,255,255,.35)">성명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="result : ${myResults}">
+                        <td th:text="${result.deptName()}">개발팀</td>
+                        <td th:text="${result.titleName()}">부장</td>
+                        <td style="border-right:2px solid rgba(255,255,255,.35)">
+                            <span class="fw-bold" th:text="${result.evaluateeName()}">이팀장</span>
+                            <span th:if="${result.relationTypeCode() == 'MANAGER'}" class="badge bg-primary ms-1" style="font-size: 0.7rem; vertical-align: middle;">부서장</span>
+                        </td>
+                        <td class="text-start px-4" style="border-right:2px solid rgba(255,255,255,.35)">
+                            <div class="snippet-text" style="max-width: 100%;" 
+                                 th:if="${result.statusCode() == 'COMPLETED'}"
+                                 th:text="${#strings.isEmpty(result.contentSnippet()) ? '작성된 면담 내용이 없습니다.' : result.contentSnippet()}">
+                            </div>
+                            <div class="snippet-text opacity-50" style="max-width: 100%;" 
+                                 th:if="${result.statusCode() != 'COMPLETED'}">
+                                <i class="bi bi-lock-fill me-1"></i> 확정 전까지 미리보기가 숨김 처리됩니다.
+                            </div>
+                        </td>
+                        <td style="border-right:2px solid rgba(255,255,255,.35)">
+                            <span class="status-badge" 
+                                  th:classappend="${result.statusCode() == 'COMPLETED' ? 'status-done' : (result.statusCode() == 'DRAFT' ? 'status-wait' : 'status-none')}"
+                                  th:text="${result.statusCode() == 'COMPLETED' ? '확정완료' : (result.statusCode() == 'DRAFT' ? '작성중' : '미확인')}">
+                            </span>
+                        </td>
+                        <td>
+                            <a th:if="${result.statusCode() == 'COMPLETED'}"
+                               th:href="@{/eval/interview/form(mappingId=${result.mappingId()})}"
+                               hx-get th:attr="hx-get=@{/eval/interview/form(mappingId=${result.mappingId()})}"
+                               hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
+                               class="action-btn action-primary">
+                                <i class="bi bi-search"></i> 결과 조회
+                            </a>
+                            <button th:if="${result.statusCode() != 'COMPLETED'}" class="action-btn action-waiting" disabled>
+                                <i class="bi bi-lock-fill"></i> 결과 대기중
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
