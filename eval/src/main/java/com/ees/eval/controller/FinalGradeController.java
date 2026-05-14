@@ -87,20 +87,7 @@ public class FinalGradeController {
                 model.addAttribute("leaderCount", leaderCount);
                 model.addAttribute("staffCount", staffCount);
 
-                // 3. 기존 뷰 템플릿과의 호환성을 위해 맵 구성
-                Map<Long, Boolean> teamSubmittedMap = new HashMap<>();
-                Map<Long, Boolean> selfSubmittedMap = new HashMap<>();
-                Map<Long, Boolean> weightValidMap = new HashMap<>();
-
-                for (FinalGradeTaskDTO task : tasks) {
-                    teamSubmittedMap.put(task.mappingId(), task.allSubmitted());
-                    selfSubmittedMap.put(task.mappingId(), task.selfSubmitted());
-                    weightValidMap.put(task.mappingId(), task.weightValid());
-                }
-
-                model.addAttribute("teamSubmittedMap", teamSubmittedMap);
-                model.addAttribute("evaluateeSelfSubmittedMap", selfSubmittedMap);
-                model.addAttribute("teamWeightValidMap", weightValidMap);
+                // 템플릿에서 task.allSubmitted() 등 DTO 필드를 직접 참조하므로 별도 Map 불필요
             }
         } else {
             model.addAttribute("infoMessage", "진행 중인 평가 차수가 없습니다.");

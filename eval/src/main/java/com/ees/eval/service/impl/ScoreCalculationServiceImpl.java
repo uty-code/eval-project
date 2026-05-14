@@ -49,17 +49,29 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
     @Override
     @Transactional(readOnly = true)
     public Integer calculateTotalScore(Long periodId, Long empId) {
-        // 1. 해당 사원의 EXECUTIVE 매핑에서 제출된 평가 데이터를 조회
+        // 1. 해당 사원의 EXECUTIVE 매핑 우선 조회, 없으면 1ST 매핑 조회
         List<EvaluatorMapping> mappings = mappingMapper.findByEvaluateeId(periodId, empId);
         EvaluatorMapping execMapping = mappings.stream()
                 .filter(m -> "EXECUTIVE".equals(m.getRelationTypeCode()))
                 .findFirst()
                 .orElse(null);
 
+        // EXECUTIVE 점수가 없으면 1차 평가자(MANAGER) 점수라도 가져와서 '예상 등급'용으로 사용
+        if (execMapping == null || evaluationMapper.findByMappingId(execMapping.getMappingId()).stream()
+                .noneMatch(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))) {
+            log.info("[ScoreCalc] EXECUTIVE 점수 없음. MANAGER 매핑 조회 시도 (empId={})", empId);
+            execMapping = mappings.stream()
+                    .filter(m -> "MANAGER".equals(m.getRelationTypeCode()))
+                    .findFirst()
+                    .orElse(null);
+        }
+
         if (execMapping == null) {
-            log.debug("[ScoreCalc] No EXECUTIVE mapping found for periodId={}, empId={}", periodId, empId);
+            log.info("[ScoreCalc] EXECUTIVE 및 MANAGER 매핑 모두 없음 (empId={})", empId);
             return null;
         }
+        
+        log.info("[ScoreCalc] 선택된 매핑: mappingId={}, relation={}", execMapping.getMappingId(), execMapping.getRelationTypeCode());
 
         List<Evaluation> execEvals = evaluationMapper.findByMappingId(execMapping.getMappingId());
         List<Evaluation> submittedEvals = execEvals.stream()
@@ -176,11 +188,23 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
         if (empIdsInDept.isEmpty()) return;
 
         // 실제 평가 대상자로 등록된 인원만 대상 모수로 산정
-        List<EvaluatorMapping> mappings = mappingMapper.findByEvaluateeIds(periodId, empIdsInDept).stream()
+        // EXECUTIVE 매핑 기준으로 대상자 산정, 없으면 MANAGER 매핑으로 폴백
+        List<EvaluatorMapping> allMappingsInDept = mappingMapper.findByEvaluateeIds(periodId, empIdsInDept);
+        List<EvaluatorMapping> mappings = allMappingsInDept.stream()
                 .filter(m -> "EXECUTIVE".equals(m.getRelationTypeCode()))
                 .collect(Collectors.toList());
+        
+        if (mappings.isEmpty()) {
+            log.info("[ScoreCalc] EXECUTIVE 매핑 없음, MANAGER 매핑으로 폴백 (deptId={})", deptId);
+            mappings = allMappingsInDept.stream()
+                    .filter(m -> "MANAGER".equals(m.getRelationTypeCode()))
+                    .collect(Collectors.toList());
+        }
                 
-        int totalEligible = mappings.size();
+        int totalEligible = (int) mappings.stream()
+                .map(EvaluatorMapping::getEvaluateeId)
+                .distinct()
+                .count();
         if (totalEligible == 0) return;
 
         // 2. 부서 비율 조회 및 TO(티오) 계산 (최대 잔여법)
