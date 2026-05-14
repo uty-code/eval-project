@@ -92,6 +92,7 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
         // 5. 관계 유형별 매핑 분류 (메모리 내 그룹핑)
         Map<Long, EvaluatorMapping> execByEmp = filterMappingByType(allMappings, "EXECUTIVE");
         Map<Long, EvaluatorMapping> mgrByEmp = filterMappingByType(allMappings, "MANAGER");
+        Map<Long, EvaluatorMapping> selfByEmp = filterMappingByType(allMappings, "SELF");
         Map<Long, List<EvaluatorMapping>> subByEmp = allMappings.stream()
                 .filter(m -> "SUBORDINATE".equals(m.getRelationTypeCode()))
                 .collect(Collectors.groupingBy(EvaluatorMapping::getEvaluateeId));
@@ -149,13 +150,17 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
             }
             if (elements == null) elements = Collections.emptyList();
 
-            // === MBO/COMP 점수 (1차: MANAGER, 2차: EXECUTIVE) ===
+            // === MBO/COMP 점수 (자가: SELF, 1차: MANAGER, 2차: EXECUTIVE) ===
+            BigDecimal mboSelf = calcTypeScore(selfByEmp.get(empId), evalGroupMap, elements, "PERFORMANCE");
             BigDecimal mbo1st = calcTypeScore(mgrByEmp.get(empId), evalGroupMap, elements, "PERFORMANCE");
             BigDecimal mbo2nd = calcTypeScore(execByEmp.get(empId), evalGroupMap, elements, "PERFORMANCE");
+            
+            BigDecimal compSelf = calcTypeScore(selfByEmp.get(empId), evalGroupMap, elements, "COMPETENCY");
             BigDecimal comp1st = calcTypeScore(mgrByEmp.get(empId), evalGroupMap, elements, "COMPETENCY");
             BigDecimal comp2nd = calcTypeScore(execByEmp.get(empId), evalGroupMap, elements, "COMPETENCY");
 
-            // === MULTI 점수 (1차: SUBORDINATE 평균, 2차: EXECUTIVE) ===
+            // === MULTI 점수 (자가: SELF, 1차: SUBORDINATE 평균, 2차: EXECUTIVE) ===
+            BigDecimal multiSelf = calcTypeScore(selfByEmp.get(empId), evalGroupMap, elements, "MULTI_DIMENSIONAL");
             BigDecimal multi1st = calcSubordinateAverage(subByEmp.get(empId), evalGroupMap, elements);
             BigDecimal multi2nd = calcTypeScore(execByEmp.get(empId), evalGroupMap, elements, "MULTI_DIMENSIONAL");
 
@@ -170,6 +175,18 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
                     ? new BigDecimal(fg.getTotalScore()) : null;
             String gradeCode = (fg != null) ? fg.getFinalGradeCode() : null;
 
+            // 최종 확정 여부 판단: 모든 할당된 평가가 '2차평가완료' 상태여야 함
+            boolean isFullyDone = false;
+            if (isLeader) {
+                isFullyDone = "2차평가완료".equals(multiStatus);
+            } else {
+                // 일반 사원은 MBO와 COMP가 모두 2차 완료여야 함 (미배정 제외)
+                boolean mboDone = "2차평가완료".equals(mboStatus) || "미배정".equals(mboStatus);
+                boolean compDone = "2차평가완료".equals(compStatus) || "미배정".equals(compStatus);
+                boolean atLeastOneDone = "2차평가완료".equals(mboStatus) || "2차평가완료".equals(compStatus);
+                isFullyDone = mboDone && compDone && atLeastOneDone;
+            }
+
             results.add(EvaluationResultDTO.builder()
                     .empId(empId)
                     .empName(emp.getName())
@@ -177,18 +194,18 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
                     .positionName(emp.getPositionName())
                     .jobTitle(isLeader ? "부서장" : "팀원")
                     .isLeader(isLeader)
-                    .mbo1stScore(mbo1st).mbo2ndScore(mbo2nd)
+                    .mboSelfScore(mboSelf).mbo1stScore(mbo1st).mbo2ndScore(mbo2nd)
                     .mboFinalScore(mbo2nd)  // 최종 = 2차
                     .mboStatus(mboStatus)
-                    .comp1stScore(comp1st).comp2ndScore(comp2nd)
+                    .compSelfScore(compSelf).comp1stScore(comp1st).comp2ndScore(comp2nd)
                     .compFinalScore(comp2nd) // 최종 = 2차
                     .compStatus(compStatus)
-                    .multi1stScore(multi1st).multi2ndScore(multi2nd)
+                    .multiSelfScore(multiSelf).multi1stScore(multi1st).multi2ndScore(multi2nd)
                     .multiFinalScore(multi2nd) // 최종 = 2차
                     .multiStatus(multiStatus)
                     .totalScore(totalScore)
                     .gradeCode(gradeCode)
-                    .isConfirmed(fg != null)
+                    .isConfirmed(isFullyDone)
                     .build());
         }
 

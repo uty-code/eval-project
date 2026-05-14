@@ -253,10 +253,10 @@
                             </td>
                             <td class="total-score" th:text="${r.totalScore() != null ? r.totalScore() : '-'}">-</td>
                             <td>
-                                <span class="grade-badge" th:if="${r.gradeCode() != null}"
+                                <span class="grade-badge" th:if="${r.isConfirmed() and r.gradeCode() != null}"
                                       th:classappend="'grade-' + ${r.gradeCode()}"
                                       th:text="${r.gradeCode()}">-</span>
-                                <span th:if="${r.gradeCode() == null}">-</span>
+                                <span th:if="${!r.isConfirmed() or r.gradeCode() == null}">-</span>
                             </td>
                         </tr>
                         <tr th:if="${staffCount == 0}">
@@ -308,10 +308,10 @@
                             </td>
                             <td class="total-score" th:text="${r.totalScore() != null ? r.totalScore() : '-'}">-</td>
                             <td>
-                                <span class="grade-badge" th:if="${r.gradeCode() != null}"
+                                <span class="grade-badge" th:if="${r.isConfirmed() and r.gradeCode() != null}"
                                       th:classappend="'grade-' + ${r.gradeCode()}"
                                       th:text="${r.gradeCode()}">-</span>
-                                <span th:if="${r.gradeCode() == null}">-</span>
+                                <span th:if="${!r.isConfirmed() or r.gradeCode() == null}">-</span>
                             </td>
                         </tr>
                         <tr th:if="${leaderCount == 0}">

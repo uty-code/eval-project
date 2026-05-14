@@ -88,7 +88,7 @@ public class EvaluationReportServiceImpl implements EvaluationReportService {
         labelRow.getCell(1).setCellStyle(createLabelStyle(workbook));
 
         Map<String, Long> gradeDist = results.stream()
-                .filter(r -> r.gradeCode() != null && !r.gradeCode().isBlank())
+                .filter(r -> r.isConfirmed() && r.gradeCode() != null && !r.gradeCode().isBlank())
                 .collect(Collectors.groupingBy(EvaluationResultDTO::gradeCode, Collectors.counting()));
 
         String[] grades = {"S", "A", "B", "C", "D"};
@@ -297,7 +297,7 @@ public class EvaluationReportServiceImpl implements EvaluationReportService {
 
             row.createCell(col++).setCellValue(getVal(r.totalScore()));
             Cell gradeCell = row.createCell(col++);
-            gradeCell.setCellValue(r.gradeCode() != null ? r.gradeCode() : "-");
+            gradeCell.setCellValue(r.isConfirmed() && r.gradeCode() != null ? r.gradeCode() : "-");
 
             // 스타일 적용 및 등급별 색상 강조
             for (int i = 0; i < col; i++) {

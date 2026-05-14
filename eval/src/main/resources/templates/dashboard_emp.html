@@ -104,8 +104,8 @@
                             <thead class="text-muted" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
                                 <tr>
                                     <th colspan="5" class="py-3 fw-semibold border-end" style="border-color: rgba(255,255,255,0.1) !important;">피평가자 정보</th>
-                                    <th colspan="3" class="py-3 fw-semibold border-end" style="color: #6b66ff; border-color: rgba(255,255,255,0.1) !important;">성과업무평가 (MBO)</th>
-                                    <th colspan="3" class="py-3 text-success fw-semibold border-end" style="border-color: rgba(255,255,255,0.1) !important;">역량평가 (COMP)</th>
+                                    <th colspan="4" class="py-3 fw-semibold border-end" style="color: #6b66ff; border-color: rgba(255,255,255,0.1) !important;">성과업무평가 (MBO)</th>
+                                    <th colspan="4" class="py-3 text-success fw-semibold border-end" style="border-color: rgba(255,255,255,0.1) !important;">역량평가 (COMP)</th>
                                     <th class="py-3 text-warning fw-semibold" style="color: #cbd5e1 !important;">예상 등급</th>
                                 </tr>
                                 <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
@@ -116,10 +116,12 @@
                                     <th class="py-2 fw-normal text-light text-opacity-75">사번</th>
                                     <th class="py-2 fw-normal text-light text-opacity-75 border-end" style="border-color: rgba(255,255,255,0.1) !important;">성명</th>
                                     <!-- 성과업무평가 (MBO) -->
+                                    <th class="py-2 fw-normal text-light text-opacity-75">자가</th>
                                     <th class="py-2 fw-normal text-light text-opacity-75">1차</th>
                                     <th class="py-2 fw-normal text-light text-opacity-75">2차</th>
                                     <th class="py-2 fw-normal text-light text-opacity-75 border-end" style="border-color: rgba(255,255,255,0.1) !important;">상태</th>
                                     <!-- 역량평가 (COMP) -->
+                                    <th class="py-2 fw-normal text-light text-opacity-75">자가</th>
                                     <th class="py-2 fw-normal text-light text-opacity-75">1차</th>
                                     <th class="py-2 fw-normal text-light text-opacity-75">2차</th>
                                     <th class="py-2 fw-normal text-light text-opacity-75 border-end" style="border-color: rgba(255,255,255,0.1) !important;">상태</th>
@@ -137,6 +139,7 @@
                                     <td class="py-3 fw-semibold text-white border-end" style="border-color: rgba(255,255,255,0.1) !important;" th:text="${empStats.currentResult.empName()}"></td>
                                     
                                     <!-- 성과업무평가 (MBO) -->
+                                    <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.mboSelfScore() != null ? empStats.currentResult.mboSelfScore() : '-'}"></td>
                                     <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.mbo1stScore() != null ? empStats.currentResult.mbo1stScore() : '-'}"></td>
                                     <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.mbo2ndScore() != null ? empStats.currentResult.mbo2ndScore() : '-'}"></td>
                                     <td class="py-3 border-end" style="border-color: rgba(255,255,255,0.1) !important;">
@@ -146,6 +149,7 @@
                                     </td>
                                     
                                     <!-- 역량평가 (COMP) -->
+                                    <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.compSelfScore() != null ? empStats.currentResult.compSelfScore() : '-'}"></td>
                                     <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.comp1stScore() != null ? empStats.currentResult.comp1stScore() : '-'}"></td>
                                     <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.comp2ndScore() != null ? empStats.currentResult.comp2ndScore() : '-'}"></td>
                                     <td class="py-3 border-end" style="border-color: rgba(255,255,255,0.1) !important;">
