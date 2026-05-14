@@ -35,6 +35,8 @@ class FinalGradeServiceTest {
     @Mock
     private EmployeeMapper employeeMapper;
     @Mock
+    private com.ees.eval.mapper.DepartmentMapper departmentMapper;
+    @Mock
     private EvaluationElementService elementService;
     @Mock
     private EvaluationTypeWeightService typeWeightService;
@@ -51,7 +53,7 @@ class FinalGradeServiceTest {
     @DisplayName("should_return_empty_list_when_no_tasks")
     void should_return_empty_list_when_no_tasks() {
         // given
-        given(mappingMapper.findByEvaluatorId(anyLong(), anyLong())).willReturn(Collections.emptyList());
+        given(mappingMapper.findByEvaluatorId(anyLong(), anyLong(), any())).willReturn(Collections.emptyList());
 
         // when
         List<FinalGradeTaskDTO> result = finalGradeService.getFinalGradeTasks(periodId, executiveId);
@@ -70,7 +72,7 @@ class FinalGradeServiceTest {
         task.setEvaluateeName("홍길동");
         task.setDeptName("개발팀");
 
-        given(mappingMapper.findByEvaluatorId(periodId, executiveId)).willReturn(List.of(task));
+        given(mappingMapper.findByEvaluatorId(eq(periodId), eq(executiveId), anyString())).willReturn(List.of(task));
         
         Employee evaluatee = new Employee();
         evaluatee.setEmpId(evaluateeId);
@@ -82,6 +84,7 @@ class FinalGradeServiceTest {
         selfMapping.setEvaluateeId(evaluateeId);
         selfMapping.setRelationTypeCode("SELF");
         given(mappingMapper.findByEvaluateeIds(eq(periodId), anyList())).willReturn(List.of(task, selfMapping));
+        given(departmentMapper.findAll()).willReturn(Collections.emptyList());
 
         given(evaluationMapper.findByMappingIds(anyList())).willReturn(Collections.emptyList());
         given(elementService.getElementsByPeriodId(any(), any())).willReturn(Collections.emptyList());

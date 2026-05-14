@@ -23,6 +23,7 @@ import com.ees.eval.dto.MultiDimensionalEvalRowDTO;
 import com.ees.eval.dto.MultiDimensionalEvalPageDTO;
 import com.ees.eval.dto.enums.MultiDimensionalEvalStatus;
 import com.ees.eval.dto.enums.MultiDimensionalEvalCtaType;
+import com.ees.eval.dto.enums.RelationType;
 
 /**
  * EvaluatorMappingService의 실제 비즈니스 로직 구현체입니다.
@@ -45,10 +46,10 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     private static final String STATUS_PLANNED = "PLANNED";
 
     /** 자기 자신을 매핑할 수 없는 관계 유형 목록 */
-    private static final String RELATION_MANAGER = "MANAGER";
-    private static final String RELATION_SELF = "SELF";
-    private static final String RELATION_SUBORDINATE = "SUBORDINATE";
-    private static final String RELATION_EXECUTIVE = "EXECUTIVE";
+    private static final String RELATION_MANAGER = RelationType.MANAGER.getCode();
+    private static final String RELATION_SELF = RelationType.SELF.getCode();
+    private static final String RELATION_SUBORDINATE = RelationType.SUBORDINATE.getCode();
+    private static final String RELATION_EXECUTIVE = RelationType.EXECUTIVE.getCode();
 
     /**
      * {@inheritDoc}
@@ -79,7 +80,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     @Override
     @Transactional(readOnly = true)
     public List<EvaluatorMappingDTO> getMyEvaluationTasks(Long periodId, Long evaluatorId) {
-        return mappingMapper.findByEvaluatorId(periodId, evaluatorId).stream()
+        // 전체 평가 태스크 조회 (필터 없이 null 전달)
+        return mappingMapper.findByEvaluatorId(periodId, evaluatorId, null).stream()
                 .map(this::enrichDto)
                 .collect(Collectors.toList());
     }
@@ -906,10 +908,8 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     public com.ees.eval.dto.MultiDimensionalEvalPageDTO getMultiDimensionalTasks(
             Long periodId, Long evaluatorId, Long filterDeptId, String filterStatus, String keyword, int page, int pageSize) {
         
-        // 1. 내가 평가해야 할 전체 다면평가 태스크 조회
-        List<EvaluatorMapping> myAllTasks = mappingMapper.findByEvaluatorId(periodId, evaluatorId).stream()
-                .filter(m -> RELATION_SUBORDINATE.equals(m.getRelationTypeCode())) // 다면평가(부서원)만 필터링
-                .toList();
+        // 1. 내가 평가해야 할 전체 다면평가 태스크 조회 (DB 레벨 필터링 적용)
+        List<EvaluatorMapping> myAllTasks = mappingMapper.findByEvaluatorId(periodId, evaluatorId, RELATION_SUBORDINATE);
         
         if (myAllTasks.isEmpty()) {
             return new com.ees.eval.dto.MultiDimensionalEvalPageDTO(Collections.emptyList(), 1, 1, 0, pageSize);

@@ -13,6 +13,7 @@ import com.ees.eval.mapper.FinalGradeMapper;
 import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.FinalGradeService;
+import com.ees.eval.dto.enums.RelationType;
 import com.ees.eval.service.ScoreCalculationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,8 +47,8 @@ public class FinalGradeServiceImpl implements FinalGradeService {
     @Override
     @Transactional(readOnly = true)
     public List<FinalGradeTaskDTO> getFinalGradeTasks(Long periodId, Long executiveEmpId) {
-        // 1. 임원의 평가 대상 목록(EXECUTIVE 매핑) 조회
-        List<EvaluatorMapping> teamTasks = mappingMapper.findByEvaluatorId(periodId, executiveEmpId);
+        // 1. 임원의 평가 대상 목록(EXECUTIVE 매핑) 조회 (DB 필터링 적용)
+        List<EvaluatorMapping> teamTasks = mappingMapper.findByEvaluatorId(periodId, executiveEmpId, RelationType.EXECUTIVE.getCode());
         if (teamTasks.isEmpty()) {
             return Collections.emptyList();
         }
@@ -83,7 +84,7 @@ public class FinalGradeServiceImpl implements FinalGradeService {
         List<EvaluatorMapping> allMappingsForEvaluatees = mappingMapper.findByEvaluateeIds(periodId, evaluateeIds);
 
         Map<Long, Long> selfMappingIdMap = allMappingsForEvaluatees.stream()
-                .filter(m -> "SELF".equals(m.getRelationTypeCode()))
+                .filter(m -> RelationType.SELF.getCode().equals(m.getRelationTypeCode()))
                 .collect(Collectors.toMap(EvaluatorMapping::getEvaluateeId, EvaluatorMapping::getMappingId, (a, b) -> a));
 
         Map<Long, Long> managerMappingIdMap = allMappingsForEvaluatees.stream()

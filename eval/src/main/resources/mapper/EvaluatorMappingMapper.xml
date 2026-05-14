@@ -81,13 +81,16 @@
         from evaluator_mappings_51 m
         inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
         inner join employees_51 e2 on m.evaluator_id = e2.emp_id
-        where m.period_id = #{periodId}
-          and m.evaluator_id = #{evaluatorId}
-          and m.is_deleted = 'n'
-          and e1.status_code = 'EMPLOYED'
+        <where>
+            m.period_id = #{periodId}
+            and m.evaluator_id = #{evaluatorId}
+            and m.is_deleted = 'n'
+            and e1.status_code = 'EMPLOYED'
+            <if test="relationTypeCode != null">
+                and m.relation_type_code = #{relationTypeCode}
+            </if>
+        </where>
         order by m.relation_type_code asc, m.evaluatee_id asc
-
-
     </select>
 
     <!-- 나를 평가하는 사람 목록 (evaluatee_id = 나) -->
