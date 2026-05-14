@@ -126,7 +126,7 @@
                               style="min-height: 180px;"
                               placeholder="지난 기간 동안 달성한 주요 성과와 기여도를 입력하세요."
                               th:text="${interview.content1}"
-                              th:disabled="${interview.statusCode == 'COMPLETED' || isEvaluatee}"></textarea>
+                              th:disabled="${interview.statusCode == 'COMPLETED' || isEvaluatee || isExecutiveReadOnly}"></textarea>
                 </div>
 
                 <!-- 2. 피드백 주고받기 -->
@@ -142,7 +142,7 @@
                               style="min-height: 180px;"
                               placeholder="피드백 내용과 사원의 건의 사항을 입력하세요."
                               th:text="${interview.content2}"
-                              th:disabled="${interview.statusCode == 'COMPLETED' || isEvaluatee}"></textarea>
+                              th:disabled="${interview.statusCode == 'COMPLETED' || isEvaluatee || isExecutiveReadOnly}"></textarea>
                 </div>
 
                 <!-- 3. 역량 개발 및 커리어 플랜 -->
@@ -158,7 +158,7 @@
                               style="min-height: 180px;"
                               placeholder="사원의 역량 개발 및 커리어 성장 계획을 입력하세요."
                               th:text="${interview.content3}"
-                              th:disabled="${interview.statusCode == 'COMPLETED' || isEvaluatee}"></textarea>
+                              th:disabled="${interview.statusCode == 'COMPLETED' || isEvaluatee || isExecutiveReadOnly}"></textarea>
                 </div>
 
                 <!-- 4. 다음 분기/연도 목표 설정 -->
@@ -174,7 +174,7 @@
                               style="min-height: 180px;"
                               placeholder="다음 기간에 집중할 구체적인 목표와 실행 계획을 입력하세요."
                               th:text="${interview.content4}"
-                              th:disabled="${interview.statusCode == 'COMPLETED' || isEvaluatee}"></textarea>
+                              th:disabled="${interview.statusCode == 'COMPLETED' || isEvaluatee || isExecutiveReadOnly}"></textarea>
                 </div>
 
                 <!-- 버튼 영역 -->
@@ -187,7 +187,7 @@
                     </button>
                 </div>
                 
-                <div th:if="${isEvaluatee}" class="d-flex justify-content-center pt-4 border-top border-secondary">
+                <div th:if="${isEvaluatee || isExecutiveReadOnly}" class="d-flex justify-content-center pt-4 border-top border-secondary">
                     <p class="text-info mb-0 small">
                         <i class="bi bi-info-circle me-1"></i> 본 화면은 부서장이 작성한 면담 기록을 조회하는 화면입니다.
                     </p>
