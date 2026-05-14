@@ -89,12 +89,90 @@
             </div>
         </div>
 
+
         <!-- History and Information Row -->
         <div class="row g-4">
             <!-- Evaluation History -->
-            <div class="col-lg-8">
+            <div class="col-12">
                 <div class="ees-card p-4 h-100">
-                    <h5 class="fw-bold mb-4">최근 평가 이력</h5>
+                    <h5 class="fw-bold mb-4" th:text="${empStats.currentResult != null ? '현재 평가 상세 내역 및 이력' : '최근 평가 이력'}">최근 평가 이력</h5>
+                    
+                    <!-- 현재 차수 상세 표 -->
+                    <div class="table-responsive mb-5" th:if="${empStats.currentResult != null}">
+                        <h6 class="text-light text-opacity-75 mb-3 fw-semibold"><i class="bi bi-caret-right-fill text-primary"></i> 현재 평가 차수 상세 점수</h6>
+                        <table class="table table-dark align-middle text-center ees-table" style="font-size: 0.85rem; white-space: nowrap; border-collapse: collapse;">
+                            <thead class="text-muted" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <tr>
+                                    <th colspan="5" class="py-3 fw-semibold border-end" style="border-color: rgba(255,255,255,0.1) !important;">피평가자 정보</th>
+                                    <th colspan="3" class="py-3 fw-semibold border-end" style="color: #6b66ff; border-color: rgba(255,255,255,0.1) !important;">성과업무평가 (MBO)</th>
+                                    <th colspan="3" class="py-3 text-success fw-semibold border-end" style="border-color: rgba(255,255,255,0.1) !important;">역량평가 (COMP)</th>
+                                    <th class="py-3 text-warning fw-semibold" style="color: #cbd5e1 !important;">예상 등급</th>
+                                </tr>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                    <!-- 피평가자 정보 -->
+                                    <th class="py-2 fw-normal text-light text-opacity-75">부서명</th>
+                                    <th class="py-2 fw-normal text-light text-opacity-75">직책</th>
+                                    <th class="py-2 fw-normal text-light text-opacity-75">직위</th>
+                                    <th class="py-2 fw-normal text-light text-opacity-75">사번</th>
+                                    <th class="py-2 fw-normal text-light text-opacity-75 border-end" style="border-color: rgba(255,255,255,0.1) !important;">성명</th>
+                                    <!-- 성과업무평가 (MBO) -->
+                                    <th class="py-2 fw-normal text-light text-opacity-75">1차</th>
+                                    <th class="py-2 fw-normal text-light text-opacity-75">2차</th>
+                                    <th class="py-2 fw-normal text-light text-opacity-75 border-end" style="border-color: rgba(255,255,255,0.1) !important;">상태</th>
+                                    <!-- 역량평가 (COMP) -->
+                                    <th class="py-2 fw-normal text-light text-opacity-75">1차</th>
+                                    <th class="py-2 fw-normal text-light text-opacity-75">2차</th>
+                                    <th class="py-2 fw-normal text-light text-opacity-75 border-end" style="border-color: rgba(255,255,255,0.1) !important;">상태</th>
+                                    <!-- 예상 등급 -->
+                                    <th class="py-2 fw-normal text-light text-opacity-75">현재 기준</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <!-- 피평가자 정보 -->
+                                    <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.deptName()}"></td>
+                                    <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.jobTitle()}"></td>
+                                    <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.positionName()}"></td>
+                                    <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.empId()}"></td>
+                                    <td class="py-3 fw-semibold text-white border-end" style="border-color: rgba(255,255,255,0.1) !important;" th:text="${empStats.currentResult.empName()}"></td>
+                                    
+                                    <!-- 성과업무평가 (MBO) -->
+                                    <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.mbo1stScore() != null ? empStats.currentResult.mbo1stScore() : '-'}"></td>
+                                    <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.mbo2ndScore() != null ? empStats.currentResult.mbo2ndScore() : '-'}"></td>
+                                    <td class="py-3 border-end" style="border-color: rgba(255,255,255,0.1) !important;">
+                                        <span class="badge rounded-pill border-0 px-2 py-1 fw-normal" 
+                                              style="background-color: rgba(107, 102, 255, 0.15); color: #8c88ff; font-size: 0.75rem;" 
+                                              th:text="${empStats.currentResult.mboStatus()}">진행중</span>
+                                    </td>
+                                    
+                                    <!-- 역량평가 (COMP) -->
+                                    <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.comp1stScore() != null ? empStats.currentResult.comp1stScore() : '-'}"></td>
+                                    <td class="py-3 text-light text-opacity-75" th:text="${empStats.currentResult.comp2ndScore() != null ? empStats.currentResult.comp2ndScore() : '-'}"></td>
+                                    <td class="py-3 border-end" style="border-color: rgba(255,255,255,0.1) !important;">
+                                        <span class="badge rounded-pill border-0 px-2 py-1 fw-normal" 
+                                              style="background-color: rgba(107, 102, 255, 0.15); color: #8c88ff; font-size: 0.75rem;" 
+                                              th:text="${empStats.currentResult.compStatus()}">진행중</span>
+                                    </td>
+                                    
+                                    <!-- 예상 등급 -->
+                                    <td class="py-3">
+                                        <div class="d-flex justify-content-center align-items-center h-100" th:if="${empStats.currentResult.gradeCode() != null}">
+                                            <span class="grade-badge" 
+                                                  th:classappend="${empStats.currentResult.gradeCode() == 'S' ? 'grade-s' : (empStats.currentResult.gradeCode() == 'A' ? 'grade-a' : (empStats.currentResult.gradeCode() == 'B' ? 'grade-b' : (empStats.currentResult.gradeCode() == 'C' ? 'grade-c' : (empStats.currentResult.gradeCode() == 'D' ? 'grade-d' : 'grade-none'))))}"
+                                                  th:text="${empStats.currentResult.gradeCode()}">A</span>
+                                            <span class="total-score" th:if="${empStats.currentResult.totalScore() != null}" th:text="${'(' + empStats.currentResult.totalScore() + ')'}"></span>
+                                        </div>
+                                        <div th:if="${empStats.currentResult.gradeCode() == null}">
+                                            <span class="badge bg-secondary bg-opacity-25 text-muted border border-secondary border-opacity-25 rounded-pill" style="font-size: 0.75rem;">대기</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 최근 평가 이력 표 -->
+                    <h6 class="text-light text-opacity-75 mb-3 fw-semibold"><i class="bi bi-clock-history text-secondary"></i> 과거 평가 이력</h6>
                     <div class="table-responsive">
                         <table class="ees-table align-middle">
                             <thead>
@@ -109,8 +187,8 @@
                                     <td class="py-3 fw-medium" th:text="${history.period_name}">2025년 하반기 평가</td>
                                     <td class="py-3 text-center">
                                         <span class="grade-badge" 
-                                              th:classappend="${history.grade == 'S' ? 'grade-s' : (history.grade == 'A' ? 'grade-a' : (history.grade == 'B' ? 'grade-b' : 'grade-c'))}"
-                                              th:text="${history.grade + ' 등급'}">A 등급</span>
+                                              th:classappend="${history.grade == 'S' ? 'grade-s' : (history.grade == 'A' ? 'grade-a' : (history.grade == 'B' ? 'grade-b' : (history.grade == 'C' ? 'grade-c' : (history.grade == 'D' ? 'grade-d' : 'grade-none'))))}"
+                                              th:text="${history.grade}">A</span>
                                     </td>
                                     <td class="py-3 text-end">
                                         <span class="text-success small"><i class="bi bi-check-circle-fill me-1"></i> 확정</span>
@@ -127,47 +205,26 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Quick Links / Guide -->
-            <div class="col-lg-4">
-                <div class="ees-card p-4 h-100">
-                    <h5 class="fw-bold mb-4">평가 가이드</h5>
-                    <div class="d-grid gap-3">
-                        <div class="p-3 rounded-3 border border-secondary border-opacity-10" style="background: rgba(255, 255, 255, 0.03);">
-                            <h6 class="fw-bold small mb-2 text-primary">1. 자가평가 작성</h6>
-                            <p class="small text-light text-opacity-50 mb-0">자신의 성과를 객관적인 수치와 함께 기술해 주세요.</p>
-                        </div>
-                        <div class="p-3 rounded-3 border border-secondary border-opacity-10" style="background: rgba(255, 255, 255, 0.03);">
-                            <h6 class="fw-bold small mb-2 text-info">2. 동료평가 실시</h6>
-                            <p class="small text-light text-opacity-50 mb-0">협업 과정에서의 기여도를 중심으로 평가해 주세요.</p>
-                        </div>
-                        <div class="p-3 rounded-3 border border-secondary border-opacity-10" style="background: rgba(255, 255, 255, 0.03);">
-                            <h6 class="fw-bold small mb-2 text-warning">3. 기한 엄수</h6>
-                            <p class="small text-light text-opacity-50 mb-0">평가 기한 이후에는 수정 및 제출이 불가능합니다.</p>
-                        </div>
-                    </div>
-                    
-                    <hr class="my-4 opacity-10">
-                    
-                    <div class="text-center">
-                        <p class="small text-light text-opacity-75 mb-0">시스템 관련 문의: 인사팀 (내선 1004)</p>
-                    </div>
-                </div>
-            </div>
         </div>
         
         <style>
             .grade-badge {
-                display: inline-block;
-                padding: 4px 12px;
+                font-size: .75rem;
+                padding: .25rem .7rem;
                 border-radius: 6px;
-                font-weight: 600;
-                font-size: 0.85rem;
+                font-weight: 800;
+                display: inline-block;
+                min-width: 32px;
+                text-align: center;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             }
-            .grade-s { background-color: rgba(255, 215, 0, 0.1); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.2); }
-            .grade-a { background-color: rgba(52, 152, 219, 0.1); color: #3498db; border: 1px solid rgba(52, 152, 219, 0.2); }
-            .grade-b { background-color: rgba(46, 204, 113, 0.1); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.2); }
-            .grade-c { background-color: rgba(149, 165, 166, 0.1); color: #95a5a6; border: 1px solid rgba(149, 165, 166, 0.2); }
+            .grade-s { background: linear-gradient(135deg, #a855f7, #eab308); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+            .grade-a { background: #3b82f6; color: #fff; border: none; }
+            .grade-b { background: #10b981; color: #fff; border: none; }
+            .grade-c { background: #64748b; color: #fff; border: none; }
+            .grade-d { background: #ef4444; color: #fff; border: none; }
+            .grade-none { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); border: none; }
+            .total-score { font-size: 0.7rem; color: rgba(255,255,255,0.5); font-weight: 400; margin-left: 4px; }
         </style>
     </div>
 
