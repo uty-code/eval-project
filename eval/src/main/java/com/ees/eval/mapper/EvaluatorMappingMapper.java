@@ -42,8 +42,9 @@ public interface EvaluatorMappingMapper {
      * @param evaluatorId 평가자(나) 사원 ID
      * @return 내가 수행해야 할 평가 매핑 리스트
      */
-    List<EvaluatorMapping> findByEvaluatorId(@Param("periodId") Long periodId,
-                                              @Param("evaluatorId") Long evaluatorId);
+    List<EvaluatorMapping> findByEvaluatorId(@Param("periodId") Long periodId, 
+                                            @Param("evaluatorId") Long evaluatorId,
+                                            @Param("relationTypeCode") String relationTypeCode);
 
     /**
      * 특정 차수에서 '나를 평가하는 사람 목록'을 조회합니다.
