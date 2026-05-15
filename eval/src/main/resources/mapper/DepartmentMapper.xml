@@ -237,15 +237,33 @@
     </select>
 
     <!-- 여러 부서의 추가 정보(상위 부서명, 리더명, 소속 사원 수)를 한 번에 조회 -->
-    <select id="findDepartmentDetailsByDeptIds" resultType="java.util.Map">
+    <!-- 상관 서브쿼리를 제거하고 CTE 기반의 set-based aggregate 구조로 리팩토링 -->
+    <select id="findDepartmentDetailsByDeptIds" resultType="com.ees.eval.dto.DepartmentDtos$DepartmentDetailDTO">
+        with dept_emp_counts_51 as (
+            select
+                dept_id,
+                count(*) as emp_count
+            from employees_51
+            where is_deleted = 'n'
+            group by dept_id
+        )
         select
-            d.dept_id as DEPT_ID,
-            p.dept_name as PARENT_DEPT_NAME,
-            e.name as LEADER_NAME,
-            (select count(*) from employees_51 e2 where e2.dept_id = d.dept_id and e2.is_deleted = 'n') as EMP_COUNT
+            d.dept_id as deptId,
+            d.parent_dept_id as parentDeptId,
+            d.leader_id as leaderId,
+            d.dept_name as deptName,
+            p.dept_name as parentDeptName,
+            e.name as leaderName,
+            isnull(ec.emp_count, 0) as employeeCount,
+            d.is_active as isActive,
+            d.is_deleted as isDeleted,
+            d.version as version,
+            d.created_at as createdAt,
+            d.created_by as createdBy
         from departments_51 d
         left join departments_51 p on d.parent_dept_id = p.dept_id and p.is_deleted = 'n'
         left join employees_51 e on d.leader_id = e.emp_id and e.is_deleted = 'n'
+        left join dept_emp_counts_51 ec on d.dept_id = ec.dept_id
         where d.dept_id in
         <foreach item="item" collection="deptIds" open="(" separator="," close=")">
             #{item}
@@ -260,6 +278,39 @@
         from departments_51 d
         where d.leader_id is not null
           and d.is_deleted = 'n'
+    </select>
+
+    <!-- 부서 상세 정보를 통합 조회 (DTO Projection) -->
+    <!-- 1회의 JOIN으로 부서 정보, 상위 부서명, 리더명, 직원 수를 포함 -->
+    <select id="findDepartmentDetailById" resultType="com.ees.eval.dto.DepartmentDtos$DepartmentDetailDTO">
+        select
+            d.dept_id as deptId,
+            d.parent_dept_id as parentDeptId,
+            d.leader_id as leaderId,
+            d.dept_name as deptName,
+            p.dept_name as parentDeptName,
+            e.name as leaderName,
+            (select count(*) from employees_51 e2 where e2.dept_id = d.dept_id and e2.is_deleted = 'n') as employeeCount,
+            d.is_active as isActive,
+            d.is_deleted as isDeleted,
+            d.version as version,
+            d.created_at as createdAt,
+            d.created_by as createdBy
+        from departments_51 d
+        left join departments_51 p on d.parent_dept_id = p.dept_id and p.is_deleted = 'n'
+        left join employees_51 e on d.leader_id = e.emp_id and e.is_deleted = 'n'
+        where d.dept_id = #{deptId}
+          and d.is_deleted = 'n'
+    </select>
+
+    <!-- Select Box용 경량 부서 목록 조회 (ID, Name만 조회) -->
+    <select id="findSimpleDepartments" resultType="com.ees.eval.dto.DepartmentDtos$SimpleDepartmentDTO">
+        select
+            dept_id as deptId,
+            dept_name as deptName
+        from departments_51
+        where is_deleted = 'n'
+        order by dept_name asc
     </select>
 
 </mapper>

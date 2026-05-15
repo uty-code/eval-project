@@ -48,20 +48,33 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional(readOnly = true)
     public DepartmentDTO getDepartmentById(Long deptId) {
-        // 1. 부서 엔티티 조회
-        Department dept = departmentMapper.findById(deptId)
-                .orElseThrow(() -> new IllegalArgumentException("부서를 찾을 수 없습니다. deptId: " + deptId));
+        // 1. 통합 JOIN 쿼리로 부서 상세 정보(상위부서명, 리더명, 인원수 등) 일괄 조회
+        com.ees.eval.dto.DepartmentDtos.DepartmentDetailDTO detail = departmentMapper.findDepartmentDetailById(deptId);
+        if (detail == null) {
+            throw new IllegalArgumentException("부서를 찾을 수 없습니다. deptId: " + deptId);
+        }
 
-        // 2. 상위 부서명 셀프 JOIN 조회
-        String parentDeptName = departmentMapper.findParentDeptName(deptId);
+        // 2. DTO 변환 및 리더 임원 여부 추가 조회 (권한 정책 상 별도 조회)
+        boolean isLeaderExecutive = false;
+        if (detail.leaderId() != null) {
+            isLeaderExecutive = employeeMapper.findRoleNamesByEmpId(detail.leaderId()).contains("ROLE_EXECUTIVE");
+        }
 
-        // 3. 리더(부서장) 사원명 JOIN 조회
-        String leaderName = departmentMapper.findLeaderName(deptId);
-
-        // 4. 소속 사원 인원수 카운트 조회
-        int employeeCount = departmentMapper.countEmployeesByDeptId(deptId);
-
-        return convertToDto(dept, parentDeptName, leaderName, employeeCount);
+        return DepartmentDTO.builder()
+                .deptId(detail.deptId())
+                .parentDeptId(detail.parentDeptId())
+                .leaderId(detail.leaderId())
+                .deptName(detail.deptName())
+                .parentDeptName(detail.parentDeptName())
+                .leaderName(detail.leaderName())
+                .employeeCount(detail.employeeCount())
+                .isLeaderExecutive(isLeaderExecutive)
+                .isActive(detail.isActive())
+                .isDeleted(detail.isDeleted())
+                .version(detail.version())
+                .createdAt(detail.createdAt())
+                .createdBy(detail.createdBy())
+                .build();
     }
 
     /**
@@ -72,8 +85,12 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Transactional(readOnly = true)
     @Cacheable(value = "departments-simple", key = "'all'")
     public List<DepartmentDTO> getSimpleAllDepartments() {
-        return departmentMapper.findAll().stream()
-                .map(dept -> convertToDto(dept, null, null, 0, false))
+        // Select Box 전용 경량 프로젝션 쿼리 사용
+        return departmentMapper.findSimpleDepartments().stream()
+                .map(simple -> DepartmentDTO.builder()
+                        .deptId(simple.deptId())
+                        .deptName(simple.deptName())
+                        .build())
                 .collect(Collectors.toList());
     }
 
@@ -87,13 +104,21 @@ public class DepartmentServiceImpl implements DepartmentService {
         // 1. 전체 부서 조회
         List<Department> departments = departmentMapper.findAll();
         
-        // 2. 부서 추가 정보 및 DTO 변환 (N+1 문제 해결)
+        // 2. 부서 추가 정보 및 DTO 변환 (CTE 기반 배치 조회로 N+1 해결)
         List<DepartmentDTO> allDepts = convertToDtoListWithDetails(departments);
 
-        // 4. 부모-자식 트리 맵 구성 (parentDeptId 기준 그룹화)
+        // 4. 부모-자식 트리 맵 구성 및 자식 리스트 미리 정렬 (반복 정렬 제거)
         Map<Long, List<DepartmentDTO>> childrenMap = allDepts.stream()
                 .filter(d -> d.parentDeptId() != null)
-                .collect(Collectors.groupingBy(DepartmentDTO::parentDeptId));
+                .collect(Collectors.groupingBy(
+                        DepartmentDTO::parentDeptId,
+                        Collectors.collectingAndThen(
+                                Collectors.toList(),
+                                list -> list.stream()
+                                        .sorted(Comparator.comparing(DepartmentDTO::deptId))
+                                        .collect(Collectors.toList())
+                        )
+                ));
 
         // 5. 최상위(Root) 부서 목록 추출 후 ID 순 정렬
         List<DepartmentDTO> roots = allDepts.stream()
@@ -102,6 +127,7 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .toList();
 
         // 6. DFS로 트리 순회하여 한 줄로 펼침(Flatten)
+        // buildTreeList 내부에서는 이제 정렬을 수행하지 않음
         List<DepartmentDTO> sortedDepts = new ArrayList<>();
         for (DepartmentDTO root : roots) {
             buildTreeList(root, childrenMap, sortedDepts, 0);
@@ -154,10 +180,10 @@ public class DepartmentServiceImpl implements DepartmentService {
         result.add(nodeWithDepth);
 
         List<DepartmentDTO> children = childrenMap.getOrDefault(node.deptId(), Collections.emptyList());
-        // 하위 부서도 식별자 순으로 정렬 후 깊이를 1 증가시켜 재귀 탐색
-        children.stream()
-                .sorted(Comparator.comparing(DepartmentDTO::deptId))
-                .forEach(child -> buildTreeList(child, childrenMap, result, depth + 1));
+        // 이미 childrenMap 생성 시점에 정렬되었으므로 바로 순회 (CPU 연산 절감)
+        for (DepartmentDTO child : children) {
+            buildTreeList(child, childrenMap, result, depth + 1);
+        }
     }
 
     /**
@@ -196,14 +222,14 @@ public class DepartmentServiceImpl implements DepartmentService {
             return Collections.emptyList();
         }
 
-        // 3. N+1 방지: 사원들의 권한 목록 일괄 조회
+        // 3. N+1 방지: 사원들의 권한 목록 일괄 조회 (Record DTO 사용으로 타입 안정성 확보)
         List<Long> empIds = employees.stream().map(Employee::getEmpId).collect(Collectors.toList());
-        List<Map<String, Object>> roleMaps = employeeMapper.findRoleNamesByEmpIds(empIds);
+        List<com.ees.eval.dto.DepartmentDtos.EmployeeRoleDTO> roles = employeeMapper.findEmployeeRolesByEmpIds(empIds);
 
-        Map<Long, List<String>> empRolesMap = roleMaps.stream()
+        Map<Long, List<String>> empRolesMap = roles.stream()
                 .collect(Collectors.groupingBy(
-                        row -> ((Number) row.get("EMP_ID")).longValue(),
-                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())));
+                        com.ees.eval.dto.DepartmentDtos.EmployeeRoleDTO::empId,
+                        Collectors.mapping(com.ees.eval.dto.DepartmentDtos.EmployeeRoleDTO::roleName, Collectors.toList())));
 
         // 4. DTO 변환
         return employees.stream()
@@ -606,30 +632,25 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .map(Department::getDeptId)
                 .collect(Collectors.toList());
 
-        // 3. 부서 추가 정보 (상위부서명, 리더명, 직원수) 배치 조회
-        List<Map<String, Object>> details = departmentMapper.findDepartmentDetailsByDeptIds(deptIds);
+        // 3. 부서 추가 정보 (상위부서명, 리더명, 직원수) 배치 조회 (Record DTO 사용)
+        List<com.ees.eval.dto.DepartmentDtos.DepartmentDetailDTO> details = departmentMapper.findDepartmentDetailsByDeptIds(deptIds);
         
-        // 4. Map으로 변환하여 매핑 준비
-        Map<Long, Map<String, Object>> detailsMap = details.stream()
-                .collect(Collectors.toMap(
-                        m -> ((Number) m.get("DEPT_ID")).longValue(),
-                        m -> m
-                ));
+        // 4. ID 기반 Map으로 변환하여 매핑 효율화 (O(1) 접근)
+        Map<Long, com.ees.eval.dto.DepartmentDtos.DepartmentDetailDTO> detailsMap = details.stream()
+                .collect(Collectors.toMap(com.ees.eval.dto.DepartmentDtos.DepartmentDetailDTO::deptId, d -> d));
 
-        // 5. DTO 변환
+        // 5. DTO 변환 및 결과 반환
         return departments.stream().map(dept -> {
-            Map<String, Object> detail = detailsMap.get(dept.getDeptId());
+            com.ees.eval.dto.DepartmentDtos.DepartmentDetailDTO detail = detailsMap.get(dept.getDeptId());
             
             String parentName = null;
             String leaderName = null;
             int count = 0;
             
             if (detail != null) {
-                parentName = (String) detail.get("PARENT_DEPT_NAME");
-                leaderName = (String) detail.get("LEADER_NAME");
-                if (detail.get("EMP_COUNT") != null) {
-                    count = ((Number) detail.get("EMP_COUNT")).intValue();
-                }
+                parentName = detail.parentDeptName();
+                leaderName = detail.leaderName();
+                count = detail.employeeCount();
             }
             
             boolean isExec = execMap.getOrDefault(dept.getLeaderId(), false);

@@ -259,6 +259,21 @@
           and r.is_deleted = 'n'
     </select>
 
+    <!-- [성능 최적화] 다수의 사원에 대한 권한 정보를 Record DTO로 조회 (N+1 방지 및 타입 안정성) -->
+    <select id="findEmployeeRolesByEmpIds" resultType="com.ees.eval.dto.DepartmentDtos$EmployeeRoleDTO">
+        select
+            er.emp_id as empId,
+            r.role_name as roleName
+        from employee_roles_51 er
+        inner join roles_51 r on er.role_id = r.role_id
+        where er.emp_id in
+        <foreach item="empId" collection="empIds" open="(" separator="," close=")">
+            #{empId}
+        </foreach>
+          and er.is_deleted = 'n'
+          and r.is_deleted = 'n'
+    </select>
+
     <!-- 사원 정보 삽입 -->
     <insert id="insert">
         <selectKey keyProperty="empId" resultType="java.lang.Long" order="BEFORE">

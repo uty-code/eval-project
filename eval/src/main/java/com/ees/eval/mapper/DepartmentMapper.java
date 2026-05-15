@@ -161,9 +161,9 @@ public interface DepartmentMapper {
      * 여러 부서의 추가 정보(상위 부서명, 리더명, 소속 사원 수)를 한 번에 조회합니다.
      *
      * @param deptIds 부서 ID 리스트
-     * @return 부서별 추가 정보 맵 리스트 (DEPT_ID, PARENT_DEPT_NAME, LEADER_NAME, EMP_COUNT)
+     * @return 부서별 추가 정보 DTO 리스트
      */
-    List<java.util.Map<String, Object>> findDepartmentDetailsByDeptIds(@Param("deptIds") List<Long> deptIds);
+    List<com.ees.eval.dto.DepartmentDtos.DepartmentDetailDTO> findDepartmentDetailsByDeptIds(@Param("deptIds") List<Long> deptIds);
 
     /**
      * N+1 문제를 방지하기 위해 삭제되지 않은 모든 부서의 리더 사원 ID 목록을 중복 없이 조회합니다.
@@ -171,4 +171,20 @@ public interface DepartmentMapper {
      * @return 리더 사원 ID 리스트
      */
     List<Long> findAllLeaderIds();
+
+    /**
+     * 부서 상세 정보를 통합 조회합니다 (DTO Projection).
+     * 1회의 JOIN으로 부서 정보, 상위 부서명, 리더명, 직원 수를 포함합니다.
+     *
+     * @param deptId 대상 부서 식별자
+     * @return 부서 상세 정보 DTO
+     */
+    com.ees.eval.dto.DepartmentDtos.DepartmentDetailDTO findDepartmentDetailById(@Param("deptId") Long deptId);
+
+    /**
+     * Select Box용 경량 부서 목록을 조회합니다 (ID, Name만 조회).
+     *
+     * @return 경량 부서 DTO 리스트
+     */
+    List<com.ees.eval.dto.DepartmentDtos.SimpleDepartmentDTO> findSimpleDepartments();
 }
