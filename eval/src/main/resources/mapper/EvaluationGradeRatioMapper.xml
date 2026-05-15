@@ -24,6 +24,20 @@
           AND is_deleted = 'n'
     </select>
 
+    <select id="findByPeriodId" resultType="com.ees.eval.dto.EvaluationGradeRatioDTO">
+        SELECT ratio_id as ratioId,
+               period_id as periodId,
+               dept_id as deptId,
+               grade_s_ratio as gradeSRatio,
+               grade_a_ratio as gradeARatio,
+               grade_b_ratio as gradeBRatio,
+               grade_c_ratio as gradeCRatio,
+               grade_d_ratio as gradeDRatio
+        FROM evaluation_grade_ratios_51
+        WHERE period_id = #{periodId}
+          AND is_deleted = 'n'
+    </select>
+
     <insert id="upsertGradeRatio">
         MERGE INTO evaluation_grade_ratios_51 AS target
         USING (SELECT #{periodId} AS period_id, 

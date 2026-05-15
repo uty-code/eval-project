@@ -159,6 +159,36 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                     .orElse(null);
         }
 
+        // [New Optimization] N+1 방지를 위해 검증용 데이터를 사전에 일괄 조회
+        // 1. 기존 매핑 조회 (중복 검증용)
+        List<EvaluatorMapping> existingMappings = new ArrayList<>(mappingMapper.findByEvaluateeId(periodId, evaluateeId));
+        
+        // 2. 평가자 목록 일괄 조회
+        Map<Long, Employee> evaluatorMap = employeeMapper.findByIds(evaluatorIds).stream()
+                .collect(Collectors.toMap(Employee::getEmpId, e -> e));
+                
+        // 3. 임원 권한 검증이 필요한 경우 권한 목록 일괄 조회
+        Map<Long, Set<String>> evaluatorRolesMap = Collections.emptyMap();
+        if (RELATION_EXECUTIVE.equals(relationTypeCode)) {
+            List<Map<String, Object>> rawRoles = employeeMapper.findRoleNamesByEmpIds(evaluatorIds);
+            evaluatorRolesMap = rawRoles.stream()
+                    .collect(Collectors.groupingBy(
+                            m -> {
+                                Object empIdObj = m.get("EMP_ID");
+                                if (empIdObj == null) empIdObj = m.get("emp_id");
+                                return empIdObj instanceof Number ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+                            },
+                            Collectors.mapping(
+                                    m -> {
+                                        Object roleNameObj = m.get("ROLE_NAME");
+                                        if (roleNameObj == null) roleNameObj = m.get("role_name");
+                                        return String.valueOf(roleNameObj);
+                                    },
+                                    Collectors.toSet()
+                            )
+                    ));
+        }
+
         List<EvaluatorMappingDTO> results = new ArrayList<>();
         List<EvaluatorMapping> mappingsToInsert = new ArrayList<>();
         
@@ -171,18 +201,34 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                 validateManagerRelationStrict(evaluateeId, evaluatorId, actualLeaderId, evaluateeDeptId);
             }
 
-            // 임원 권한 검증
+            // 임원 권한 검증 (메모리 맵 사용)
             if (RELATION_EXECUTIVE.equals(relationTypeCode)) {
-                validateExecutiveMapping(evaluatorId);
+                Set<String> roles = evaluatorRolesMap.getOrDefault(evaluatorId, Collections.emptySet());
+                if (!roles.contains(SystemRole.ROLE_EXECUTIVE.getCode())) {
+                    throw new IllegalArgumentException("임원 권한이 없는 사원은 임원 평가자로 지정할 수 없습니다.");
+                }
             }
 
-            // 다면 평가자(부서원) 검증
+            // 다면 평가자(부서원) 검증 (메모리 맵 사용)
             if (RELATION_SUBORDINATE.equals(relationTypeCode)) {
-                validateSubordinateMappingStrict(evaluateeId, evaluatorId, actualLeaderId, evaluateeDeptId);
+                if (!evaluateeId.equals(actualLeaderId)) {
+                    throw new IllegalArgumentException("피평가자가 부서장이 아닙니다.");
+                }
+                Employee evaluator = evaluatorMap.get(evaluatorId);
+                if (evaluator == null) {
+                    throw new IllegalArgumentException("평가자를 찾을 수 없습니다.");
+                }
+                if (!evaluator.getDeptId().equals(evaluateeDeptId)) {
+                    throw new IllegalArgumentException("다면 평가자(부서원)는 동일 부서 소속이어야 합니다.");
+                }
             }
 
-            // 중복 매핑 검증
-            validateDuplicate(periodId, evaluateeId, evaluatorId, relationTypeCode);
+            // 중복 매핑 검증 (메모리 리스트 사용)
+            boolean isDuplicate = existingMappings.stream()
+                    .anyMatch(m -> m.getEvaluatorId().equals(evaluatorId) && m.getRelationTypeCode().equals(relationTypeCode));
+            if (isDuplicate) {
+                throw new IllegalArgumentException("이미 동일한 평가자가 해당 관계로 지정되어 있습니다.");
+            }
 
             EvaluatorMapping mapping = EvaluatorMapping.builder()
                     .periodId(periodId)
@@ -193,6 +239,9 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
             mapping.prePersist();
             mappingsToInsert.add(mapping);
             results.add(enrichDto(mapping));
+            
+            // 동일 요청 내에서 중복 방지를 위해 리스트 업데이트
+            existingMappings.add(mapping);
         }
         
         if (!mappingsToInsert.isEmpty()) {

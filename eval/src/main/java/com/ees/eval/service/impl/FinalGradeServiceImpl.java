@@ -212,6 +212,9 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                 .collect(Collectors.groupingBy(m -> m.getPeriodId() + "_" + employeeMap.get(m.getEvaluateeId()).getDeptId(),
                         Collectors.mapping(EvaluatorMapping::getEvaluateeId, Collectors.toList())));
 
+        // [New Optimization] N+1 쿼리 방지를 위한 등급 비율 캐시 맵
+        Map<Long, Map<Long, com.ees.eval.dto.EvaluationGradeRatioDTO>> periodRatioMapCache = new HashMap<>();
+
         for (Map.Entry<String, List<Long>> groupEntry : empsByGroup.entrySet()) {
             String groupKey = groupEntry.getKey();
             Long currentPeriodId = Long.parseLong(groupKey.split("_")[0]);
@@ -221,7 +224,12 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             int totalEligible = deptEmpIds.size();
             if (totalEligible == 0) continue;
 
-            com.ees.eval.dto.EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatio(currentPeriodId, deptId);
+            // N+1 방지: 루프 내 단건 조회 대신 캐시 맵 활용
+            Map<Long, com.ees.eval.dto.EvaluationGradeRatioDTO> ratioMap = periodRatioMapCache.computeIfAbsent(
+                    currentPeriodId, pid -> gradeRatioService.getAllRatiosByPeriodMap(pid)
+            );
+            com.ees.eval.dto.EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatioFromMap(ratioMap, currentPeriodId, deptId);
+            
             double[] exact = {
                     totalEligible * ratio.gradeSRatio() / 100.0,
                     totalEligible * ratio.gradeARatio() / 100.0,

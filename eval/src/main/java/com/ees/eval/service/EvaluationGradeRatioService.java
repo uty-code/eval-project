@@ -44,6 +44,49 @@ public class EvaluationGradeRatioService {
     }
 
     /**
+     * N+1 쿼리 최적화를 위해 특정 차수의 모든 등급 비율을 일괄 조회하여 부서 ID를 키로 하는 Map을 반환합니다.
+     * key: deptId (전사 공통은 null key 사용)
+     */
+    public java.util.Map<Long, EvaluationGradeRatioDTO> getAllRatiosByPeriodMap(Long periodId) {
+        java.util.List<EvaluationGradeRatioDTO> allRatios = ratioMapper.findByPeriodId(periodId);
+        java.util.Map<Long, EvaluationGradeRatioDTO> ratioMap = new java.util.HashMap<>();
+        
+        for (EvaluationGradeRatioDTO r : allRatios) {
+            ratioMap.put(r.deptId(), r);
+        }
+        
+        return ratioMap;
+    }
+
+    /**
+     * getAllRatiosByPeriodMap으로 생성된 캐시를 활용하여 부서별 등급 비율을 반환합니다.
+     * 캐시에 부서 설정이 없으면 전사 공통 설정을 참조하고, 둘 다 없으면 기본값을 반환합니다.
+     */
+    public EvaluationGradeRatioDTO getGradeRatioFromMap(java.util.Map<Long, EvaluationGradeRatioDTO> ratioMap, Long periodId, Long deptId) {
+        EvaluationGradeRatioDTO ratio = ratioMap.get(deptId);
+        
+        if (ratio == null && deptId != null) {
+            EvaluationGradeRatioDTO commonRatio = ratioMap.get(null);
+            if (commonRatio != null) {
+                return EvaluationGradeRatioDTO.builder()
+                        .periodId(periodId)
+                        .deptId(deptId)
+                        .gradeSRatio(commonRatio.gradeSRatio())
+                        .gradeARatio(commonRatio.gradeARatio())
+                        .gradeBRatio(commonRatio.gradeBRatio())
+                        .gradeCRatio(commonRatio.gradeCRatio())
+                        .gradeDRatio(commonRatio.gradeDRatio())
+                        .build();
+            }
+        }
+        
+        if (ratio == null) {
+            return EvaluationGradeRatioDTO.defaultRatio(periodId, deptId);
+        }
+        return ratio;
+    }
+
+    /**
      * 등급 비율을 저장합니다. 저장 전 비율의 합이 100인지 검증합니다.
      */
     @Transactional
