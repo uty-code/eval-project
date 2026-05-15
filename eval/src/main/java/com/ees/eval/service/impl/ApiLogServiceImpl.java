@@ -52,14 +52,23 @@ public class ApiLogServiceImpl implements ApiLogService {
     }
 
     /**
-     * 다중 조건 검색 필터를 적용하여 API 로그를 조회합니다.
+     * 다중 조건 검색 필터를 적용하여 API 로그를 페이징 조회합니다.
      *
      * @param params 검색 조건 맵
-     * @return 검색된 API 로그 목록
+     * @param page 현재 페이지
+     * @param size 페이지 크기
+     * @return 검색된 API 로그 목록 (페이징 객체)
      */
     @Override
     @Transactional(readOnly = true)
-    public java.util.List<ApiLog> searchLogs(java.util.Map<String, Object> params) {
-        return apiLogMapper.searchApiLogs(params);
+    public com.ees.eval.dto.PageResponseDTO<ApiLog> searchLogs(java.util.Map<String, Object> params, int page, int size) {
+        int offset = (page - 1) * size;
+        params.put("limit", size);
+        params.put("offset", offset);
+        
+        java.util.List<ApiLog> list = apiLogMapper.searchApiLogs(params);
+        int total = apiLogMapper.countApiLogs(params);
+        
+        return com.ees.eval.dto.PageResponseDTO.of(list, page, size, total);
     }
 }

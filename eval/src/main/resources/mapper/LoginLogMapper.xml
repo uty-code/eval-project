@@ -24,18 +24,51 @@
     </insert>
 
     <!-- 특정 사원의 로그인 이력 조회 (최신순) -->
-    <select id="findByEmpId" parameterType="long" resultMap="LoginLogResultMap">
+    <select id="findByEmpId" resultMap="LoginLogResultMap">
         select log_id, emp_id, login_input, result_code, is_failure, ip_address, user_agent, created_at
         from login_logs_51
         where emp_id = #{empId}
+        <if test="keyword != null and keyword != ''">
+            and (ip_address like '%' + #{keyword} + '%' or login_input like '%' + #{keyword} + '%')
+        </if>
         order by created_at desc
+        offset #{offset} rows
+        fetch next #{limit} rows only
+    </select>
+
+    <!-- 특정 사원 로그인 이력 총 개수 -->
+    <select id="countByEmpId" resultType="int">
+        select count(*)
+        from login_logs_51
+        where emp_id = #{empId}
+        <if test="keyword != null and keyword != ''">
+            and (ip_address like '%' + #{keyword} + '%' or login_input like '%' + #{keyword} + '%')
+        </if>
     </select>
 
     <!-- 전체 로그인 이력 조회 (관리자용, 최신순) -->
     <select id="findAll" resultMap="LoginLogResultMap">
         select log_id, emp_id, login_input, result_code, is_failure, ip_address, user_agent, created_at
         from login_logs_51
+        <where>
+            <if test="keyword != null and keyword != ''">
+                and (ip_address like '%' + #{keyword} + '%' or login_input like '%' + #{keyword} + '%')
+            </if>
+        </where>
         order by created_at desc
+        offset #{offset} rows
+        fetch next #{limit} rows only
+    </select>
+
+    <!-- 전체 로그인 이력 총 개수 -->
+    <select id="countAll" resultType="int">
+        select count(*)
+        from login_logs_51
+        <where>
+            <if test="keyword != null and keyword != ''">
+                and (ip_address like '%' + #{keyword} + '%' or login_input like '%' + #{keyword} + '%')
+            </if>
+        </where>
     </select>
 
     <!-- 마지막 성공 이후 연속 실패 횟수 조회 (계정 잠금 판단용) -->

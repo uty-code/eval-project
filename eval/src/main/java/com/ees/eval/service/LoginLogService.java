@@ -59,17 +59,23 @@ public class LoginLogService {
     }
 
     /**
-     * 전체 로그인 이력을 조회합니다. (관리자용)
+     * 전체 로그인 이력을 페이징 조회합니다. (관리자용)
      */
-    public List<LoginLog> findAll() {
-        return loginLogMapper.findAll();
+    public com.ees.eval.dto.PageResponseDTO<LoginLog> findAll(int page, int size, String keyword) {
+        int offset = (page - 1) * size;
+        List<LoginLog> list = loginLogMapper.findAll(size, offset, keyword);
+        int total = loginLogMapper.countAll(keyword);
+        return com.ees.eval.dto.PageResponseDTO.of(list, page, size, total);
     }
 
     /**
-     * 특정 사원의 로그인 이력을 조회합니다.
+     * 특정 사원의 로그인 이력을 페이징 조회합니다.
      */
-    public List<LoginLog> findByEmpId(Long empId) {
-        return loginLogMapper.findByEmpId(empId);
+    public com.ees.eval.dto.PageResponseDTO<LoginLog> findByEmpId(Long empId, int page, int size, String keyword) {
+        int offset = (page - 1) * size;
+        List<LoginLog> list = loginLogMapper.findByEmpId(empId, size, offset, keyword);
+        int total = loginLogMapper.countByEmpId(empId, keyword);
+        return com.ees.eval.dto.PageResponseDTO.of(list, page, size, total);
     }
 
     // -------------------------------------------------------

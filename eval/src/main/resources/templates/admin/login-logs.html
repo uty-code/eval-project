@@ -40,7 +40,7 @@
             <div class="col-sm-6 col-lg-3">
                 <div class="ees-card p-4 text-center">
                     <div class="fs-1 fw-bold text-white"
-                         th:text="${#lists.size(logs)}">0</div>
+                         th:text="${pageResponse.totalElements}">0</div>
                     <div class="text-muted small mt-1">전체 기록</div>
                 </div>
             </div>
@@ -73,15 +73,20 @@
                 <h5 class="fw-bold mb-0">
                     <i class="bi bi-table me-2 text-primary"></i>상세 이력
                 </h5>
-                <!-- 검색 -->
-                <div class="input-group" style="max-width:260px;">
-                    <span class="input-group-text bg-dark border-secondary text-muted">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input type="text" id="log-search"
+                <!-- 서버 연동 검색 (Form) -->
+                <form th:action="@{${empId != null ? '/admin/login-logs/emp/' + empId : '/admin/login-logs'}}" method="get" class="input-group" style="max-width:350px;">
+                    <button type="button" class="btn btn-outline-info" 
+                            onclick="window.openEmployeeSelector((emp) => { window.location.href = '/admin/login-logs/emp/' + emp.id; })"
+                            title="특정 사원의 로그인 이력만 봅니다">
+                        <i class="bi bi-person-badge"></i> 사원 지정
+                    </button>
+                    <input type="text" name="keyword" th:value="${keyword}"
                            class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
-                           placeholder="IP / 사번 검색...">
-                </div>
+                           placeholder="IP / 사번 / 내용 검색...">
+                    <button type="submit" class="btn btn-outline-secondary">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
             </div>
 
             <div class="table-responsive">
@@ -161,15 +166,35 @@
             </div>
         </div>
 
-        <script>
-            // 실시간 테이블 필터
-            document.getElementById('log-search').addEventListener('input', function() {
-                const q = this.value.toLowerCase();
-                document.querySelectorAll('#log-tbody tr').forEach(tr => {
-                    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
-                });
-            });
-        </script>
+            <!-- Pagination -->
+            <nav th:if="${pageResponse.totalPages > 1}" class="mt-4" aria-label="Page navigation">
+                <ul class="pagination justify-content-center pagination-sm">
+                    <!-- 이전 페이지 -->
+                    <li class="page-item" th:classappend="${pageResponse.currentPage == 1} ? 'disabled'">
+                        <a class="page-link bg-dark border-secondary text-white" 
+                           th:href="@{${empId != null ? '/admin/login-logs/emp/' + empId : '/admin/login-logs'}(page=${pageResponse.currentPage - 1}, keyword=${keyword})}">이전</a>
+                    </li>
+                    
+                    <!-- 페이지 번호: 좌우 5개씩 (총 11개) -->
+                    <li class="page-item" 
+                        th:each="pageNum : ${#numbers.sequence(
+                            pageResponse.currentPage - 5 < 1 ? 1 : pageResponse.currentPage - 5,
+                            pageResponse.currentPage + 5 > pageResponse.totalPages ? pageResponse.totalPages : pageResponse.currentPage + 5)}"
+                        th:classappend="${pageNum == pageResponse.currentPage} ? 'active'">
+                        <a class="page-link border-secondary"
+                           th:classappend="${pageNum == pageResponse.currentPage} ? 'bg-primary text-white border-primary' : 'bg-dark text-white'"
+                           th:href="@{${empId != null ? '/admin/login-logs/emp/' + empId : '/admin/login-logs'}(page=${pageNum}, keyword=${keyword})}"
+                           th:text="${pageNum}">1</a>
+                    </li>
+                    
+                    <!-- 다음 페이지 -->
+                    <li class="page-item" th:classappend="${pageResponse.currentPage == pageResponse.totalPages} ? 'disabled'">
+                        <a class="page-link bg-dark border-secondary text-white" 
+                           th:href="@{${empId != null ? '/admin/login-logs/emp/' + empId : '/admin/login-logs'}(page=${pageResponse.currentPage + 1}, keyword=${keyword})}">다음</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
     </div>
 </body>
 </html>

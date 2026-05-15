@@ -21,19 +21,42 @@ public interface LoginLogMapper {
     void insert(LoginLog loginLog);
 
     /**
-     * 특정 사원의 로그인 이력을 최신순으로 조회합니다.
+     * 특정 사원의 로그인 이력을 페이징하여 조회합니다.
      *
      * @param empId 사원 ID
+     * @param limit 페이지당 개수
+     * @param offset 시작 위치
+     * @param keyword 검색어 (IP 또는 입력값)
      * @return 로그인 이력 목록
      */
-    List<LoginLog> findByEmpId(Long empId);
+    List<LoginLog> findByEmpId(@Param("empId") Long empId, @Param("limit") int limit, @Param("offset") int offset, @Param("keyword") String keyword);
 
     /**
-     * 전체 로그인 이력을 최신순으로 조회합니다. (관리자용)
+     * 특정 사원의 로그인 이력 총 개수를 조회합니다.
      *
+     * @param empId 사원 ID
+     * @param keyword 검색어
+     * @return 총 개수
+     */
+    int countByEmpId(@Param("empId") Long empId, @Param("keyword") String keyword);
+
+    /**
+     * 전체 로그인 이력을 페이징하여 조회합니다. (관리자용)
+     *
+     * @param limit 페이지당 개수
+     * @param offset 시작 위치
+     * @param keyword 검색어 (IP 또는 사번)
      * @return 전체 로그인 이력 목록
      */
-    List<LoginLog> findAll();
+    List<LoginLog> findAll(@Param("limit") int limit, @Param("offset") int offset, @Param("keyword") String keyword);
+
+    /**
+     * 전체 로그인 이력 총 개수를 조회합니다.
+     *
+     * @param keyword 검색어
+     * @return 총 개수
+     */
+    int countAll(@Param("keyword") String keyword);
 
     /**
      * 마지막 로그인 성공 이후 연속 실패 횟수를 조회합니다.

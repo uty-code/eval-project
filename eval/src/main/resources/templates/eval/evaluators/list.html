@@ -543,75 +543,37 @@
             window.openSelector = function(target) {
                 activeSelectionTarget = target;
                 
-                htmx.ajax('GET', '/employees/selector', {
-                    target: 'body',
-                    swap: 'beforeend'
-                }).then(() => {
-                    const modalEl = document.getElementById('employeeSelectorModal');
-                    if (modalEl) {
-                        const modal = new bootstrap.Modal(modalEl, {
-                            backdrop: 'static',
-                            focus: true,
-                            keyboard: false // 수동으로 제어하기 위해 끔
-                        });
-                        modal.show();
-                        
-                        // ESC 키 수동 제어 (이벤트 캡처링으로 첫 번째 모달의 간섭 차단)
-                        const handleEsc = (e) => {
-                            if (e.key === 'Escape') {
-                                e.preventDefault();
-                                e.stopImmediatePropagation();
-                                modal.hide();
-                            }
-                        };
-                        
-                        window.addEventListener('keydown', handleEsc, { capture: true });
+                // 공통 모듈 호출
+                window.openEmployeeSelector(function(employee) {
+                    if (!activeSelectionTarget) return;
 
-                        modalEl.addEventListener('shown.bs.modal', function() {
-                            const searchInput = modalEl.querySelector('#selector-search-input');
-                            if (searchInput) searchInput.focus();
-                        });
+                    const currentTarget = activeSelectionTarget;
 
-                        modalEl.addEventListener('hidden.bs.modal', function() {
-                            window.removeEventListener('keydown', handleEsc, { capture: true });
-                            modalEl.remove();
-                            const firstModal = document.getElementById('createMappingModal');
-                            if (firstModal) firstModal.focus();
-                        });
+                    const hiddenInput = document.getElementById(`hidden${currentTarget.charAt(0).toUpperCase() + currentTarget.slice(1)}Id`);
+                    const displayEl = document.getElementById(`${currentTarget}-display`);
+                    const infoEl = document.getElementById(`${currentTarget}-info`);
+                    const avatarEl = document.getElementById(`${currentTarget}-avatar`);
+                    const nameEl = document.getElementById(`${currentTarget}-name`);
+                    const deptEl = document.getElementById(`${currentTarget}-dept`);
+
+                    if (hiddenInput) hiddenInput.value = employee.id;
+                    if (displayEl) displayEl.classList.add('d-none');
+                    if (infoEl) {
+                        infoEl.classList.remove('d-none');
+                        infoEl.classList.add('animate__animated', 'animate__fadeIn');
+                        infoEl.onclick = () => openSelector(currentTarget);
+                        infoEl.style.cursor = 'pointer';
                     }
+                    
+                    if (avatarEl) {
+                        avatarEl.textContent = employee.name.substring(0, 1);
+                        avatarEl.className = `ees-avatar ees-avatar-lg mx-auto mb-2 ${employee.color}`;
+                    }
+                    if (nameEl) nameEl.textContent = employee.name;
+                    if (deptEl) deptEl.textContent = `${employee.dept} | ${employee.pos}`;
+
+                    activeSelectionTarget = null;
                 });
-            };
-
-            window.onEmployeeSelected = function(employee) {
-                if (!activeSelectionTarget) return;
-
-                // 클로저에서 올바른 값을 참조하도록 현재 target을 지역 변수에 저장
-                const currentTarget = activeSelectionTarget;
-
-                const hiddenInput = document.getElementById(`hidden${currentTarget.charAt(0).toUpperCase() + currentTarget.slice(1)}Id`);
-                const displayEl = document.getElementById(`${currentTarget}-display`);
-                const infoEl = document.getElementById(`${currentTarget}-info`);
-                const avatarEl = document.getElementById(`${currentTarget}-avatar`);
-                const nameEl = document.getElementById(`${currentTarget}-name`);
-                const deptEl = document.getElementById(`${currentTarget}-dept`);
-
-                if (hiddenInput) hiddenInput.value = employee.id;
-                if (displayEl) displayEl.classList.add('d-none');
-                if (infoEl) {
-                    infoEl.classList.remove('d-none');
-                    infoEl.classList.add('animate__animated', 'animate__fadeIn');
-                    infoEl.onclick = () => openSelector(currentTarget);
-                    infoEl.style.cursor = 'pointer';
-                }
-                
-                if (avatarEl) {
-                    avatarEl.textContent = employee.name.substring(0, 1);
-                    avatarEl.className = `ees-avatar ees-avatar-lg mx-auto mb-2 ${employee.color}`;
-                }
-                if (nameEl) nameEl.textContent = employee.name;
-                if (deptEl) deptEl.textContent = `${employee.dept} | ${employee.pos}`;
-
-                activeSelectionTarget = null;
             };
 
             document.addEventListener('submit', function(e) {
