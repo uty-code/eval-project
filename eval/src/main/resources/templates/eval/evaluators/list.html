@@ -56,65 +56,63 @@
             </div>
         </div>
 
-        <!-- Filter Section (사원 관리 스타일 적용) -->
+        <!-- Filter Section (Filter Bar Design System 적용) -->
         <div class="ees-card mb-4 p-4">
             <form th:action="@{/eval/evaluators}" method="get" hx-get="/eval/evaluators" hx-target="#page-content"
-                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#global-loader">
-                <div class="row g-4 align-items-end">
-                    <!-- 1. 평가 차수 -->
-                    <div class="col-md-2">
-                        <label class="form-label text-muted small fw-semibold mb-2">
-                            <i class="bi bi-calendar-event me-1"></i>평가 차수
-                        </label>
-                        <select name="periodId" class="form-select bg-dark text-white border-secondary border-opacity-25"
-                            style="height: 42px; border-radius: 8px;"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#global-loader"
+                class="ees-filter-form">
+                
+                <!-- 1. 평가 차수 -->
+                <div class="ees-filter-group" style="flex: 1 1 200px;">
+                    <label for="periodSelect" class="ees-filter-label">
+                        <i class="bi bi-calendar-event me-1"></i>평가 차수
+                    </label>
+                    <div class="ees-filter-control-wrap">
+                        <select id="periodSelect" name="periodId" class="ees-filter-control form-select"
                             onchange="this.form.requestSubmit()">
                             <option th:each="p : ${periods}" th:value="${p.periodId()}"
                                 th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
                                 th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수</option>
                         </select>
                     </div>
+                </div>
 
-                    <!-- 2. 부서 선택 -->
-                    <div th:if="${departments != null}" class="col-md-3">
-                        <label class="form-label text-muted small fw-semibold mb-2">
-                            <i class="bi bi-diagram-3 me-1"></i>대상 부서
-                        </label>
+                <!-- 2. 부서 선택 -->
+                <div th:if="${departments != null}" class="ees-filter-group" style="flex: 1 1 220px;">
+                    <label class="ees-filter-label">
+                        <i class="bi bi-diagram-3 me-1"></i>대상 부서
+                    </label>
+                    <div class="ees-filter-control-wrap">
                         <div th:replace="~{fragments/dept-select :: deptSelect(
                             ${departments}, ${selectedDeptId}, 'deptId', '전체 부서', true)}">
                         </div>
                     </div>
+                </div>
 
-                    <!-- 3. 이름/사번 검색 -->
-                    <div class="col-md-4">
-                        <label class="form-label text-muted small fw-semibold mb-2">
-                            <i class="bi bi-person-search me-1"></i>이름/사번 검색
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-dark border-secondary border-opacity-25 text-muted">
-                                <i class="bi bi-search"></i>
-                            </span>
-                            <input type="text" name="searchName" 
-                                class="form-control bg-dark text-white border-secondary border-opacity-25"
-                                style="height: 42px; border-radius: 0 8px 8px 0;"
-                                placeholder="사원명 또는 사번 입력..." th:value="${searchName}">
-                        </div>
+                <!-- 3. 이름/사번 검색 -->
+                <div class="ees-filter-group flex-grow-1">
+                    <label for="searchName" class="ees-filter-label">
+                        <i class="bi bi-person-search me-1"></i>이름/사번 검색
+                    </label>
+                    <div class="ees-filter-control-wrap">
+                        <input type="text" id="searchName" name="searchName" 
+                            class="ees-filter-control form-control"
+                            placeholder="사원명 또는 사번 입력..." th:value="${searchName}" autocomplete="off">
                     </div>
+                </div>
 
-                    <!-- 4. 버튼 영역 -->
-                    <div class="col-md-3">
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary fw-semibold flex-grow-1" 
-                                    style="height: 42px; background: #6366f1; border: none; border-radius: 8px;">
-                                <i class="bi bi-search me-2"></i>조회
-                            </button>
-                            <a th:href="@{/eval/evaluators(periodId=${selectedPeriod?.periodId()})}" 
-                               class="btn btn-outline-secondary d-flex align-items-center justify-content-center" 
-                               style="height: 42px; width: 42px; border-radius: 8px;" title="초기화">
-                                <i class="bi bi-arrow-counterclockwise"></i>
-                            </a>
-                        </div>
-                    </div>
+                <!-- 4. 액션 버튼 -->
+                <div class="ees-filter-actions">
+                    <label class="ees-filter-label"></label> <!-- 정렬용 빈 라벨 -->
+                    <button type="submit" class="btn-ees-filter">
+                        <i class="bi bi-search"></i>조회
+                    </button>
+                    <a th:href="@{/eval/evaluators(periodId=${selectedPeriod?.periodId()})}" 
+                       class="btn-ees-filter bg-secondary bg-opacity-25" title="초기화"
+                       hx-get="/eval/evaluators" th:attr="hx-vals='{&quot;periodId&quot;: ' + ${selectedPeriod?.periodId()} + '}'"
+                       hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
                 </div>
             </form>
         </div>

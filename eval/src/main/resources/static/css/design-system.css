@@ -24,6 +24,15 @@
     /* Transitions */
     --ees-transition-fast: all 0.2s ease;
     --ees-transition-base: all 0.3s ease;
+
+    /* Filter Bar System Tokens */
+    --ees-filter-height: 42px;
+    --ees-filter-radius: 8px;
+    --ees-filter-gap: 1rem;
+    --ees-bg-control: #1a1a1a;
+    --ees-border-control: rgba(255, 255, 255, 0.1);
+    --ees-text-label: rgba(255, 255, 255, 0.5);
+    --ees-primary-glow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
 /* Glassmorphism Card */
@@ -902,4 +911,139 @@
     font-size: 1.25rem;
     font-weight: 800;
     line-height: 1;
+}
+
+/* ==========================================================================
+   Filter Bar System
+   ========================================================================== */
+
+.ees-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ees-filter-gap);
+    align-items: flex-end;
+}
+
+.ees-filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ees-filter-gap);
+    align-items: flex-end;
+    width: 100%;
+}
+
+.ees-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.ees-filter-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--ees-text-label);
+    height: 1.2rem; /* Fixed label height for baseline stability */
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.ees-filter-control-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.ees-filter-control {
+    height: var(--ees-filter-height);
+    background-color: var(--ees-bg-control) !important;
+    border: 1px solid var(--ees-border-control) !important;
+    border-radius: var(--ees-filter-radius) !important;
+    color: #fff !important;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.85rem;
+    transition: var(--ees-transition-fast);
+    outline: none;
+}
+
+.ees-filter-control:hover {
+    border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.ees-filter-control:focus {
+    border-color: rgba(99, 102, 241, 0.5) !important;
+    box-shadow: var(--ees-primary-glow);
+}
+
+.ees-filter-control:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Validation States */
+.ees-filter-control.is-invalid {
+    border-color: var(--ees-status-danger) !important;
+}
+
+.ees-filter-helper {
+    font-size: 0.7rem;
+    color: var(--ees-text-label);
+    margin-top: 4px;
+}
+
+.ees-filter-error {
+    font-size: 0.7rem;
+    color: var(--ees-status-danger);
+    margin-top: 4px;
+}
+
+/* Actions */
+.ees-filter-actions {
+    display: flex;
+    gap: 0.5rem;
+    height: var(--ees-filter-height);
+    align-items: flex-end;
+}
+
+.btn-ees-filter {
+    height: var(--ees-filter-height);
+    padding: 0 1.25rem;
+    border-radius: var(--ees-filter-radius);
+    background-color: #6366f1;
+    color: #fff;
+    border: none;
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--ees-transition-fast);
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.btn-ees-filter:hover {
+    background-color: #4f46e5;
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+.btn-ees-filter:active {
+    transform: scale(0.98);
+}
+
+/* Responsive Rules */
+@media (max-width: 991.98px) {
+    .ees-filter-group {
+        flex: 1 1 calc(50% - var(--ees-filter-gap));
+    }
+}
+
+@media (max-width: 575.98px) {
+    .ees-filter-group {
+        flex: 1 1 100%;
+    }
+    .btn-ees-filter {
+        width: 100%;
+        justify-content: center;
+    }
 }

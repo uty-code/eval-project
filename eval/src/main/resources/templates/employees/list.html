@@ -125,49 +125,63 @@
                 </a>
             </div>
 
-            <!-- Search Filter Card -->
+            <!-- Search Filter Card (Filter Bar Design System 적용) -->
             <div class="ees-card p-4 mb-4">
-                <form th:action="@{/employees}" method="get" id="search-form" hx-get="/employees"
-                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
-                    hx-indicator="#global-loader" hx-trigger="submit" hx-sync="body:replace">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-4">
-                            <label for="searchName" class="form-label text-muted small fw-semibold">사원 성명</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-transparent border-secondary border-opacity-50">
-                                    <i class="bi bi-search text-muted"></i>
-                                </span>
-                                <input type="text" id="searchName" name="searchName"
-                                    class="form-control bg-transparent border-secondary border-opacity-50 form-control py-1"
-                                    placeholder="이름으로 검색..." th:value="${searchName}">
-                            </div>
+                <form th:action="@{/employees}" method="get" id="search-form" class="ees-filter-form"
+                    hx-get="/employees" hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" 
+                    hx-push-url="true" hx-indicator="#global-loader" hx-trigger="submit" hx-sync="body:replace">
+                    
+                    <!-- 사원 성명 -->
+                    <div class="ees-filter-group flex-grow-1">
+                        <label for="searchName" class="ees-filter-label">
+                            <i class="bi bi-person me-1"></i>사원 성명
+                        </label>
+                        <div class="ees-filter-control-wrap">
+                            <input type="text" id="searchName" name="searchName"
+                                class="ees-filter-control form-control"
+                                placeholder="이름으로 검색..." th:value="${searchName}" autocomplete="off">
                         </div>
-                        <div class="col-md-3">
-                            <label for="searchDeptId" class="form-label text-muted small fw-semibold">부서</label>
+                    </div>
+
+                    <!-- 부서 -->
+                    <div class="ees-filter-group" style="flex: 1 1 250px;">
+                        <label for="searchDeptId" class="ees-filter-label">
+                            <i class="bi bi-building me-1"></i>부서
+                        </label>
+                        <div class="ees-filter-control-wrap">
                             <div th:replace="~{fragments/dept-select :: deptSelect(
                                 ${departments}, ${searchDeptId}, 'searchDeptId', '전체 부서', false)}">
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <label for="searchStatus" class="form-label text-muted small fw-semibold">재직 상태</label>
+                    </div>
+
+                    <!-- 재직 상태 -->
+                    <div class="ees-filter-group" style="flex: 1 1 180px;">
+                        <label for="searchStatus" class="ees-filter-label">
+                            <i class="bi bi-info-circle me-1"></i>재직 상태
+                        </label>
+                        <div class="ees-filter-control-wrap">
                             <select id="searchStatus" name="searchStatus"
-                                class="form-select bg-transparent border-secondary border-opacity-50">
+                                class="ees-filter-control form-select">
                                 <option value="">전체</option>
                                 <option value="EMPLOYED" th:selected="${searchStatus == 'EMPLOYED'}">재직</option>
                                 <option value="ON_LEAVE" th:selected="${searchStatus == 'ON_LEAVE'}">휴직</option>
                                 <option value="RETIRED" th:selected="${searchStatus == 'RETIRED'}">퇴사</option>
                             </select>
                         </div>
-                        <div class="col-md-2 d-flex gap-2">
-                            <button type="submit" class="btn ees-btn-glass-primary flex-grow-1" id="btn-search">
-                                <i class="bi bi-search me-1"></i>검색
-                            </button>
-                            <a th:href="@{/employees}" class="btn btn-outline-secondary" id="btn-reset-search"
-                                hx-get="/employees" hx-target="#page-content" hx-select="#page-content"
-                                hx-push-url="true" hx-indicator="#global-loader" hx-sync="body:replace" title="초기화">
-                                <i class="bi bi-arrow-counterclockwise"></i>
-                            </a>
-                        </div>
+                    </div>
+
+                    <!-- 액션 버튼 -->
+                    <div class="ees-filter-actions">
+                        <label class="ees-filter-label"></label> <!-- 정렬용 빈 라벨 -->
+                        <button type="submit" class="btn-ees-filter" id="btn-search">
+                            <i class="bi bi-search"></i>조회
+                        </button>
+                        <a th:href="@{/employees}" class="btn-ees-filter bg-secondary bg-opacity-25" id="btn-reset-search"
+                            hx-get="/employees" hx-target="#page-content" hx-select="#page-content"
+                            hx-push-url="true" hx-indicator="#global-loader" hx-sync="body:replace" title="초기화">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
                     </div>
                 </form>
             </div>
