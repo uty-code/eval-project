@@ -25,8 +25,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -188,7 +190,6 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
         if (empIdsInDept.isEmpty()) return;
 
         // 실제 평가 대상자로 등록된 인원만 대상 모수로 산정
-        // EXECUTIVE 매핑 기준으로 대상자 산정, 없으면 MANAGER 매핑으로 폴백
         List<EvaluatorMapping> allMappingsInDept = mappingMapper.findByEvaluateeIds(periodId, empIdsInDept);
         List<EvaluatorMapping> mappings = allMappingsInDept.stream()
                 .filter(m -> "EXECUTIVE".equals(m.getRelationTypeCode()))
@@ -200,11 +201,30 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
                     .filter(m -> "MANAGER".equals(m.getRelationTypeCode()))
                     .collect(Collectors.toList());
         }
-                
-        int totalEligible = (int) mappings.stream()
+
+        // [핵심] EXECUTIVE 평가를 실제 제출 완료한 사람만 상대평가 대상으로 산정
+        // 1차만 완료된 사람은 totalScore가 DB에 있어도 상대평가에서 제외
+        List<Long> execMappingIds = mappings.stream()
+                .map(EvaluatorMapping::getMappingId)
+                .collect(Collectors.toList());
+
+        Set<Long> submittedMappingIds = new HashSet<>();
+        if (!execMappingIds.isEmpty()) {
+            evaluationMapper.findByMappingIds(execMappingIds).stream()
+                    .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
+                    .map(Evaluation::getMappingId)
+                    .forEach(submittedMappingIds::add);
+        }
+
+        Set<Long> execCompletedEmpIds = mappings.stream()
+                .filter(m -> submittedMappingIds.contains(m.getMappingId()))
                 .map(EvaluatorMapping::getEvaluateeId)
-                .distinct()
-                .count();
+                .collect(Collectors.toSet());
+
+        log.info("[ScoreCalc] 부서 상대평가 대상: 전체 매핑={}, EXECUTIVE 완료={} (deptId={})",
+                mappings.size(), execCompletedEmpIds.size(), deptId);
+
+        int totalEligible = execCompletedEmpIds.size();
         if (totalEligible == 0) return;
 
         // 2. 부서 비율 조회 및 TO(티오) 계산 (최대 잔여법)
@@ -233,9 +253,9 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
             targets[indices.get(i)]++;
         }
         
-        // 3. 평가가 완료된(점수가 있는) 인원들만 가져와서 내림차순 정렬
+        // 3. EXECUTIVE 제출 완료자이면서 점수가 있는 인원만 가져와서 내림차순 정렬
         List<FinalGrade> grades = finalGradeMapper.findByPeriodIdAndDeptId(periodId, deptId);
-        grades.removeIf(g -> g.getTotalScore() == null);
+        grades.removeIf(g -> g.getTotalScore() == null || !execCompletedEmpIds.contains(g.getEmpId()));
         grades.sort(Comparator.comparing(FinalGrade::getTotalScore).reversed());
         
         // 4. 등급 부여 (동점자 동일 등급 처리 포함)

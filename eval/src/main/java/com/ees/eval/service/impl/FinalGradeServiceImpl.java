@@ -189,7 +189,9 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             FinalGrade fg = gradeMap.get(currentPeriodId + "_" + empId);
             if (fg != null && fg.getTotalScore() != null) {
                 totalScoreMap.put(empId, fg.getTotalScore());
-                if (fg.getFinalGradeCode() != null) {
+                // "-"는 미확정 플레이스홀더이므로 실제 등급(S/A/B/C/D)만 사용
+                // "-"인 경우 in-memory 상대평가 계산에 맡겨 예상등급을 표시
+                if (fg.getFinalGradeCode() != null && !"-".equals(fg.getFinalGradeCode())) {
                     expectedGradeMap.put(empId, fg.getFinalGradeCode());
                 }
             } else {

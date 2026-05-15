@@ -24,6 +24,8 @@
         FROM final_grades_51
         WHERE period_id = #{periodId}
           AND is_deleted = 'n'
+          AND final_grade_code IS NOT NULL
+          AND final_grade_code != '-'
         GROUP BY final_grade_code
         ORDER BY final_grade_code ASC
     </select>
