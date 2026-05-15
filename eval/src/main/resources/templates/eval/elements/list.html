@@ -43,33 +43,49 @@
             </div>
         </div>
 
-        <!-- Filter Section (사원 관리 스타일 적용) -->
+        <!-- Filter Section (Filter Bar Design System 적용) -->
         <div class="ees-card mb-4 p-3">
             <form th:action="@{/eval/elements}" method="get"
                 hx-get="/eval/elements" hx-target="#page-content"
                 hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
-                hx-indicator="#global-loader" id="filterForm">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label class="form-label text-muted small fw-semibold">평가 차수</label>
-                        <select name="periodId" class="form-select bg-dark text-white border-secondary"
+                hx-indicator="#global-loader" id="filterForm" class="ees-filter-form">
+                
+                <!-- 평가 차수 -->
+                <div class="ees-filter-group" style="flex: 1 1 300px;">
+                    <label class="ees-filter-label">
+                        <i class="bi bi-calendar-check me-1"></i>평가 차수
+                    </label>
+                    <div class="ees-filter-control-wrap">
+                        <select name="periodId" class="ees-filter-control form-select"
                             onchange="this.form.requestSubmit()">
                             <option th:each="p : ${periods}" th:value="${p.periodId()}" 
                                 th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
                                 th:selected="${selectedPeriod?.periodId() == p.periodId()}"></option>
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label text-muted small fw-semibold">부서</label>
+                </div>
+
+                <!-- 부서 -->
+                <div class="ees-filter-group flex-grow-1">
+                    <label class="ees-filter-label">
+                        <i class="bi bi-building me-1"></i>부서
+                    </label>
+                    <div class="ees-filter-control-wrap">
                         <div th:replace="~{fragments/dept-select :: deptSelect(
                             ${departments}, ${selectedDeptId}, 'deptId', '전사 공통', true)}">
                         </div>
                     </div>
-                    <div class="col-md-4 d-flex gap-2">
-                        <button type="submit" class="btn ees-btn-glass-primary flex-grow-1">
-                            <i class="bi bi-search me-1"></i>조회
-                        </button>
-                    </div>
+                </div>
+
+                <!-- 액션 버튼 -->
+                <div class="ees-filter-actions">
+                    <label class="ees-filter-label"></label> <!-- 정렬용 빈 라벨 -->
+                    <button type="submit" class="btn-ees-filter" id="btn-search">
+                        <i class="bi bi-search"></i>조회
+                    </button>
+                    <a th:href="@{/eval/elements}" class="btn-ees-filter bg-secondary bg-opacity-25" title="초기화">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
                 </div>
             </form>
         </div>

@@ -24,8 +24,7 @@
 -->
 <select th:fragment="deptSelect(departments, selectedDeptId, paramName, defaultLabel, autoSubmit)"
         th:name="${paramName}"
-        class="form-select bg-dark text-white border-secondary border-opacity-25"
-        style="height: 42px; border-radius: 8px; width: 100%; min-width: 150px;"
+        class="ees-filter-control form-select"
         th:onchange="${autoSubmit} ? 'this.form.requestSubmit()' : null">
 
     <!-- 기본(전체/전사공통) 옵션 -->

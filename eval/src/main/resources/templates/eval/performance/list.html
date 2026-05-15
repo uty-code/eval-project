@@ -8,39 +8,7 @@
         <style>
             <style>
 
-            /* ===== 필터 바 ===== */
-            .filter-bar select,
-            .filter-bar input {
-                background: rgba(255, 255, 255, .06);
-                border: 1px solid rgba(255, 255, 255, .12);
-                color: #cbd5e1;
-                font-size: .85rem;
-                padding: .4rem .7rem;
-                border-radius: 20px;
-                outline: none;
-            }
 
-            .filter-bar select:focus,
-            .filter-bar input:focus {
-                border-color: rgba(99, 102, 241, .5);
-            }
-
-            .btn-search {
-                background: linear-gradient(90deg, #6366f1, #a855f7);
-                color: #fff;
-                border: none;
-                padding: .45rem 1.2rem;
-                border-radius: 20px;
-                font-size: .8rem;
-                font-weight: 700;
-                cursor: pointer;
-                transition: all .2s;
-            }
-
-            .btn-search:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 4px 15px rgba(99, 102, 241, .4);
-            }
 
             /* ===== 테이블 ===== */
             .result-table-wrap {
@@ -311,55 +279,73 @@
             <div th:if="${selectedPeriod == null || selectedPeriod.statusCode() != 'PLANNED'}"
                 id="eval-table-container">
 
-                <!-- 필터 섹션 -->
+                <!-- 필터 섹션 (Filter Bar Design System 적용) -->
                 <div class="ees-card mb-4 p-3">
                     <form id="filterForm" hx-get="/eval/performance" hx-target="#eval-table-container"
-                        hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-3">
-                                <label class="form-label text-muted small fw-semibold">평가 차수</label>
-                                <select name="periodId"
-                                    class="form-select bg-transparent border-secondary border-opacity-50 fw-bold"
-                                    style="color: #fff; font-size: 0.85rem; border-radius: 8px;">
+                        hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace"
+                        class="ees-filter-form">
+                        
+                        <!-- 평가 차수 -->
+                        <div class="ees-filter-group" style="flex: 1 1 250px;">
+                            <label class="ees-filter-label">
+                                <i class="bi bi-calendar-check me-1"></i>평가 차수
+                            </label>
+                            <div class="ees-filter-control-wrap">
+                                <select name="periodId" class="ees-filter-control form-select">
                                     <option value="" th:selected="${selectedPeriod == null}">전체 차수 조회</option>
                                     <option th:each="p : ${periods}" th:value="${p.periodId()}"
                                         th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
                                         th:selected="${selectedPeriod?.periodId() == p.periodId()}"></option>
                                 </select>
                             </div>
+                        </div>
 
-                            <div class="col-md-2">
-                                <label class="form-label text-muted small fw-semibold">부서 필터</label>
-                                <select name="filterDeptId"
-                                    class="form-select bg-transparent border-secondary border-opacity-50"
-                                    style="color: #cbd5e1; font-size: 0.85rem; border-radius: 8px;">
-                                    <option value="">전체 부서</option>
-                                    <option th:each="d : ${departments}" th:value="${d.deptId()}"
-                                        th:text="${d.deptName()}" th:selected="${filterDeptId == d.deptId()}"></option>
-                                </select>
+                        <!-- 부서 필터 -->
+                        <div class="ees-filter-group" style="flex: 1 1 200px;">
+                            <label class="ees-filter-label">
+                                <i class="bi bi-building me-1"></i>부서 필터
+                            </label>
+                            <div class="ees-filter-control-wrap">
+                                <div th:replace="~{fragments/dept-select :: deptSelect(
+                                    ${departments}, ${filterDeptId}, 'filterDeptId', '전체 부서', false)}">
+                                </div>
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label text-muted small fw-semibold">평가 상태</label>
-                                <select name="filterStatus"
-                                    class="form-select bg-transparent border-secondary border-opacity-50"
-                                    style="color: #cbd5e1; font-size: 0.85rem; border-radius: 8px;">
+                        </div>
+
+                        <!-- 평가 상태 -->
+                        <div class="ees-filter-group" style="flex: 1 1 150px;">
+                            <label class="ees-filter-label">
+                                <i class="bi bi-info-circle me-1"></i>평가 상태
+                            </label>
+                            <div class="ees-filter-control-wrap">
+                                <select name="filterStatus" class="ees-filter-control form-select">
                                     <option value="">전체 상태</option>
                                     <option value="완료" th:selected="${filterStatus == '완료'}">평가 완료</option>
                                     <option value="대기" th:selected="${filterStatus == '대기'}">평가 대기</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label text-muted small fw-semibold">성명 / 사번 검색</label>
-                                <input type="text" name="keyword"
-                                    class="form-control bg-transparent border-secondary border-opacity-50 text-white"
-                                    placeholder="이름 또는 사번 입력" th:value="${keyword}"
-                                    style="font-size: 0.85rem; border-radius: 8px;">
+                        </div>
+
+                        <!-- 성명 / 사번 검색 -->
+                        <div class="ees-filter-group flex-grow-1">
+                            <label class="ees-filter-label">
+                                <i class="bi bi-person me-1"></i>성명 / 사번 검색
+                            </label>
+                            <div class="ees-filter-control-wrap">
+                                <input type="text" name="keyword" class="ees-filter-control form-control"
+                                    placeholder="이름 또는 사번 입력" th:value="${keyword}" autocomplete="off">
                             </div>
-                            <div class="col-md-2 d-flex gap-2">
-                                <button type="submit" class="btn-search flex-grow-1" style="height: 38px;">
-                                    <i class="bi bi-search me-1"></i>검색
-                                </button>
-                            </div>
+                        </div>
+
+                        <!-- 액션 버튼 -->
+                        <div class="ees-filter-actions">
+                            <label class="ees-filter-label"></label> <!-- 정렬용 빈 라벨 -->
+                            <button type="submit" class="btn-ees-filter" id="btn-search">
+                                <i class="bi bi-search"></i>조회
+                            </button>
+                            <button type="button" class="btn-ees-filter bg-secondary bg-opacity-25" id="btn-reset-search" title="초기화">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
                         </div>
                     </form>
                 </div>
