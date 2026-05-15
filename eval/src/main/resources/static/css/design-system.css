@@ -319,7 +319,11 @@
     opacity: 1 !important;
 }
 
-.ees-filter-bar {none;
+.ees-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ees-filter-gap);
+    align-items: flex-end;
 }
 
 .ees-form-select {
@@ -328,6 +332,7 @@
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 16px 12px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease; /* No background transition */
 }
 
 /* Standard Badges */
@@ -1032,7 +1037,7 @@
     color: #fff !important;
     font-size: 0.85rem;
     padding: 0.5rem 0.85rem;
-    transition: var(--ees-transition-fast);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
     outline: none;
 }
 
