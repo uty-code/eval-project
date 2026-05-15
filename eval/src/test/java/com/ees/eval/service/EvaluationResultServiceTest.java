@@ -104,7 +104,7 @@ class EvaluationResultServiceTest {
         given(mappingMapper.findAllByPeriodId(periodId)).willReturn(Collections.emptyList());
 
         // when
-        List<EvaluationResultDTO> results = resultService.getResults(periodId, null);
+        List<EvaluationResultDTO> results = resultService.getResults(periodId, null, null);
 
         // then
         assertThat(results).isEmpty();
@@ -155,7 +155,7 @@ class EvaluationResultServiceTest {
                     .willReturn(List.of(mgrEval1, mgrEval2, execEval1, execEval2));
 
             // when
-            List<EvaluationResultDTO> results = resultService.getResults(periodId, null);
+            List<EvaluationResultDTO> results = resultService.getResults(periodId, null, null);
 
             // then
             assertThat(results).hasSize(1);
@@ -192,7 +192,7 @@ class EvaluationResultServiceTest {
                     .willReturn(List.of(mgrEval));
 
             // when
-            List<EvaluationResultDTO> results = resultService.getResults(periodId, null);
+            List<EvaluationResultDTO> results = resultService.getResults(periodId, null, null);
 
             // then — 1차만 완료된 사원도 목록에 표시됨
             assertThat(results).hasSize(1);
@@ -227,7 +227,7 @@ class EvaluationResultServiceTest {
                     .willReturn(List.of(mgrEval));
 
             // when
-            List<EvaluationResultDTO> results = resultService.getResults(periodId, null);
+            List<EvaluationResultDTO> results = resultService.getResults(periodId, null, null);
 
             // then
             assertThat(results).hasSize(1);
@@ -258,7 +258,7 @@ class EvaluationResultServiceTest {
                     .willReturn(List.of(execEval));
 
             // when
-            List<EvaluationResultDTO> results = resultService.getResults(periodId, null);
+            List<EvaluationResultDTO> results = resultService.getResults(periodId, null, null);
 
             // then
             assertThat(results.get(0).mboStatus()).isEqualTo("2차평가완료");
@@ -307,7 +307,7 @@ class EvaluationResultServiceTest {
                     .willReturn(List.of(subEval1, subEval2, execEval));
 
             // when
-            List<EvaluationResultDTO> results = resultService.getResults(periodId, null);
+            List<EvaluationResultDTO> results = resultService.getResults(periodId, null, null);
 
             // then
             assertThat(results).hasSize(1);
@@ -340,7 +340,7 @@ class EvaluationResultServiceTest {
                     .willReturn(List.of(eval));
 
             // when
-            List<EvaluationResultDTO> results = resultService.getResults(periodId, null);
+            List<EvaluationResultDTO> results = resultService.getResults(periodId, null, null);
 
             // then
             assertThat(results.get(0).isLeader()).isTrue();
@@ -374,10 +374,48 @@ class EvaluationResultServiceTest {
                 .willReturn(List.of(eval));
 
         // when — deptId=10 필터
-        List<EvaluationResultDTO> results = resultService.getResults(periodId, 10L);
+        List<EvaluationResultDTO> results = resultService.getResults(periodId, 10L, null);
 
         // then — emp1만 반환
         assertThat(results).hasSize(1);
         assertThat(results.get(0).empId()).isEqualTo(2000L);
+    }
+
+    @Test
+    @DisplayName("should_filter_by_search_when_성명사번_검색_적용")
+    void should_filter_by_search() {
+        Employee emp1 = createEmployee(2000L, 10L, "홍길동", "사원");
+        Employee emp2 = createEmployee(2001L, 10L, "이몽룡", "사원");
+
+        // given
+        EvaluatorMapping m1 = createMapping(100L, 2000L, "MANAGER");
+        EvaluatorMapping m2 = createMapping(101L, 2001L, "MANAGER");
+        given(mappingMapper.findAllByPeriodId(periodId)).willReturn(List.of(m1, m2));
+
+        given(employeeMapper.findByIds(anyList())).willReturn(List.of(emp1, emp2));
+        given(departmentMapper.findAllLeaderIds()).willReturn(Collections.emptyList());
+        given(finalGradeMapper.findByPeriodId(periodId)).willReturn(Collections.emptyList());
+
+        EvaluationElementDTO elem = createElement(1L, 10L, "PERFORMANCE",
+                new BigDecimal("100"), new BigDecimal("100"));
+        given(elementService.getElementsByPeriodIdAndDeptIds(eq(periodId), anyList()))
+                .willReturn(List.of(elem));
+
+        Evaluation eval1 = createEvaluation(100L, 1L, 90, "SUBMITTED");
+        Evaluation eval2 = createEvaluation(101L, 1L, 85, "SUBMITTED");
+        given(evaluationMapper.findByMappingIds(anyList()))
+                .willReturn(List.of(eval1, eval2));
+
+        // when — 성명 검색
+        List<EvaluationResultDTO> nameResults = resultService.getResults(periodId, null, "길동");
+        // when — 사번 검색
+        List<EvaluationResultDTO> idResults = resultService.getResults(periodId, null, "2001");
+
+        // then
+        assertThat(nameResults).hasSize(1);
+        assertThat(nameResults.get(0).empId()).isEqualTo(2000L);
+
+        assertThat(idResults).hasSize(1);
+        assertThat(idResults.get(0).empId()).isEqualTo(2001L);
     }
 }

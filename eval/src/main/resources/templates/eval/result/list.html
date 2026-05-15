@@ -37,11 +37,6 @@
             .grade-icon-item .range{font-size:.65rem;color:rgba(255,255,255,.4)}
             .total-badge{font-size:.8rem;color:rgba(255,255,255,.5);margin-left:auto}
 
-            /* ===== 탭 ===== */
-            .result-tabs{display:flex;gap:.5rem;margin-bottom:1.5rem}
-            .tab-pill{padding:.5rem 1.2rem;border-radius:20px;font-size:.8rem;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.6);transition:all .2s;display:flex;align-items:center;gap:.4rem}
-            .tab-pill.active{background:linear-gradient(90deg,#6366f1,#a855f7);color:#fff;border-color:transparent;box-shadow:0 4px 15px rgba(99,102,241,.3)}
-            .tab-pill:hover:not(.active){background:rgba(255,255,255,.08);color:#fff}
             .tab-content-area{display:none}.tab-content-area.active{display:block}
 
             /* ===== 테이블 ===== */
@@ -97,7 +92,7 @@
             <form th:action="@{/eval/result}" method="get" class="ees-filter-form">
                 
                 <!-- 평가 차수 -->
-                <div class="ees-filter-group" style="flex: 1 1 300px;">
+                <div class="ees-filter-group" style="flex: 1 1 200px;">
                     <label class="ees-filter-label">
                         <i class="bi bi-calendar-check me-1"></i>평가 차수
                     </label>
@@ -110,8 +105,8 @@
                     </div>
                 </div>
 
-                <!-- 부서 -->
-                <div class="ees-filter-group flex-grow-1">
+                <!-- 부서 필터 -->
+                <div class="ees-filter-group" style="flex: 1 1 220px;">
                     <label class="ees-filter-label">
                         <i class="bi bi-building me-1"></i>부서
                     </label>
@@ -119,6 +114,17 @@
                         <div th:replace="~{fragments/dept-select :: deptSelect(
                             ${departments}, ${selectedDeptId}, 'deptId', '전체 부서', false)}">
                         </div>
+                    </div>
+                </div>
+
+                <!-- 성명/사번 검색 -->
+                <div class="ees-filter-group flex-grow-1">
+                    <label class="ees-filter-label">
+                        <i class="bi bi-person-search me-1"></i>검색
+                    </label>
+                    <div class="ees-filter-control-wrap">
+                        <input type="text" name="search" th:value="${search}" class="form-control ees-filter-control" 
+                               placeholder="성명 또는 사번 입력" autocomplete="off">
                     </div>
                 </div>
 
@@ -208,12 +214,12 @@
         </div>
 
         <!-- ===== 3. 탭 ===== -->
-        <div class="result-tabs">
-            <div class="tab-pill active" onclick="switchTab('staff',this)">
-                👥 일반사원 (<span th:text="${staffCount}">0</span>명)
+        <div class="ees-tabs">
+            <div class="ees-tab-pill active" onclick="switchTab('staff',this)">
+                <i class="bi bi-people"></i> 일반사원 <span class="ees-tab-count" th:text="${staffCount}">0</span>
             </div>
-            <div class="tab-pill" onclick="switchTab('leader',this)">
-                🏢 부서장 (<span th:text="${leaderCount}">0</span>명)
+            <div class="ees-tab-pill" onclick="switchTab('leader',this)">
+                <i class="bi bi-person-badge"></i> 부서장 <span class="ees-tab-count" th:text="${leaderCount}">0</span>
             </div>
         </div>
 
@@ -343,7 +349,7 @@
             (function() {
                 /* 탭 전환 */
                 window.switchTab = function(tab, el) {
-                    document.querySelectorAll('.tab-pill').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.ees-tab-pill').forEach(t => t.classList.remove('active'));
                     document.querySelectorAll('.tab-content-area').forEach(c => c.classList.remove('active'));
                     el.classList.add('active');
                     document.getElementById('tab-' + tab).classList.add('active');
@@ -353,7 +359,8 @@
                 window.downloadExcel = function() {
                     const periodId = document.querySelector('select[name="periodId"]').value;
                     const deptId = document.querySelector('select[name="deptId"]').value;
-                    const url = `/eval/result/excel?periodId=${periodId}&deptId=${deptId}`;
+                    const search = document.querySelector('input[name="search"]').value;
+                    const url = `/eval/result/excel?periodId=${periodId}&deptId=${deptId}&search=${encodeURIComponent(search)}`;
                     window.location.href = url;
                 };
 

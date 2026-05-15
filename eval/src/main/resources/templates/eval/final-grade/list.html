@@ -148,13 +148,6 @@
                 margin-left: 4px;
             }
 
-            .tab-count {
-                font-size: 0.85rem;
-                color: rgba(255, 255, 255, 0.45);
-                font-weight: 400;
-                margin-left: 3px;
-            }
-
             /* ===== 버튼 배지 ===== */
             .action-btn {
                 font-size: .75rem;
@@ -321,20 +314,18 @@
 
                 <div th:if="${tasks != null && !tasks.isEmpty()}">
                     <!-- 탭 (HTMX로 상태 유지하며 전환) -->
-                    <div class="nav-tabs-custom mb-3" hx-sync="this:replace">
-                        <button class="nav-link-custom" th:classappend="${activeTab == 'leader' ? 'active' : ''}"
+                    <div class="ees-tabs mb-3" hx-sync="this:replace">
+                        <button class="ees-tab-pill" th:classappend="${activeTab == 'leader' ? 'active' : ''}"
                             th:attr="hx-get=@{/eval/final-grade(periodId=${selectedPeriod != null ? selectedPeriod.periodId() : 0}, tab='leader', deptId=${condition.deptId()}, search=${condition.search()}, status=${condition.status()})}"
                             hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
                             id="leader-tab" type="button" role="tab">
-                            <i class="bi bi-person-badge-fill"></i> 부서장 <span class="tab-count">(<span
-                                    th:text="${leaderCount}">0</span>)</span>
+                            <i class="bi bi-person-badge-fill"></i> 부서장 <span class="ees-tab-count" th:text="${leaderCount}">0</span>
                         </button>
-                        <button class="nav-link-custom" th:classappend="${activeTab == 'staff' ? 'active' : ''}"
+                        <button class="ees-tab-pill" th:classappend="${activeTab == 'staff' ? 'active' : ''}"
                             th:attr="hx-get=@{/eval/final-grade(periodId=${selectedPeriod != null ? selectedPeriod.periodId() : 0}, tab='staff', deptId=${condition.deptId()}, search=${condition.search()}, status=${condition.status()})}"
                             hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
                             id="staff-tab" type="button" role="tab">
-                            <i class="bi bi-people-fill"></i> 일반사원 <span class="tab-count">(<span
-                                    th:text="${staffCount}">0</span>)</span>
+                            <i class="bi bi-people-fill"></i> 일반사원 <span class="ees-tab-count" th:text="${staffCount}">0</span>
                         </button>
                     </div>
 
