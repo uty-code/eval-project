@@ -1,5 +1,6 @@
 package com.ees.eval.service.impl;
 
+import com.ees.eval.dto.DashboardDtos.*;
 import com.ees.eval.dto.DashboardStatsDTO;
 import com.ees.eval.dto.EmployeeDashboardDTO;
 import com.ees.eval.dto.EvaluationPeriodDTO;
@@ -60,36 +61,33 @@ public class DashboardServiceImpl implements DashboardService {
         double completionRate = totalEvaluatees > 0 ? (double) finalizedCount / totalEvaluatees * 100 : 0.0;
 
         // 4. 등급 분포
-        List<Map<String, Object>> gradeList = dashboardMapper.getGradeDistribution(periodId);
+        List<GradeDistributionDTO> gradeList = dashboardMapper.getGradeDistribution(periodId);
         Map<String, Long> gradeDistribution = gradeList.stream()
                 .collect(Collectors.toMap(
-                        m -> String.valueOf(m.get("grade_code")),
-                        m -> ((Number) m.get("count")).longValue(),
+                        GradeDistributionDTO::gradeCode,
+                        GradeDistributionDTO::count,
                         (a, b) -> a
                 ));
 
         // 5. 부서별 평균 점수
-        List<Map<String, Object>> deptAvgList = dashboardMapper.getDeptAverageScores(periodId);
+        List<DeptAverageScoreDTO> deptAvgList = dashboardMapper.getDeptAverageScores(periodId);
         Map<String, Double> deptAverageScores = deptAvgList.stream()
-                .filter(m -> {
-                    String deptName = String.valueOf(m.get("dept_name"));
-                    return deptName != null && !deptName.endsWith("본부") && !deptName.endsWith("부서");
-                })
+                .filter(d -> d.deptName() != null && !d.deptName().endsWith("본부") && !d.deptName().endsWith("부서"))
                 .collect(Collectors.toMap(
-                        m -> String.valueOf(m.get("dept_name")),
-                        m -> ((Number) m.get("avg_score")).doubleValue(),
+                        DeptAverageScoreDTO::deptName,
+                        DeptAverageScoreDTO::avgScore,
                         (a, b) -> a
                 ));
 
         // 6. 최근 활동
-        List<Map<String, Object>> activityList = dashboardMapper.getRecentFinalizedActivities(periodId, 5);
+        List<RecentActivityProjectionDTO> activityList = dashboardMapper.getRecentFinalizedActivities(periodId, 5);
         List<RecentActivityDTO> recentActivities = activityList.stream()
-                .map(m -> RecentActivityDTO.builder()
-                        .evaluateeName(String.valueOf(m.get("evaluatee_name")))
-                        .deptName(String.valueOf(m.get("dept_name")))
-                        .grade(String.valueOf(m.get("grade")))
+                .map(a -> RecentActivityDTO.builder()
+                        .evaluateeName(a.evaluateeName())
+                        .deptName(a.deptName())
+                        .grade(a.grade())
                         .activityType("평가 확정")
-                        .activityTime(((java.sql.Timestamp) m.get("finalized_at")).toLocalDateTime())
+                        .activityTime(a.finalizedAt())
                         .build())
                 .collect(Collectors.toList());
 
@@ -127,23 +125,18 @@ public class DashboardServiceImpl implements DashboardService {
         String selfStatus = dashboardMapper.getSelfEvalStatus(empId, periodId);
 
         // 2. 동료평가 현황
-        Map<String, Object> peerProgress = dashboardMapper.getPeerEvalProgress(empId, periodId);
-        int totalPeer = ((Number) peerProgress.get("total_count")).intValue();
-        int completedPeer = ((Number) peerProgress.get("completed_count")).intValue();
+        PeerEvalProgressDTO progress = dashboardMapper.getPeerEvalProgress(empId, periodId);
+        int totalPeer = progress != null ? progress.totalCount() : 0;
+        int completedPeer = progress != null ? progress.completedCount() : 0;
 
         // 3. 최근 등급 이력
-        List<Map<String, Object>> recentGrades = dashboardMapper.getMyRecentGrades(empId, 3);
+        List<MyRecentGradeDTO> recentGrades = dashboardMapper.getMyRecentGrades(empId, 3);
 
         // 4. D-Day 계산
         long dDay = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), activePeriod.endDate());
 
-        // 5. 현재 평가 차수 상세 결과
-        Long deptId = employeeService.getEmployeeById(empId).deptId();
-        List<EvaluationResultDTO> results = resultService.getResults(periodId, deptId, null);
-        EvaluationResultDTO currentResult = results.stream()
-                .filter(r -> r.empId().equals(empId))
-                .findFirst()
-                .orElse(null);
+        // 5. 현재 평가 차수 상세 결과 (최적화: 단건 조회)
+        EvaluationResultDTO currentResult = resultService.getResultByEmpId(periodId, empId);
 
         return EmployeeDashboardDTO.builder()
                 .activePeriodName(activePeriod.periodName())
