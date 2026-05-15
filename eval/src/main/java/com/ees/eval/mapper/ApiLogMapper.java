@@ -25,9 +25,16 @@ public interface ApiLogMapper {
     java.util.List<ApiLog> selectAllApiLogs();
 
     /**
-     * 다중 조건 검색 필터를 적용하여 API 로그를 조회합니다.
-     * @param params 검색 조건 맵
+     * 다중 조건 검색 필터를 적용하여 API 로그를 페이징 조회합니다.
+     * @param params 검색 조건 맵 (limit, offset 포함)
      * @return 검색된 API 로그 목록
      */
     java.util.List<ApiLog> searchApiLogs(java.util.Map<String, Object> params);
+
+    /**
+     * 다중 조건 검색 필터를 적용하여 API 로그의 총 개수를 조회합니다.
+     * @param params 검색 조건 맵
+     * @return 총 개수
+     */
+    int countApiLogs(java.util.Map<String, Object> params);
 }

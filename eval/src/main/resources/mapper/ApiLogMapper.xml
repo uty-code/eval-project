@@ -107,6 +107,54 @@
             </if>
         </where>
         order by created_at desc
+        <if test="limit != null and offset != null">
+            offset #{offset} rows
+            fetch next #{limit} rows only
+        </if>
+    </select>
+
+    <!-- 7가지 필터를 적용한 다중 조건 검색 (총 개수) -->
+    <select id="countApiLogs" resultType="int">
+        select count(*)
+        from api_logs_51
+        <where>
+            is_deleted = 'n'
+            <!-- 1. 기간 필수 (DB 부하 방지) -->
+            and created_at &gt;= cast(#{startDate} as datetime)
+            and created_at &lt; dateadd(day, 1, cast(#{endDate} as datetime))
+            
+            <!-- 2. 사번 -->
+            <if test="empId != null and empId != ''">
+                and created_by = #{empId}
+            </if>
+            <!-- 3. 타겟 ID -->
+            <if test="targetId != null and targetId != ''">
+                and target_id = #{targetId}
+            </if>
+            <!-- 4. IP 주소 -->
+            <if test="ipAddress != null and ipAddress != ''">
+                and ip_address = #{ipAddress}
+            </if>
+            <!-- 5. Trace ID -->
+            <if test="traceId != null and traceId != ''">
+                and trace_id = #{traceId}
+            </if>
+            <!-- 6. 상태 코드 -->
+            <if test="resultCode != null and resultCode != ''">
+                <choose>
+                    <when test="resultCode == 'ERROR'">
+                        and result_code != 'SUCCESS'
+                    </when>
+                    <otherwise>
+                        and result_code = #{resultCode}
+                    </otherwise>
+                </choose>
+            </if>
+            <!-- 7. HTTP 메서드 -->
+            <if test="httpMethod != null and httpMethod != ''">
+                and http_method = #{httpMethod}
+            </if>
+        </where>
     </select>
 
 </mapper>

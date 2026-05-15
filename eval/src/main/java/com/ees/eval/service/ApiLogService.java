@@ -25,10 +25,12 @@ public interface ApiLogService {
     java.util.List<ApiLog> findAll();
 
     /**
-     * 다중 조건 검색 필터를 적용하여 API 로그를 조회합니다.
+     * 다중 조건 검색 필터를 적용하여 API 로그를 페이징 조회합니다.
      *
      * @param params 검색 조건 맵
-     * @return 검색된 API 로그 목록
+     * @param page 현재 페이지
+     * @param size 페이지 크기
+     * @return 검색된 API 로그 목록 (페이징 객체)
      */
-    java.util.List<ApiLog> searchLogs(java.util.Map<String, Object> params);
+    com.ees.eval.dto.PageResponseDTO<ApiLog> searchLogs(java.util.Map<String, Object> params, int page, int size);
 }

@@ -38,6 +38,8 @@ public class ApiLogController {
             @org.springframework.web.bind.annotation.RequestParam(required = false) String traceId,
             @org.springframework.web.bind.annotation.RequestParam(required = false) String resultCode,
             @org.springframework.web.bind.annotation.RequestParam(required = false) String httpMethod,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "1") int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "50") int size,
             Model model) {
             
         // 날짜가 없으면 오늘 기준으로 설정
@@ -58,9 +60,10 @@ public class ApiLogController {
         params.put("resultCode", resultCode);
         params.put("httpMethod", httpMethod);
 
-        List<ApiLog> logs = apiLogService.searchLogs(params);
+        com.ees.eval.dto.PageResponseDTO<ApiLog> pageResponse = apiLogService.searchLogs(params, page, size);
                 
-        model.addAttribute("logs", logs);
+        model.addAttribute("pageResponse", pageResponse);
+        model.addAttribute("logs", pageResponse.getContent());
         model.addAttribute("params", params);
         
         return "admin/api-logs";
@@ -78,7 +81,8 @@ public class ApiLogController {
         params.put("endDate", "2099-12-31");
         params.put("traceId", traceId);
         
-        List<ApiLog> timeline = apiLogService.searchLogs(params);
+        com.ees.eval.dto.PageResponseDTO<ApiLog> pageResponse = apiLogService.searchLogs(params, 1, 1000);
+        List<ApiLog> timeline = pageResponse.getContent();
                 
         // UI에서 보기 좋게 생성일시 오름차순(과거->현재) 정렬 (검색은 내림차순이므로 뒤집음)
         java.util.Collections.reverse(timeline);
