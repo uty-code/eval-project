@@ -17,9 +17,9 @@
           AND is_deleted = 'n'
     </select>
 
-    <select id="getGradeDistribution" resultType="map">
+    <select id="getGradeDistribution" resultType="com.ees.eval.dto.DashboardDtos$GradeDistributionDTO">
         SELECT 
-            final_grade_code as grade_code,
+            final_grade_code as gradeCode,
             COUNT(*) as count
         FROM final_grades_51
         WHERE period_id = #{periodId}
@@ -30,24 +30,25 @@
         ORDER BY final_grade_code ASC
     </select>
 
-    <select id="getDeptAverageScores" resultType="map">
+    <select id="getDeptAverageScores" resultType="com.ees.eval.dto.DashboardDtos$DeptAverageScoreDTO">
         SELECT 
-            d.dept_name as dept_name,
-            COALESCE(ROUND(AVG(fg.total_score), 2), 0) as avg_score
+            d.dept_id as deptId,
+            d.dept_name as deptName,
+            COALESCE(ROUND(AVG(CAST(fg.total_score AS FLOAT)), 2), 0) as avgScore
         FROM departments_51 d
         LEFT JOIN employees_51 e ON d.dept_id = e.dept_id
         LEFT JOIN final_grades_51 fg ON e.emp_id = fg.emp_id AND fg.period_id = #{periodId} AND fg.is_deleted = 'n'
         WHERE d.is_deleted = 'n'
-        GROUP BY d.dept_name
-        ORDER BY avg_score DESC, d.dept_name ASC
+        GROUP BY d.dept_id, d.dept_name
+        ORDER BY avgScore DESC, d.dept_name ASC
     </select>
 
-    <select id="getRecentFinalizedActivities" resultType="map">
+    <select id="getRecentFinalizedActivities" resultType="com.ees.eval.dto.DashboardDtos$RecentActivityProjectionDTO">
         SELECT TOP (#{limit})
-            e.name as evaluatee_name,
-            d.dept_name as dept_name,
+            e.name as evaluateeName,
+            d.dept_name as deptName,
             fg.final_grade_code as grade,
-            ISNULL(fg.updated_at, fg.created_at) as finalized_at
+            ISNULL(fg.updated_at, fg.created_at) as finalizedAt
         FROM final_grades_51 fg
         JOIN employees_51 e ON fg.emp_id = e.emp_id
         JOIN departments_51 d ON e.dept_id = d.dept_id
@@ -57,83 +58,71 @@
     </select>
 
     <select id="getSelfEvalStatus" resultType="string">
+        WITH TargetElements_51 AS (
+            SELECT ee.period_id, ee.dept_id, COUNT(*) as total_required
+            FROM evaluation_elements_51 ee
+            WHERE ee.period_id = #{periodId}
+              AND ee.is_deleted = 'n'
+              AND ee.element_type_code != 'MULTI_DIMENSIONAL'
+            GROUP BY ee.period_id, ee.dept_id
+        ),
+        EmployeeRequired_51 AS (
+            SELECT 
+                emp.emp_id,
+                COALESCE(te_dept.total_required, te_common.total_required, 0) as required_count
+            FROM employees_51 emp
+            LEFT JOIN TargetElements_51 te_dept ON te_dept.dept_id = emp.dept_id
+            LEFT JOIN TargetElements_51 te_common ON te_common.dept_id IS NULL
+            WHERE emp.emp_id = #{empId}
+        )
         SELECT 
             CASE 
-                WHEN COUNT(e.eval_id) = 0 THEN 'NOT_STARTED'
-                WHEN COUNT(e.eval_id) &lt; (
-                    SELECT COUNT(*) 
-                    FROM evaluation_elements_51 ee
-                    JOIN employees_51 emp ON emp.emp_id = #{empId}
-                    WHERE ee.period_id = #{periodId}
-                      AND ee.is_deleted = 'n'
-                      AND ee.element_type_code != 'MULTI_DIMENSIONAL'
-                      AND (
-                          (emp.dept_id IS NOT NULL AND ee.dept_id = emp.dept_id)
-                          OR 
-                          (ee.dept_id IS NULL AND NOT EXISTS (
-                              SELECT 1 FROM evaluation_elements_51 
-                              WHERE period_id = #{periodId} AND dept_id = emp.dept_id AND is_deleted = 'n'
-                          ))
-                      )
-                ) THEN 'IN_PROGRESS'
+                WHEN COUNT(ev.eval_id) = 0 THEN 'NOT_STARTED'
+                WHEN COUNT(ev.eval_id) &lt; MAX(er.required_count) THEN 'IN_PROGRESS'
                 ELSE 'COMPLETED'
             END
         FROM evaluator_mappings_51 m
-        LEFT JOIN evaluations_51 e ON m.mapping_id = e.mapping_id AND e.is_deleted = 'n'
-        LEFT JOIN evaluation_elements_51 ee_join ON e.element_id = ee_join.element_id AND ee_join.element_type_code != 'MULTI_DIMENSIONAL'
+        JOIN EmployeeRequired_51 er ON m.evaluatee_id = er.emp_id
+        LEFT JOIN evaluations_51 ev ON m.mapping_id = ev.mapping_id AND ev.is_deleted = 'n'
         WHERE m.period_id = #{periodId}
           AND m.evaluatee_id = #{empId}
           AND m.evaluator_id = #{empId}
           AND m.relation_type_code = 'SELF'
           AND m.is_deleted = 'n'
+        GROUP BY m.mapping_id
     </select>
 
-    <select id="getPeerEvalProgress" resultType="map">
-        SELECT 
-            COUNT(*) as total_count,
-            ISNULL(SUM(CASE WHEN is_done = 1 THEN 1 ELSE 0 END), 0) as completed_count
-        FROM (
+    <select id="getPeerEvalProgress" resultType="com.ees.eval.dto.DashboardDtos$PeerEvalProgressDTO">
+        WITH ElementCounts_51 AS (
+            SELECT dept_id, COUNT(*) as req_count
+            FROM evaluation_elements_51
+            WHERE period_id = #{periodId} AND is_deleted = 'n' AND element_type_code = 'MULTI_DIMENSIONAL'
+            GROUP BY dept_id
+        ),
+        MappingStats_51 AS (
             SELECT 
                 m.mapping_id,
-                CASE 
-                    WHEN (
-                        SELECT COUNT(*) 
-                        FROM evaluations_51 e 
-                        JOIN evaluation_elements_51 ee_sub ON e.element_id = ee_sub.element_id
-                        WHERE e.mapping_id = m.mapping_id 
-                          AND e.is_deleted = 'n'
-                          AND ee_sub.element_type_code = 'MULTI_DIMENSIONAL'
-                    ) 
-                    >= 
-                    (
-                        SELECT COUNT(*) 
-                        FROM evaluation_elements_51 ee 
-                        JOIN employees_51 emp ON m.evaluatee_id = emp.emp_id
-                        WHERE ee.period_id = m.period_id 
-                          AND ee.is_deleted = 'n' 
-                          AND ee.element_type_code = 'MULTI_DIMENSIONAL'
-                          AND (
-                              (emp.dept_id IS NOT NULL AND ee.dept_id = emp.dept_id)
-                              OR 
-                              (ee.dept_id IS NULL AND NOT EXISTS (
-                                  SELECT 1 FROM evaluation_elements_51 
-                                  WHERE period_id = m.period_id AND dept_id = emp.dept_id AND is_deleted = 'n'
-                              ))
-                          )
-                    )
-                    THEN 1 ELSE 0 
-                END as is_done
+                (SELECT COUNT(*) FROM evaluations_51 e JOIN evaluation_elements_51 ee ON e.element_id = ee.element_id 
+                 WHERE e.mapping_id = m.mapping_id AND e.is_deleted = 'n' AND ee.element_type_code = 'MULTI_DIMENSIONAL') as actual_count,
+                COALESCE(ec_dept.req_count, ec_common.req_count, 0) as required_count
             FROM evaluator_mappings_51 m
+            JOIN employees_51 emp ON m.evaluatee_id = emp.emp_id
+            LEFT JOIN ElementCounts_51 ec_dept ON ec_dept.dept_id = emp.dept_id
+            LEFT JOIN ElementCounts_51 ec_common ON ec_common.dept_id IS NULL
             WHERE m.period_id = #{periodId}
               AND m.evaluator_id = #{empId}
               AND m.relation_type_code != 'SELF'
               AND m.is_deleted = 'n'
-        ) t
+        )
+        SELECT 
+            COUNT(*) as totalCount,
+            ISNULL(SUM(CASE WHEN actual_count >= required_count AND required_count > 0 THEN 1 ELSE 0 END), 0) as completedCount
+        FROM MappingStats_51
     </select>
 
-    <select id="getMyRecentGrades" resultType="map">
+    <select id="getMyRecentGrades" resultType="com.ees.eval.dto.DashboardDtos$MyRecentGradeDTO">
         SELECT TOP (#{limit})
-            ep.period_name,
+            ep.period_name as periodName,
             fg.final_grade_code as grade
         FROM final_grades_51 fg
         JOIN evaluation_periods_51 ep ON fg.period_id = ep.period_id

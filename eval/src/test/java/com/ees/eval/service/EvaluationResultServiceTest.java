@@ -418,4 +418,52 @@ class EvaluationResultServiceTest {
         assertThat(idResults).hasSize(1);
         assertThat(idResults.get(0).empId()).isEqualTo(2001L);
     }
+
+    // ========================================================================
+    // 5. 단건 조회 (getResultByEmpId)
+    // ========================================================================
+    @Test
+    @DisplayName("should_return_single_result_when_getResultByEmpId_호출")
+    void should_return_single_result_by_empId() {
+        Employee staff = createEmployee(empId, deptId, "이관리", "대리");
+
+        // given - 특정 사원에 대한 매핑만 조회
+        EvaluatorMapping mgrMapping = createMapping(100L, empId, "MANAGER");
+        given(mappingMapper.findByEvaluateeId(periodId, empId))
+                .willReturn(List.of(mgrMapping));
+
+        given(employeeMapper.findByIds(List.of(empId))).willReturn(List.of(staff));
+        given(departmentMapper.findAllLeaderIds()).willReturn(Collections.emptyList());
+        given(finalGradeMapper.findByPeriodId(periodId)).willReturn(Collections.emptyList());
+
+        EvaluationElementDTO elem = createElement(1L, "PERFORMANCE",
+                new BigDecimal("100"), new BigDecimal("100"));
+        given(elementService.getElementsByPeriodIdAndDeptIds(eq(periodId), anyList()))
+                .willReturn(List.of(elem));
+
+        Evaluation mgrEval = createEvaluation(100L, 1L, 95, "SUBMITTED");
+        given(evaluationMapper.findByMappingIds(anyList()))
+                .willReturn(List.of(mgrEval));
+
+        // when
+        EvaluationResultDTO result = resultService.getResultByEmpId(periodId, empId);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.empId()).isEqualTo(empId);
+        assertThat(result.mbo1stScore()).isEqualByComparingTo(new BigDecimal("95"));
+    }
+
+    @Test
+    @DisplayName("should_return_null_when_매핑이_없는_사원_조회")
+    void should_return_null_when_no_mapping_for_emp() {
+        // given
+        given(mappingMapper.findByEvaluateeId(periodId, empId)).willReturn(Collections.emptyList());
+
+        // when
+        EvaluationResultDTO result = resultService.getResultByEmpId(periodId, empId);
+
+        // then
+        assertThat(result).isNull();
+    }
 }

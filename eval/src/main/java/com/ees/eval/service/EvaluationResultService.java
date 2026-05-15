@@ -20,4 +20,13 @@ public interface EvaluationResultService {
      * @return 평가 결과 DTO 목록
      */
     List<EvaluationResultDTO> getResults(Long periodId, Long deptId, String search);
+
+    /**
+     * 특정 사원의 특정 차수 평가 결과를 조회합니다. (단건 최적화)
+     *
+     * @param periodId 평가 차수 ID
+     * @param empId    사원 ID
+     * @return 평가 결과 DTO, 없으면 null
+     */
+    EvaluationResultDTO getResultByEmpId(Long periodId, Long empId);
 }

@@ -101,7 +101,65 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
             return Collections.emptyList();
         }
 
-        // 5. 관계 유형별 매핑 분류 (메모리 내 그룹핑)
+        // 10. 결과 DTO 조립 및 필터링/정렬
+        return assembleAndProcessResults(periodId, evaluateeIds, employeeMap, allMappings, null, null, null, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EvaluationResultDTO getResultByEmpId(Long periodId, Long empId) {
+        // 1. 해당 사원의 매핑만 조회
+        List<EvaluatorMapping> mappings = mappingMapper.findByEvaluateeId(periodId, empId);
+        if (mappings.isEmpty()) return null;
+
+        mappings = mappings.stream().filter(m -> "n".equals(m.getIsDeleted())).collect(Collectors.toList());
+        if (mappings.isEmpty()) return null;
+
+        // 2. 결과 조립 (단건 리스트로 처리하여 기존 로직 최대한 재사용)
+        List<EvaluationResultDTO> results = assembleAndProcessResults(periodId, List.of(empId), null, mappings, null, null, null, null);
+        
+        return results.isEmpty() ? null : results.get(0);
+    }
+
+    /**
+     * 벌크 데이터를 기반으로 결과 DTO를 조립하고 필터링/정렬을 수행합니다.
+     */
+    private List<EvaluationResultDTO> assembleAndProcessResults(
+            Long periodId,
+            List<Long> evaluateeIds,
+            Map<Long, Employee> employeeMap,
+            List<EvaluatorMapping> allMappings,
+            Map<Long, FinalGrade> gradeMap,
+            Set<Long> allLeaderIds,
+            Map<Long, List<EvaluationElementDTO>> elementsByDept,
+            List<EvaluationElementDTO> commonElements) {
+
+        // --- 부족한 데이터 보충 (단건 조회 시 등을 위해) ---
+        if (employeeMap == null) {
+            employeeMap = employeeMapper.findByIds(evaluateeIds).stream()
+                    .collect(Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
+        }
+        if (gradeMap == null) {
+            gradeMap = finalGradeMapper.findByPeriodId(periodId).stream()
+                    .collect(Collectors.toMap(FinalGrade::getEmpId, g -> g, (a, b) -> a));
+        }
+        if (allLeaderIds == null) {
+            allLeaderIds = new HashSet<>(departmentMapper.findAllLeaderIds());
+        }
+        if (commonElements == null || elementsByDept == null) {
+            List<Long> deptIds = evaluateeIds.stream()
+                    .map(employeeMap::get).filter(Objects::nonNull)
+                    .map(Employee::getDeptId).filter(Objects::nonNull).distinct().collect(Collectors.toList());
+            List<EvaluationElementDTO> allElements = elementService.getElementsByPeriodIdAndDeptIds(periodId, deptIds);
+            commonElements = new ArrayList<>();
+            elementsByDept = new HashMap<>();
+            for (EvaluationElementDTO element : allElements) {
+                if (element.deptId() == null) commonElements.add(element);
+                else elementsByDept.computeIfAbsent(element.deptId(), k -> new ArrayList<>()).add(element);
+            }
+        }
+
+        // 매핑 분류 및 평가 데이터 조회
         Map<Long, EvaluatorMapping> execByEmp = filterMappingByType(allMappings, "EXECUTIVE");
         Map<Long, EvaluatorMapping> mgrByEmp = filterMappingByType(allMappings, "MANAGER");
         Map<Long, EvaluatorMapping> selfByEmp = filterMappingByType(allMappings, "SELF");
@@ -109,69 +167,28 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
                 .filter(m -> "SUBORDINATE".equals(m.getRelationTypeCode()))
                 .collect(Collectors.groupingBy(EvaluatorMapping::getEvaluateeId));
 
-        // 6. 모든 매핑의 평가 데이터 일괄 조회 (1회 쿼리)
-        List<Long> allMappingIds = allMappings.stream()
-                .map(EvaluatorMapping::getMappingId).collect(Collectors.toList());
+        List<Long> allMappingIds = allMappings.stream().map(EvaluatorMapping::getMappingId).collect(Collectors.toList());
         Map<Long, List<Evaluation>> evalGroupMap = !allMappingIds.isEmpty()
-                ? evaluationMapper.findByMappingIds(allMappingIds).stream()
-                    .collect(Collectors.groupingBy(Evaluation::getMappingId))
+                ? evaluationMapper.findByMappingIds(allMappingIds).stream().collect(Collectors.groupingBy(Evaluation::getMappingId))
                 : Collections.emptyMap();
 
-        // 7. 최종 등급 벌크 조회 (1회 쿼리, 확정된 사원만 존재)
-        Map<Long, FinalGrade> gradeMap = finalGradeMapper.findByPeriodId(periodId).stream()
-                .collect(Collectors.toMap(FinalGrade::getEmpId, g -> g, (a, b) -> a));
-
-        // 8. 전체 부서장 ID 벌크 조회 (N+1 완벽 방지)
-        Set<Long> allLeaderIds = new HashSet<>(departmentMapper.findAllLeaderIds());
-
-        // 9. 평가 요소 벌크 조회 및 부서별 그룹핑 (대상 부서 + 공통 항목만 조회)
-        List<Long> deptIdsForElements = evaluateeIds.stream()
-                .map(employeeMap::get)
-                .filter(Objects::nonNull)
-                .map(Employee::getDeptId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .collect(Collectors.toList());
-        List<EvaluationElementDTO> allElements =
-                elementService.getElementsByPeriodIdAndDeptIds(periodId, deptIdsForElements);
-        List<EvaluationElementDTO> commonElements = new ArrayList<>();
-        Map<Long, List<EvaluationElementDTO>> elementsByDept = new HashMap<>();
-        for (EvaluationElementDTO element : allElements) {
-            if (element.deptId() == null) {
-                commonElements.add(element);
-            } else {
-                elementsByDept.computeIfAbsent(element.deptId(), k -> new ArrayList<>()).add(element);
-            }
-        }
-
-        // 10. 결과 DTO 조립
         List<EvaluationResultDTO> results = new ArrayList<>();
         for (Long empId : evaluateeIds) {
             Employee emp = employeeMap.get(empId);
             if (emp == null) continue;
 
-            // 부서장 여부 (단일 Set 활용)
             boolean isLeader = allLeaderIds.contains(empId);
+            List<EvaluationElementDTO> elements = (emp.getDeptId() != null && elementsByDept.containsKey(emp.getDeptId()))
+                    ? elementsByDept.get(emp.getDeptId()) : commonElements;
+            if (elements == null || elements.isEmpty()) elements = commonElements;
 
-            // 평가 요소 조회 (메모리 Map 활용 - 부서 전용 없으면 공통으로 폴백)
-            List<EvaluationElementDTO> elements = emp.getDeptId() == null
-                    ? commonElements
-                    : elementsByDept.get(emp.getDeptId());
-            if (emp.getDeptId() != null && (elements == null || elements.isEmpty())) {
-                elements = commonElements;
-            }
-            if (elements == null) elements = Collections.emptyList();
-
-            // === MBO/COMP 점수 (자가: SELF, 1차: MANAGER, 2차: EXECUTIVE) ===
+            // 점수 산출
             BigDecimal mboSelf = calcTypeScore(selfByEmp.get(empId), evalGroupMap, elements, "PERFORMANCE");
             BigDecimal mbo1st = calcTypeScore(mgrByEmp.get(empId), evalGroupMap, elements, "PERFORMANCE");
             BigDecimal mbo2nd = calcTypeScore(execByEmp.get(empId), evalGroupMap, elements, "PERFORMANCE");
-            
             BigDecimal compSelf = calcTypeScore(selfByEmp.get(empId), evalGroupMap, elements, "COMPETENCY");
             BigDecimal comp1st = calcTypeScore(mgrByEmp.get(empId), evalGroupMap, elements, "COMPETENCY");
             BigDecimal comp2nd = calcTypeScore(execByEmp.get(empId), evalGroupMap, elements, "COMPETENCY");
-
-            // === MULTI 점수 (자가: SELF, 1차: SUBORDINATE 평균, 2차: EXECUTIVE) ===
             BigDecimal multiSelf = calcTypeScore(selfByEmp.get(empId), evalGroupMap, elements, "MULTI_DIMENSIONAL");
             BigDecimal multi1st = calcSubordinateAverage(subByEmp.get(empId), evalGroupMap, elements);
             BigDecimal multi2nd = calcTypeScore(execByEmp.get(empId), evalGroupMap, elements, "MULTI_DIMENSIONAL");
@@ -181,61 +198,37 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
             String compStatus = determineStatus(mgrByEmp.get(empId), execByEmp.get(empId), evalGroupMap, elements, "COMPETENCY");
             String multiStatus = determineMultiStatus(subByEmp.get(empId), execByEmp.get(empId), evalGroupMap, elements);
 
-            // 종합 점수 (FinalGrade 존재하면 사용, 없으면 null)
             FinalGrade fg = gradeMap.get(empId);
-            BigDecimal totalScore = (fg != null && fg.getTotalScore() != null)
-                    ? new BigDecimal(fg.getTotalScore()) : null;
+            BigDecimal totalScore = (fg != null && fg.getTotalScore() != null) ? new BigDecimal(fg.getTotalScore()) : null;
             String gradeCode = (fg != null) ? fg.getFinalGradeCode() : null;
 
-            // 최종 확정 여부 판단: 모든 할당된 평가가 '2차평가완료' 상태여야 함
-            boolean isFullyDone = false;
-            if (isLeader) {
-                isFullyDone = "2차평가완료".equals(multiStatus);
-            } else {
-                // 일반 사원은 MBO와 COMP가 모두 2차 완료여야 함 (미배정 제외)
-                boolean mboDone = "2차평가완료".equals(mboStatus) || "미배정".equals(mboStatus);
-                boolean compDone = "2차평가완료".equals(compStatus) || "미배정".equals(compStatus);
-                boolean atLeastOneDone = "2차평가완료".equals(mboStatus) || "2차평가완료".equals(compStatus);
-                isFullyDone = mboDone && compDone && atLeastOneDone;
-            }
+            boolean isFullyDone = isLeader ? "2차평가완료".equals(multiStatus)
+                    : (("2차평가완료".equals(mboStatus) || "미배정".equals(mboStatus)) && ("2차평가완료".equals(compStatus) || "미배정".equals(compStatus)));
 
             results.add(EvaluationResultDTO.builder()
-                    .empId(empId)
-                    .empName(emp.getName())
-                    .deptName(emp.getDeptName())
-                    .positionName(emp.getPositionName())
-                    .jobTitle(isLeader ? "부서장" : "팀원")
-                    .isLeader(isLeader)
-                    .mboSelfScore(mboSelf).mbo1stScore(mbo1st).mbo2ndScore(mbo2nd)
-                    .mboFinalScore(mbo2nd)  // 최종 = 2차
-                    .mboStatus(mboStatus)
-                    .compSelfScore(compSelf).comp1stScore(comp1st).comp2ndScore(comp2nd)
-                    .compFinalScore(comp2nd) // 최종 = 2차
-                    .compStatus(compStatus)
-                    .multiSelfScore(multiSelf).multi1stScore(multi1st).multi2ndScore(multi2nd)
-                    .multiFinalScore(multi2nd) // 최종 = 2차
-                    .multiStatus(multiStatus)
-                    .totalScore(totalScore)
-                    .gradeCode(gradeCode)
-                    .isConfirmed(isFullyDone)
+                    .empId(empId).empName(emp.getName()).deptName(emp.getDeptName()).positionName(emp.getPositionName())
+                    .jobTitle(isLeader ? "부서장" : "팀원").isLeader(isLeader)
+                    .mboSelfScore(mboSelf).mbo1stScore(mbo1st).mbo2ndScore(mbo2nd).mboFinalScore(mbo2nd).mboStatus(mboStatus)
+                    .compSelfScore(compSelf).comp1stScore(comp1st).comp2ndScore(comp2nd).compFinalScore(comp2nd).compStatus(compStatus)
+                    .multiSelfScore(multiSelf).multi1stScore(multi1st).multi2ndScore(multi2nd).multiFinalScore(multi2nd).multiStatus(multiStatus)
+                    .totalScore(totalScore).gradeCode(gradeCode).isConfirmed(isFullyDone)
                     .build());
         }
 
-        // 11. 1차 평가 이상 진행된 사원만 필터링 (사용자 요청)
+        // 1차 평가 이상 진행된 사원만 필터링
         results = results.stream()
                 .filter(r -> "1차평가완료".equals(r.mboStatus()) || "2차평가완료".equals(r.mboStatus()) ||
                              "1차평가완료".equals(r.compStatus()) || "2차평가완료".equals(r.compStatus()) ||
                              "1차평가완료".equals(r.multiStatus()) || "2차평가완료".equals(r.multiStatus()))
                 .collect(Collectors.toList());
 
-        // 12. 직급 기준 정렬
+        // 직급 기준 정렬
+        Map<Long, Employee> finalEmployeeMap = employeeMap;
         results.sort((a, b) -> {
-            Employee empA = employeeMap.get(a.empId());
-            Employee empB = employeeMap.get(b.empId());
+            Employee empA = finalEmployeeMap.get(a.empId());
+            Employee empB = finalEmployeeMap.get(b.empId());
             if (empA == null || empB == null) return 0;
-            long posA = empA.getPositionId() != null ? empA.getPositionId() : 0;
-            long posB = empB.getPositionId() != null ? empB.getPositionId() : 0;
-            return Long.compare(posB, posA);
+            return Long.compare(empB.getPositionId() != null ? empB.getPositionId() : 0, empA.getPositionId() != null ? empA.getPositionId() : 0);
         });
 
         return results;
