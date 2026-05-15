@@ -8,46 +8,84 @@
 
 <body>
     <div id="page-content" class="container-fluid py-4" th:fragment="content">
-        <!-- 정보 메시지 -->
-        <div th:if="${infoMessage}" class="ees-card p-4 text-center mb-4" style="color:rgba(255,255,255,.5)">
-            <i class="bi bi-info-circle me-1"></i> <span th:text="${infoMessage}"></span>
-        </div>
-
         <!-- Header -->
         <div class="row align-items-center mb-4">
             <div class="col-md-4">
                 <h1 class="fw-bold fs-3 mb-1">평가자 매핑 관리</h1>
                 <p class="text-muted mb-0">평가 대상자별 평가자를 설정하고 조회합니다.</p>
             </div>
+        </div>
+
+        <!-- 정보 및 알림 메시지 (헤더 아래, 검색바 위) -->
+        <div th:if="${infoMessage}" class="ees-card p-4 text-center mb-4" style="color:rgba(255,255,255,.5)">
+            <i class="bi bi-info-circle me-1"></i> <span th:text="${infoMessage}"></span>
+        </div>
+
+        <div th:if="${successMessage}"
+            class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show mb-4"
+            role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${errorMessage}"
+            class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show mb-4"
+            role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <div th:if="${isFiltered}"
+            class="alert border-0 shadow-sm d-flex align-items-center mb-4 bg-primary bg-opacity-10 text-primary">
+            <i class="bi bi-info-circle-fill fs-5 me-3"></i>
+            <div>
+                <strong>필터링 적용 중:</strong> 현재 조회 조건(부서 또는 사원 검색)에 따른 매핑 결과만 표시됩니다. 자동 생성/초기화 시 현재 선택된 부서가 기준이 됩니다.
+            </div>
+        </div>
+
+        <div th:if="${selectedPeriod != null && !isModifiable}"
+            class="alert border-0 shadow-sm d-flex align-items-center mb-4 bg-warning bg-opacity-10 text-warning">
+            <i class="bi bi-lock-fill fs-5 me-2"></i>
+            <div>
+                <strong>수정 불가:</strong> 현재 평가 차수가 
+                <span class="fw-bold" 
+                      th:text="${#strings.containsIgnoreCase(selectedPeriod.statusCode(), 'PROGRESS') ? '진행 중(IN_PROGRESS)' : selectedPeriod.statusCode()}">상태</span> 
+                상태이므로 평가자 매핑을 변경할 수 없습니다.
+                준비(PLANNED) 상태에서만 추가/수정/삭제가 가능합니다.
+            </div>
+        </div>
+
         <!-- Filter Section (사원 관리 스타일 적용) -->
         <div class="ees-card mb-4 p-4">
             <form th:action="@{/eval/evaluators}" method="get" hx-get="/eval/evaluators" hx-target="#page-content"
                 hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#global-loader">
                 <div class="row g-4 align-items-end">
-                    <!-- 1/3: 평가 차수 (및 부서) -->
-                    <div class="col-md-4">
-                        <div class="d-flex flex-column gap-2">
-                            <label class="form-label text-muted small fw-semibold mb-0">
-                                <i class="bi bi-calendar-event me-1"></i>평가 차수
-                            </label>
-                            <select name="periodId" class="form-select bg-dark text-white border-secondary border-opacity-25"
-                                style="height: 42px; border-radius: 8px;"
-                                onchange="this.form.requestSubmit()">
-                                <option th:each="p : ${periods}" th:value="${p.periodId()}"
-                                    th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
-                                    th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수</option>
-                            </select>
-                            
-                            <!-- 부서 선택이 있는 경우 차수 아래에 배치하거나 너비 조절 가능 -->
-                            <div th:if="${departments != null}" class="mt-2">
-                                <div th:replace="~{fragments/dept-select :: deptSelect(
-                                    ${departments}, ${selectedDeptId}, 'deptId', '전체 부서', true)}">
-                                </div>
-                            </div>
+                    <!-- 1. 평가 차수 -->
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small fw-semibold mb-2">
+                            <i class="bi bi-calendar-event me-1"></i>평가 차수
+                        </label>
+                        <select name="periodId" class="form-select bg-dark text-white border-secondary border-opacity-25"
+                            style="height: 42px; border-radius: 8px;"
+                            onchange="this.form.requestSubmit()">
+                            <option th:each="p : ${periods}" th:value="${p.periodId()}"
+                                th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
+                                th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수</option>
+                        </select>
+                    </div>
+
+                    <!-- 2. 부서 선택 -->
+                    <div th:if="${departments != null}" class="col-md-3">
+                        <label class="form-label text-muted small fw-semibold mb-2">
+                            <i class="bi bi-diagram-3 me-1"></i>대상 부서
+                        </label>
+                        <div th:replace="~{fragments/dept-select :: deptSelect(
+                            ${departments}, ${selectedDeptId}, 'deptId', '전체 부서', true)}">
                         </div>
                     </div>
 
-                    <!-- 1/3: 이름/사번 검색 -->
+                    <!-- 3. 이름/사번 검색 -->
                     <div class="col-md-4">
                         <label class="form-label text-muted small fw-semibold mb-2">
                             <i class="bi bi-person-search me-1"></i>이름/사번 검색
@@ -63,8 +101,8 @@
                         </div>
                     </div>
 
-                    <!-- 1/3: 버튼 영역 -->
-                    <div class="col-md-4">
+                    <!-- 4. 버튼 영역 -->
+                    <div class="col-md-3">
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-primary fw-semibold flex-grow-1" 
                                     style="height: 42px; background: #6366f1; border: none; border-radius: 8px;">
@@ -81,44 +119,7 @@
             </form>
         </div>
 
-        <!-- Flash Messages -->
-        <div th:if="${successMessage}"
-            class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 text-success alert-dismissible fade show mb-4"
-            role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            <span th:text="${successMessage}"></span>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        <div th:if="${errorMessage}"
-            class="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger alert-dismissible fade show mb-4"
-            role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <span th:text="${errorMessage}"></span>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
 
-        <!-- 필터링 안내 (부서장/임원 전용) -->
-        <div th:if="${isFiltered}"
-            class="alert border-0 shadow-sm d-flex align-items-center mb-4 bg-primary bg-opacity-10 text-primary">
-            <i class="bi bi-info-circle-fill fs-5 me-3"></i>
-            <div>
-                <strong>필터링 적용 중:</strong> 현재 조회 조건(부서 또는 사원 검색)에 따른 매핑 결과만 표시됩니다. 자동 생성/초기화 시 현재 선택된 부서가 기준이 됩니다.
-            </div>
-        </div>
-
-        <!-- 평가 진행 상태 잠금 안내 -->
-        <div th:if="${selectedPeriod != null && !isModifiable}"
-            class="alert border-0 shadow-sm d-flex align-items-center mb-4 bg-warning bg-opacity-10 text-warning">
-            <i class="bi bi-lock-fill fs-5 me-2"></i>
-            <div>
-                <strong>수정 불가:</strong> 현재 평가 차수가 
-                <span class="fw-bold" 
-                      th:text="${#strings.containsIgnoreCase(selectedPeriod.statusCode(), 'PROGRESS') ? '진행 중(IN_PROGRESS)' : selectedPeriod.statusCode()}">상태</span> 
-                상태이므로 평가자 매핑을 변경할 수 없습니다.
-                준비(PLANNED) 상태에서만 추가/수정/삭제가 가능합니다.
-
-            </div>
-        </div>
 
         <!-- Stats & Actions -->
         <div th:if="${selectedPeriod != null}" class="row g-4 mb-4">

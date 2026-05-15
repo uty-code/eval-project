@@ -8,6 +8,19 @@
 
 <body>
     <div id="page-content" class="container-fluid py-4" th:fragment="content">
+        <!-- Title Section -->
+        <div class="row align-items-center mb-4">
+            <div class="col-md-4">
+                <h1 class="fw-bold fs-3 mb-1">평가요소 관리</h1>
+                <p class="text-muted mb-0">평가 차수별 성과 및 역량 평가의 항목과 가중치를 구성하고 관리합니다.</p>
+            </div>
+        </div>
+
+        <!-- 정보 메시지 -->
+        <div th:if="${infoMessage}" class="ees-card p-4 text-center mb-4" style="color:rgba(255,255,255,.5)">
+            <i class="bi bi-info-circle me-1"></i> <span th:text="${infoMessage}"></span>
+        </div>
+
         <!-- 알림 메시지 (Toast/Alert) -->
         <div th:if="${successMessage}"
             class="alert alert-success alert-dismissible fade show d-flex align-items-center mb-4" role="alert">
@@ -22,12 +35,14 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
-        <!-- Title Section -->
-        <div class="row align-items-center mb-4">
-            <div class="col-md-4">
-                <h1 class="fw-bold fs-3 mb-1">평가요소 관리</h1>
-                <p class="text-muted mb-0">평가 차수별 성과 및 역량 평가의 항목과 가중치를 구성하고 관리합니다.</p>
+        <!-- 수정 불가 알림 배너 -->
+        <div th:if="${selectedPeriod != null && editable != null && !editable}" class="alert alert-warning bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-lock-fill fs-5 me-2"></i>
+            <div>
+                <strong>읽기 전용</strong> &mdash; 평가가 시작된 차수의 평가요소는 변경할 수 없습니다.
             </div>
+        </div>
+
         <!-- Filter Section (사원 관리 스타일 적용) -->
         <div class="ees-card mb-4 p-3">
             <form th:action="@{/eval/elements}" method="get"
@@ -59,18 +74,7 @@
             </form>
         </div>
         
-        <!-- 정보 메시지 -->
-        <div th:if="${infoMessage}" class="ees-card p-4 text-center mb-4" style="color:rgba(255,255,255,.5)">
-            <i class="bi bi-info-circle me-1"></i> <span th:text="${infoMessage}"></span>
-        </div>
 
-        <!-- 수정 불가 알림 배너 -->
-        <div th:if="${selectedPeriod != null && editable != null && !editable}" class="alert alert-warning bg-warning bg-opacity-10 border-warning border-opacity-25 text-warning d-flex align-items-center mb-4" role="alert">
-            <i class="bi bi-lock-fill fs-5 me-2"></i>
-            <div>
-                <strong>읽기 전용</strong> &mdash; 평가가 시작된 차수의 평가요소는 변경할 수 없습니다.
-            </div>
-        </div>
 
         <th:block th:if="${selectedPeriod != null}">
 
@@ -87,28 +91,28 @@
                         <input type="hidden" name="periodId" th:value="${selectedPeriod.periodId()}">
                         <input type="hidden" name="deptId" th:value="${selectedDeptId}">
 
-                        <div class="ees-weight-control-bar shadow-sm flex-wrap gap-3">
-                            <div class="weight-section" style="border-left: 4px solid #10B981;">
+                        <div class="ees-weight-control-bar shadow-sm flex-wrap">
+                            <div class="weight-section">
                                 <span class="weight-label me-2 fw-bold" style="color: #10B981;">S</span>
                                 <input type="number" name="gradeSRatio" th:value="${gradeRatio.gradeSRatio()}" class="weight-input ratio-input-sync" min="0" max="100" th:readonly="${!editable}" th:disabled="${!editable}">
                                 <span class="weight-unit">%</span>
                             </div>
-                            <div class="weight-section" style="border-left: 4px solid #A855F7;">
+                            <div class="weight-section">
                                 <span class="weight-label me-2 fw-bold" style="color: #A855F7;">A</span>
                                 <input type="number" name="gradeARatio" th:value="${gradeRatio.gradeARatio()}" class="weight-input ratio-input-sync" min="0" max="100" th:readonly="${!editable}" th:disabled="${!editable}">
                                 <span class="weight-unit">%</span>
                             </div>
-                            <div class="weight-section" style="border-left: 4px solid #3B82F6;">
+                            <div class="weight-section">
                                 <span class="weight-label me-2 fw-bold" style="color: #3B82F6;">B</span>
                                 <input type="number" name="gradeBRatio" th:value="${gradeRatio.gradeBRatio()}" class="weight-input ratio-input-sync" min="0" max="100" th:readonly="${!editable}" th:disabled="${!editable}">
                                 <span class="weight-unit">%</span>
                             </div>
-                            <div class="weight-section" style="border-left: 4px solid #F59E0B;">
+                            <div class="weight-section">
                                 <span class="weight-label me-2 fw-bold" style="color: #F59E0B;">C</span>
                                 <input type="number" name="gradeCRatio" th:value="${gradeRatio.gradeCRatio()}" class="weight-input ratio-input-sync" min="0" max="100" th:readonly="${!editable}" th:disabled="${!editable}">
                                 <span class="weight-unit">%</span>
                             </div>
-                            <div class="weight-section" style="border-left: 4px solid #EF4444;">
+                            <div class="weight-section">
                                 <span class="weight-label me-2 fw-bold" style="color: #EF4444;">D</span>
                                 <input type="number" name="gradeDRatio" th:value="${gradeRatio.gradeDRatio()}" class="weight-input ratio-input-sync" min="0" max="100" th:readonly="${!editable}" th:disabled="${!editable}">
                                 <span class="weight-unit">%</span>
@@ -130,7 +134,7 @@
         </div>
 
         <!-- 유형별 가중치 설정 바 -->
-        <div class="row g-4 mb-5">
+        <div class="row g-4 mb-4">
             <div class="col-xl-8">
                 <div class="ees-card p-4 h-100">
                     <div class="mb-3">
