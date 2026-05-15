@@ -12,26 +12,21 @@
                     </h5>
                     <p class="text-secondary small mb-0">평가 관계 설정을 위한 대상 사원을 검색하고 선택하세요.</p>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
-            
+
             <div class="modal-body p-0">
                 <!-- 검색바 영역 -->
                 <div class="p-4 border-bottom border-secondary border-opacity-10">
                     <div class="ees-search-wrapper">
                         <i class="bi bi-search ees-search-icon"></i>
-                        <input type="text" 
-                               name="searchName" 
-                               id="selector-search-input"
-                               class="ees-search-input" 
-                               placeholder="사원명 또는 사번으로 검색하세요"
-                               hx-get="/employees/selector/list"
-                               hx-trigger="keyup changed delay:300ms, search"
-                               hx-target="#employee-list-container"
-                               hx-include="[name='deptId']"
-                               autocomplete="off">
-                        <i class="bi bi-x-lg ees-search-clear" 
-                           onclick="const input = this.previousElementSibling; input.value = ''; input.focus(); input.dispatchEvent(new Event('input')); htmx.trigger(input, 'search');"></i>
+                        <input type="text" name="searchName" id="selector-search-input" class="ees-search-input"
+                            placeholder="사원명 또는 사번으로 검색하세요" hx-get="/employees/selector/list"
+                            hx-trigger="keyup changed delay:300ms, search" hx-target="#employee-list-container"
+                            hx-include="[name='deptId']" autocomplete="off">
+                        <i class="bi bi-x-lg ees-search-clear"
+                            onclick="const input = this.previousElementSibling; input.value = ''; input.focus(); input.dispatchEvent(new Event('input')); htmx.trigger(input, 'search');"></i>
                     </div>
                 </div>
 
@@ -39,33 +34,29 @@
                     <!-- 왼쪽: 부서 사이드바 -->
                     <div class="selector-sidebar custom-scroll">
                         <input type="hidden" name="deptId" id="selector-dept-id" value="">
-                        <div class="dept-item active" 
-                             onclick="selectSelectorDept(this, '')"
-                             hx-get="/employees/selector/list"
-                             hx-target="#selector-employee-list"
-                             hx-vals='{"deptId": ""}'>
+                        <div class="dept-item active" onclick="selectSelectorDept(this, '')"
+                            hx-get="/employees/selector/list" hx-target="#selector-employee-list"
+                            hx-vals='{"deptId": ""}'>
                             전체 부서
                         </div>
-                        <div th:each="dept : ${selectorDepartments}" 
-                             class="dept-item" 
-                             th:text="${dept.deptName}"
-                             th:attr="onclick=|selectSelectorDept(this, '${dept.deptId}')|"
-                             hx-get="/employees/selector/list"
-                             th:hx-vals='|{"deptId": "${dept.deptId}"}|'
-                             hx-target="#selector-employee-list">
+                        <div th:each="dept : ${selectorDepartments}" class="dept-item" th:text="${dept.deptName}"
+                            th:attr="onclick=|selectSelectorDept(this, '${dept.deptId}')|"
+                            hx-get="/employees/selector/list" th:hx-vals='|{"deptId": "${dept.deptId}"}|'
+                            hx-target="#selector-employee-list">
                             부서명
                         </div>
                     </div>
 
                     <!-- 오른쪽: 사원 리스트 -->
                     <div class="selector-content">
-                        <div id="selector-employee-list" class="flex-grow-1 overflow-y-auto overflow-x-hidden custom-scroll">
+                        <div id="selector-employee-list"
+                            class="flex-grow-1 overflow-y-auto overflow-x-hidden custom-scroll">
                             <div th:replace="~{::employee-list}"></div>
                         </div>
                     </div>
                 </div>
             </div>
-            
+
             <div class="modal-footer border-top border-secondary border-opacity-10 p-3">
                 <div class="me-auto text-secondary small">
                     <i class="bi bi-info-circle me-1"></i> 사원을 클릭하면 선택이 완료됩니다.
@@ -92,7 +83,7 @@
             if (window.onEmployeeSelected && typeof window.onEmployeeSelected === 'function') {
                 window.onEmployeeSelected(employee);
             }
-            
+
             // 모달 닫기
             const modal = bootstrap.Modal.getInstance(document.getElementById('employeeSelectorModal'));
             if (modal) modal.hide();
@@ -106,29 +97,27 @@
         <i class="bi bi-person-x d-block fs-1 mb-2 opacity-20"></i>
         검색 결과가 없습니다.
     </div>
-    
-    <div th:each="emp, iter : ${selectorPage.employees}" 
-         class="emp-item"
-         th:with="colorIndex=${(iter.index % 6) + 1}"
-         th:attr="onclick=|handleEmployeeSelection({
+
+    <div th:each="emp, iter : ${selectorPage.employees}" class="emp-item" th:with="colorIndex=${(iter.index % 6) + 1}"
+        th:attr="onclick=|handleEmployeeSelection({
             id: '${emp.empId}',
             name: '${emp.name}',
             dept: '${emp.deptName}',
             pos: '${emp.positionName}',
             color: 'bg-avatar-${colorIndex}'
          })|">
-        
+
         <!-- 아바타 -->
-        <div th:class="|ees-avatar bg-avatar-${colorIndex}|" 
-             th:text="${#strings.substring(emp.name, 0, 1)}">
+        <div th:class="|ees-avatar bg-avatar-${colorIndex}|" th:text="${#strings.substring(emp.name, 0, 1)}">
             김
         </div>
-        
+
         <!-- 정보 -->
         <div class="flex-grow-1">
             <div class="d-flex align-items-center gap-2">
                 <span class="fw-bold text-white" th:text="${emp.name}">홍길동</span>
-                <span class="badge border border-white border-opacity-10 text-white-50 fw-normal bg-transparent" th:text="${emp.empId}">2024001</span>
+                <span class="badge border border-white border-opacity-10 text-white-50 fw-normal bg-transparent"
+                    th:text="${emp.empId}">2024001</span>
             </div>
             <div class="small text-secondary mt-1">
                 <span th:text="${emp.deptName}">개발본부</span>
@@ -136,7 +125,7 @@
                 <span th:text="${emp.positionName}">수석연구원</span>
             </div>
         </div>
-        
+
         <div class="text-secondary opacity-0 emp-hover-arrow">
             <i class="bi bi-chevron-right"></i>
         </div>
