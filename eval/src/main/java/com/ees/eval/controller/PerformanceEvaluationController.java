@@ -675,11 +675,14 @@ public class PerformanceEvaluationController {
                 finalGradeMapper.update(fg);
             }
 
-            // 3. 부서 전체 등급 재산출 (상대평가)
-            if (submitDeptId != null) {
+            // 3. 부서 전체 등급 재산출 (상대평가) - 2차 평가(EXECUTIVE) 완료 시에만 실행
+            // MANAGER/SELF 제출 시에는 1차 점수를 기반으로 잘못된 등급 코드가 DB에 저장되는 것을 방지
+            if (submitDeptId != null && "EXECUTIVE".equals(submitMapping.relationTypeCode())) {
                 log.info("[등급재계산] 부서 상대평가 시작 - deptId={}", submitDeptId);
                 scoreCalculationService.calculateRelativeGradesForDepartment(submitMapping.periodId(), submitDeptId);
                 log.info("[등급재계산] 부서 상대평가 완료");
+            } else if (!"EXECUTIVE".equals(submitMapping.relationTypeCode())) {
+                log.info("[등급재계산] 1차 평가 제출 - 상대평가 등급 재계산 건너뜀 (relationType={})", submitMapping.relationTypeCode());
             }
           } // if (totalScore != null) 닫기
         } catch (Exception e) {

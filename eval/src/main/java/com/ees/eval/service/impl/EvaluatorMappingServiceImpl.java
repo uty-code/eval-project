@@ -946,6 +946,9 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         }
         final Map<Long, List<Evaluation>> evalGroupMap = evalGroupMapTmp;
 
+        // [N+1 수정] 평가요소 캐시 (periodId_deptId 기준) — 루프 밖 선언
+        Map<String, List<com.ees.eval.domain.EvaluationElement>> multiElementCache = new HashMap<>();
+
         // 3. 필터링 및 상태 계산
         List<com.ees.eval.dto.MultiDimensionalEvalRowDTO> rowList = new ArrayList<>();
         for (EvaluatorMapping task : myAllTasks) {
@@ -1004,12 +1007,12 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
             // (F) 점수 계산 (환산 점수)
             java.math.BigDecimal totalScore = java.math.BigDecimal.ZERO;
             if (isSubmitted) {
-                // 해당 차수의 평가 요소를 가져와서 가중치 적용 계산
-                List<com.ees.eval.domain.EvaluationElement> elements = elementMapper.findByPeriodId(task.getPeriodId(), evaluatee.getDeptId());
-                if (elements.isEmpty()) {
-                    // 부서 전용 항목이 없으면 전사 공통 항목 조회
-                    elements = elementMapper.findByPeriodId(task.getPeriodId(), null);
-                }
+                // [N+1 수정] 평가요소 캐시 활용 (periodId_deptId 당 1회 조회)
+                String elemCacheKey = task.getPeriodId() + "_" + (evaluatee.getDeptId() != null ? evaluatee.getDeptId() : -1L);
+                List<com.ees.eval.domain.EvaluationElement> elements = multiElementCache.computeIfAbsent(elemCacheKey, k -> {
+                    List<com.ees.eval.domain.EvaluationElement> el = elementMapper.findByPeriodId(task.getPeriodId(), evaluatee.getDeptId());
+                    return el.isEmpty() ? elementMapper.findByPeriodId(task.getPeriodId(), null) : el;
+                });
                 
                 Map<Long, com.ees.eval.domain.EvaluationElement> elementMap = elements.stream()
                         .collect(Collectors.toMap(com.ees.eval.domain.EvaluationElement::getElementId, e -> e, (a, b) -> a));
@@ -1098,11 +1101,39 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
             return new MyEvaluationPageDTO(Collections.emptyList(), 1, 1, 0, pageSize);
         }
 
-        // 2. 관련 데이터 벌크 조회 (최적화: N+1 방지)
+        // 2. 관련 데이터 벌크 조회 (N+1 방지)
         List<Long> mappingIds = myTasks.stream().map(EvaluatorMapping::getMappingId).toList();
         List<Evaluation> allEvals = evaluationMapper.findByMappingIds(mappingIds);
         Map<Long, List<Evaluation>> evalGroupMap = allEvals.stream()
                 .collect(Collectors.groupingBy(Evaluation::getMappingId));
+
+        // [N+1 수정] 잠금 체크용 사전 벌크 조회
+        // SELF 태스크의 피평가자(=본인)에 대한 다운스트림 매핑(MANAGER/EXECUTIVE) 조회
+        List<Long> selfEvaluateeIds = myTasks.stream()
+                .map(EvaluatorMapping::getEvaluateeId).distinct().collect(Collectors.toList());
+        Map<String, List<EvaluatorMapping>> peerMappingsByPeriodAndEvaluatee = new HashMap<>();
+        Map<Long, List<Evaluation>> fullEvalGroupMap = new HashMap<>(evalGroupMap);
+        if (!selfEvaluateeIds.isEmpty()) {
+            List<EvaluatorMapping> allRelated = mappingMapper.findByEvaluateeIds(null, selfEvaluateeIds);
+            for (EvaluatorMapping m : allRelated) {
+                peerMappingsByPeriodAndEvaluatee
+                        .computeIfAbsent(m.getPeriodId() + "_" + m.getEvaluateeId(), k -> new ArrayList<>())
+                        .add(m);
+            }
+            List<Long> additionalIds = allRelated.stream()
+                    .map(EvaluatorMapping::getMappingId)
+                    .filter(id -> !fullEvalGroupMap.containsKey(id))
+                    .distinct().collect(Collectors.toList());
+            if (!additionalIds.isEmpty()) {
+                evaluationMapper.findByMappingIds(additionalIds).forEach(
+                        e -> fullEvalGroupMap.computeIfAbsent(e.getMappingId(), k -> new ArrayList<>()).add(e));
+            }
+        }
+
+        // [N+1 수정] 사원 정보 및 평가요소 루프 밖에서 1회 조회
+        Employee selfEmp = employeeMapper.findById(evaluatorId).orElse(null);
+        Long selfDeptId = (selfEmp != null) ? selfEmp.getDeptId() : null;
+        Map<String, List<com.ees.eval.domain.EvaluationElement>> elementCache = new HashMap<>();
 
         // 3. 필터링 및 상태 계산
         List<MyEvaluationRowDTO> rowList = new ArrayList<>();
@@ -1123,11 +1154,14 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                                            isInProgress ? MyEvaluationStatus.IN_PROGRESS :
                                            MyEvaluationStatus.WAITING;
 
-            // (C) 잠금 상태 (상위 평가자가 제출했는지)
-            // checkEvaluationLock 메서드 재사용 (내부 로직을 위해 다시 조회하는 것은 벌크 처리 시 비효율적일 수 있으나, 
-            // SELF 매핑에 대해 MANAGER/EXECUTIVE 제출 여부를 확인해야 함)
-            Map<String, Object> lockInfo = checkEvaluationLock(task.getMappingId());
-            boolean isLocked = (Boolean) lockInfo.get("isLocked");
+            // (C) 잠금 상태 — 사전 조회 데이터로 in-memory 판단 (N+1 제거)
+            List<EvaluatorMapping> peerMappings = peerMappingsByPeriodAndEvaluatee
+                    .getOrDefault(task.getPeriodId() + "_" + task.getEvaluateeId(), Collections.emptyList());
+            boolean isLocked = peerMappings.stream()
+                    .filter(m -> RELATION_MANAGER.equals(m.getRelationTypeCode())
+                            || RELATION_EXECUTIVE.equals(m.getRelationTypeCode()))
+                    .anyMatch(m -> fullEvalGroupMap.getOrDefault(m.getMappingId(), Collections.emptyList())
+                            .stream().anyMatch(e -> ConfirmStatus.SUBMITTED.getCode().equals(e.getConfirmStatusCode())));
 
             MyEvaluationCtaType ctaType;
             if (isLocked) {
@@ -1144,15 +1178,13 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
             // (E) 점수 계산 (자가평가 환산 점수)
             java.math.BigDecimal totalScore = null;
             if (isSubmitted) {
-                // 평가자의 부서 정보 조회
-                Employee evaluator = employeeMapper.findById(evaluatorId).orElse(null);
-                Long deptId = (evaluator != null) ? evaluator.getDeptId() : null;
-
-                // 해당 차수/부서의 평가 요소 조회
-                List<com.ees.eval.domain.EvaluationElement> elements = elementMapper.findByPeriodId(task.getPeriodId(), deptId);
-                if (elements.isEmpty()) {
-                    elements = elementMapper.findByPeriodId(task.getPeriodId(), null);
-                }
+                // [N+1 수정] 루프 밖 사전 조회 사원 정보 + 평가요소 캐시 활용
+                String elemKey = task.getPeriodId() + "_" + (selfDeptId != null ? selfDeptId : -1L);
+                List<com.ees.eval.domain.EvaluationElement> elements = elementCache.computeIfAbsent(elemKey, k -> {
+                    List<com.ees.eval.domain.EvaluationElement> el =
+                            elementMapper.findByPeriodId(task.getPeriodId(), selfDeptId);
+                    return el.isEmpty() ? elementMapper.findByPeriodId(task.getPeriodId(), null) : el;
+                });
 
                 Map<Long, com.ees.eval.domain.EvaluationElement> elementMap = elements.stream()
                         .collect(Collectors.toMap(com.ees.eval.domain.EvaluationElement::getElementId, e -> e, (a, b) -> a));

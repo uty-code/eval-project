@@ -224,29 +224,40 @@ public class FinalGradeController {
 
         // 부서장(LEADER)인 경우 다면평가 상세 데이터 수집 (디자인 구현용)
         if (isLeader) {
-            // 해당 피평가자(부서장)에 대한 모든 매핑 조회
-            List<EvaluatorMappingDTO> allMappings = evaluatorMappingMapper.findByEvaluateeId(mapping.periodId(), mapping.evaluateeId())
-                .stream()
-                .map(m -> mappingService.getMappingById(m.getMappingId()))
-                .collect(Collectors.toList());
-            
-            // SUBORDINATE 관계의 매핑들만 필터링하여 데이터 구성
-            Map<Long, List<Map<String, Object>>> multiEvalDataMap = new HashMap<>();
-            Map<Long, Double> multiEvalAvgMap = new HashMap<>(); // 항목별 평균 점수 미리 계산
+            // [N+1 수정] getMappingById 루프 제거 — findByEvaluateeId 결과를 직접 사용
+            List<com.ees.eval.domain.EvaluatorMapping> allMappings = evaluatorMappingMapper
+                    .findByEvaluateeId(mapping.periodId(), mapping.evaluateeId());
 
-            for (EvaluatorMappingDTO subMapping : allMappings) {
-                if ("SUBORDINATE".equals(subMapping.relationTypeCode())) {
-                    List<Evaluation> subEvals = evaluationMapper.findByMappingId(subMapping.mappingId());
-                    for (Evaluation eval : subEvals) {
-                        if ("SUBMITTED".equals(eval.getConfirmStatusCode())) {
-                            Map<String, Object> evalInfo = new HashMap<>();
-                            evalInfo.put("evaluatorName", subMapping.evaluatorName());
-                            evalInfo.put("score", eval.getScore() != null ? eval.getScore() : 0);
-                            evalInfo.put("comment", eval.getReason() != null ? eval.getReason() : "");
-                            
-                            multiEvalDataMap.computeIfAbsent(eval.getElementId(), k -> new java.util.ArrayList<>())
-                                .add(evalInfo);
-                        }
+            // SUBORDINATE 매핑 ID만 추출 후 평가 데이터 벌크 조회
+            List<Long> subMappingIds = allMappings.stream()
+                    .filter(m -> "SUBORDINATE".equals(m.getRelationTypeCode()))
+                    .map(com.ees.eval.domain.EvaluatorMapping::getMappingId)
+                    .collect(Collectors.toList());
+
+            Map<Long, List<Evaluation>> subEvalGroupMap = new HashMap<>();
+            if (!subMappingIds.isEmpty()) {
+                evaluationMapper.findByMappingIds(subMappingIds).forEach(
+                        e -> subEvalGroupMap.computeIfAbsent(e.getMappingId(), k -> new java.util.ArrayList<>()).add(e));
+            }
+
+            Map<Long, com.ees.eval.domain.EvaluatorMapping> subMappingMap = allMappings.stream()
+                    .filter(m -> "SUBORDINATE".equals(m.getRelationTypeCode()))
+                    .collect(Collectors.toMap(com.ees.eval.domain.EvaluatorMapping::getMappingId, m -> m));
+
+            Map<Long, List<Map<String, Object>>> multiEvalDataMap = new HashMap<>();
+            Map<Long, Double> multiEvalAvgMap = new HashMap<>();
+
+            for (Long subMappingId : subMappingIds) {
+                com.ees.eval.domain.EvaluatorMapping subMapping = subMappingMap.get(subMappingId);
+                String evaluatorName = subMapping.getEvaluatorName() != null ? subMapping.getEvaluatorName() : "";
+                List<Evaluation> subEvals = subEvalGroupMap.getOrDefault(subMappingId, java.util.Collections.emptyList());
+                for (Evaluation eval : subEvals) {
+                    if ("SUBMITTED".equals(eval.getConfirmStatusCode())) {
+                        Map<String, Object> evalInfo = new HashMap<>();
+                        evalInfo.put("evaluatorName", evaluatorName);
+                        evalInfo.put("score", eval.getScore() != null ? eval.getScore() : 0);
+                        evalInfo.put("comment", eval.getReason() != null ? eval.getReason() : "");
+                        multiEvalDataMap.computeIfAbsent(eval.getElementId(), k -> new java.util.ArrayList<>()).add(evalInfo);
                     }
                 }
             }
