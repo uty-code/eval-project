@@ -16,7 +16,8 @@ public interface EvaluationResultService {
      *
      * @param periodId 평가 차수 ID
      * @param deptId   부서 필터 (null이면 전체)
+     * @param search   성명/사번 검색어 (선택)
      * @return 평가 결과 DTO 목록
      */
-    List<EvaluationResultDTO> getResults(Long periodId, Long deptId);
+    List<EvaluationResultDTO> getResults(Long periodId, Long deptId, String search);
 }

@@ -50,7 +50,7 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EvaluationResultDTO> getResults(Long periodId, Long deptId) {
+    public List<EvaluationResultDTO> getResults(Long periodId, Long deptId, String search) {
         // 1. 해당 차수의 모든 매핑을 한 번에 조회 (N+1 방지)
         List<EvaluatorMapping> allMappings = mappingMapper.findAllByPeriodId(periodId);
         if (allMappings.isEmpty()) {
@@ -76,17 +76,29 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
         Map<Long, Employee> employeeMap = employeeMapper.findByIds(evaluateeIds).stream()
                 .collect(Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
 
-        // 4. 부서 필터 적용
-        if (deptId != null) {
-            evaluateeIds = evaluateeIds.stream()
-                    .filter(empId -> {
-                        Employee emp = employeeMap.get(empId);
-                        return emp != null && deptId.equals(emp.getDeptId());
-                    })
-                    .collect(Collectors.toList());
-            if (evaluateeIds.isEmpty()) {
-                return Collections.emptyList();
-            }
+        // 4. 필터 적용 (부서 + 검색어)
+        evaluateeIds = evaluateeIds.stream()
+                .filter(empId -> {
+                    Employee emp = employeeMap.get(empId);
+                    if (emp == null) return false;
+
+                    // 부서 필터
+                    if (deptId != null && !deptId.equals(emp.getDeptId())) return false;
+
+                    // 검색어 필터 (성명 또는 사번)
+                    if (search != null && !search.trim().isEmpty()) {
+                        String s = search.trim().toLowerCase();
+                        boolean nameMatch = emp.getName() != null && emp.getName().toLowerCase().contains(s);
+                        boolean idMatch = emp.getEmpId() != null && String.valueOf(emp.getEmpId()).contains(s);
+                        if (!nameMatch && !idMatch) return false;
+                    }
+
+                    return true;
+                })
+                .collect(Collectors.toList());
+
+        if (evaluateeIds.isEmpty()) {
+            return Collections.emptyList();
         }
 
         // 5. 관계 유형별 매핑 분류 (메모리 내 그룹핑)

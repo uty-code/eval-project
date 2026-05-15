@@ -139,7 +139,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         // 5. 현재 평가 차수 상세 결과
         Long deptId = employeeService.getEmployeeById(empId).deptId();
-        List<EvaluationResultDTO> results = resultService.getResults(periodId, deptId);
+        List<EvaluationResultDTO> results = resultService.getResults(periodId, deptId, null);
         EvaluationResultDTO currentResult = results.stream()
                 .filter(r -> r.empId().equals(empId))
                 .findFirst()

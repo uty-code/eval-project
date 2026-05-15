@@ -56,6 +56,7 @@ public class EvaluationResultController {
     @GetMapping
     public String list(@RequestParam(name = "periodId", required = false) Long periodId,
                        @RequestParam(name = "deptId", required = false) Long deptId,
+                       @RequestParam(name = "search", required = false) String search,
                        @AuthenticationPrincipal UserDetails userDetails,
                        Model model) {
 
@@ -109,9 +110,10 @@ public class EvaluationResultController {
             }
         }
         model.addAttribute("selectedDeptId", deptId);
+        model.addAttribute("search", search);
 
         // 3. 서비스 호출 — 핵심 로직 위임
-        List<EvaluationResultDTO> results = resultService.getResults(selectedPeriod.periodId(), deptId);
+        List<EvaluationResultDTO> results = resultService.getResults(selectedPeriod.periodId(), deptId, search);
 
         if (results.isEmpty()) {
             model.addAttribute("infoMessage", "평가 매핑이 설정되지 않았습니다.");
@@ -152,6 +154,7 @@ public class EvaluationResultController {
     @GetMapping("/excel")
     public void downloadExcel(@RequestParam(name = "periodId", required = false) Long periodId,
                               @RequestParam(name = "deptId", required = false) Long deptId,
+                              @RequestParam(name = "search", required = false) String search,
                               @AuthenticationPrincipal UserDetails userDetails,
                               HttpServletResponse response) throws IOException {
 
@@ -172,7 +175,7 @@ public class EvaluationResultController {
         }
 
         // 2. 결과 데이터 조회
-        List<EvaluationResultDTO> results = resultService.getResults(selectedPeriod.periodId(), deptId);
+        List<EvaluationResultDTO> results = resultService.getResults(selectedPeriod.periodId(), deptId, search);
 
         // 3. 프리미엄 리포트 서비스 호출 (Excel 생성 및 스트림 출력)
         reportService.generatePremiumReport(selectedPeriod, results, response);
