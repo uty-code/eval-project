@@ -7,6 +7,7 @@ import com.ees.eval.security.EesAuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -39,7 +40,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // 초기 개발 단계에서는 CSRF 비활성화
+            .csrf(Customizer.withDefaults()) // CSRF 공격 방어 활성화
             .authorizeHttpRequests(auth -> auth
                 // 정적 리소스(favicon.ico, css, js 등)는 누구나 접근 가능
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/webjars/**").permitAll()
