@@ -360,4 +360,37 @@ class DepartmentServiceTest extends AbstractMssqlTest {
         // then: DB 해제 확인
         assertThat(departmentService.getDepartmentById(dept.deptId()).leaderId()).isNull();
     }
+
+    /**
+     * 전체 부서 트리 조회 시 깊이(depth)와 정렬 순서가 올바른지 검증합니다.
+     * 리팩토링된 정렬 최적화 로직이 정상 동작하는지 확인합니다.
+     */
+    @Test
+    @DisplayName("계층형 트리 최적화 - 깊이와 정렬 순서 정합성 검증")
+    void getAllDepartments_TreeStructureAndSortingTest() {
+        // when
+        List<DepartmentDTO> tree = departmentService.getAllDepartments();
+
+        // then
+        assertThat(tree).isNotEmpty();
+        
+        // DFS 특성 상 부모가 자식보다 먼저 나타나야 함
+        // 각 노드의 depth가 부모 노드의 depth + 1인지 확인
+        for (int i = 0; i < tree.size(); i++) {
+            DepartmentDTO current = tree.get(i);
+            if (current.parentDeptId() != null) {
+                boolean parentFoundBefore = false;
+                for (int j = 0; j < i; j++) {
+                    if (tree.get(j).deptId().equals(current.parentDeptId())) {
+                        parentFoundBefore = true;
+                        assertThat(current.treeDepth()).isEqualTo(tree.get(j).treeDepth() + 1);
+                        break;
+                    }
+                }
+                assertThat(parentFoundBefore).isTrue();
+            } else {
+                assertThat(current.treeDepth()).isEqualTo(0);
+            }
+        }
+    }
 }

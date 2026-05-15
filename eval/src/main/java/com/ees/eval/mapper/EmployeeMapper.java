@@ -119,6 +119,14 @@ public interface EmployeeMapper {
     List<Map<String, Object>> findRoleNamesByEmpIds(@Param("empIds") List<Long> empIds);
 
     /**
+     * 다수의 사원에 대한 권한 정보를 Record DTO로 조회합니다 (N+1 문제 해결 및 타입 안정성).
+     *
+     * @param empIds 대상 사원 식별자 목록
+     * @return 사원 식별자(empId)와 권한명(roleName)이 포함된 DTO 리스트
+     */
+    List<com.ees.eval.dto.DepartmentDtos.EmployeeRoleDTO> findEmployeeRolesByEmpIds(@Param("empIds") List<Long> empIds);
+
+    /**
      * 새로운 사원 정보를 employees_51 테이블에 저장합니다.
      *
      * @param employee 저장할 사원 엔티티 (비밀번호는 이미 암호화된 상태여야 함)
