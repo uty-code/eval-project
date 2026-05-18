@@ -226,7 +226,7 @@ public class FinalGradeServiceImpl implements FinalGradeService {
         Map<String, List<Long>> empsByGroup = new HashMap<>();
         for (EvaluatorMapping m : allMappingsForEvaluatees) {
             Employee e = employeeMap.get(m.getEvaluateeId());
-            if (e == null || e.getDeptId() == null || totalScoreMap.get(m.getEvaluateeId()) == null) {
+            if (e == null || e.getDeptId() == null) {
                 continue;
             }
             
@@ -298,7 +298,13 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                 targets[indices.get(i)]++;
             }
 
-            deptEmpIds.sort((id1, id2) -> totalScoreMap.get(id2).compareTo(totalScoreMap.get(id1)));
+            deptEmpIds.sort((id1, id2) -> {
+                Integer score1 = totalScoreMap.get(id1);
+                Integer score2 = totalScoreMap.get(id2);
+                int s1 = (score1 != null) ? score1 : -1;
+                int s2 = (score2 != null) ? score2 : -1;
+                return Integer.compare(s2, s1);
+            });
 
             String[] gradeNames = {"S", "A", "B", "C", "D"};
 
@@ -318,6 +324,17 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             int[] remainingTargets = new int[5];
             for (int i = 0; i < 5; i++) {
                 remainingTargets[i] = Math.max(0, targets[i] - finalizedCounts[i]);
+            }
+
+            // [DEBUG] 그룹별 LRM 계산 현황 로그
+            log.debug("[LRM-DEBUG] groupKey={}, totalEligible={}, ratio=S{}:A{}:B{}:C{}:D{}",
+                    groupKey, totalEligible,
+                    ratio.gradeSRatio(), ratio.gradeARatio(), ratio.gradeBRatio(), ratio.gradeCRatio(), ratio.gradeDRatio());
+            log.debug("[LRM-DEBUG] targets=S{}:A{}:B{}:C{}:D{}", targets[0], targets[1], targets[2], targets[3], targets[4]);
+            log.debug("[LRM-DEBUG] finalizedCounts=S{}:A{}:B{}:C{}:D{}", finalizedCounts[0], finalizedCounts[1], finalizedCounts[2], finalizedCounts[3], finalizedCounts[4]);
+            log.debug("[LRM-DEBUG] remainingTargets=S{}:A{}:B{}:C{}:D{}", remainingTargets[0], remainingTargets[1], remainingTargets[2], remainingTargets[3], remainingTargets[4]);
+            for (Long empId : deptEmpIds) {
+                log.debug("[LRM-DEBUG]   empId={}, score={}, preAssignedGrade={}", empId, totalScoreMap.get(empId), expectedGradeMap.get(empId));
             }
 
             int currentGradeIndex = 0;
@@ -403,6 +420,9 @@ public class FinalGradeServiceImpl implements FinalGradeService {
 
             Integer totalScore = totalScoreMap.get(task.getEvaluateeId());
             String expectedGrade = expectedGradeMap.getOrDefault(task.getEvaluateeId(), "-");
+            if (totalScore == null) {
+                expectedGrade = "-";
+            }
 
             // 부서장인 경우: 부서원(SUBORDINATE) 다면평가 전원 제출 여부 계산 (벌크 데이터 활용, 추가 DB 호출 없음)
             int subordinateTotal = 0;

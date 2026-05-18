@@ -291,7 +291,7 @@
                                     <table class="result-table">
                                         <thead>
                                             <tr>
-                                                <th colspan="4" class="th-group th-group-info"
+                                                <th colspan="5" class="th-group th-group-info"
                                                     style="border-right:2px solid rgba(255,255,255,.35)">피평가자 정보</th>
                                                 <th colspan="3" class="th-group th-group-multi"
                                                     style="border-right:2px solid rgba(255,255,255,.35)">다면평가</th>
@@ -301,6 +301,7 @@
                                                 <th colspan="2" class="th-group th-group-action">확정 진행/상태</th>
                                             </tr>
                                             <tr>
+                                                <th>평가차수</th>
                                                 <th>부서명</th>
                                                 <th>직급</th>
                                                 <th>사번</th>
@@ -315,6 +316,7 @@
                                         </thead>
                                         <tbody>
                                             <tr th:each="task : ${tasks}" th:if="${task.isLeader()}">
+                                                <td th:text="${task.periodName()}">-</td>
                                                 <td th:text="${task.deptName()}">-</td>
                                                 <td th:text="${task.titleName() ?: '-'}">-</td>
                                                 <td th:text="${task.empId()}">-</td>
@@ -403,7 +405,7 @@
                                     <table class="result-table">
                                         <thead>
                                             <tr>
-                                                <th colspan="4" class="th-group th-group-info"
+                                                <th colspan="5" class="th-group th-group-info"
                                                     style="border-right:2px solid rgba(255,255,255,.35)">피평가자 정보</th>
                                                 <th colspan="3" class="th-group th-group-mbo"
                                                     style="border-right:2px solid rgba(255,255,255,.35)">성과평가 (MBO)</th>
@@ -416,6 +418,7 @@
                                                 <th colspan="2" class="th-group th-group-action">확정 진행/상태</th>
                                             </tr>
                                             <tr>
+                                                <th>평가차수</th>
                                                 <th>부서명</th>
                                                 <th>직급</th>
                                                 <th>사번</th>
@@ -433,6 +436,7 @@
                                         </thead>
                                         <tbody>
                                             <tr th:each="task : ${tasks}" th:if="${!task.isLeader()}">
+                                                <td th:text="${task.periodName()}">-</td>
                                                 <td th:text="${task.deptName()}">-</td>
                                                 <td th:text="${task.titleName() ?: '-'}">-</td>
                                                 <td th:text="${task.empId()}">-</td>

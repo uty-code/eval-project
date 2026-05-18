@@ -45,18 +45,21 @@ public interface LoginLogMapper {
      *
      * @param limit 페이지당 개수
      * @param offset 시작 위치
-     * @param keyword 검색어 (IP 또는 사번)
+     * @param searchEmpId 검색 사번
+     * @param searchIp 검색 IP 주소
      * @return 전체 로그인 이력 목록
      */
-    List<LoginLog> findAll(@Param("limit") int limit, @Param("offset") int offset, @Param("keyword") String keyword);
+    List<LoginLog> findAll(@Param("limit") int limit, @Param("offset") int offset,
+                           @Param("searchEmpId") String searchEmpId, @Param("searchIp") String searchIp);
 
     /**
      * 전체 로그인 이력 총 개수를 조회합니다.
      *
-     * @param keyword 검색어
+     * @param searchEmpId 검색 사번
+     * @param searchIp 검색 IP 주소
      * @return 총 개수
      */
-    int countAll(@Param("keyword") String keyword);
+    int countAll(@Param("searchEmpId") String searchEmpId, @Param("searchIp") String searchIp);
 
     /**
      * 마지막 로그인 성공 이후 연속 실패 횟수를 조회합니다.
