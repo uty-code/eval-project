@@ -427,13 +427,13 @@
                                                 <td>
                                                     <!-- 어드민: 읽기 전용 '조회' (상세 페이지로 이동) -->
                                                     <a th:if="${isAdminView}" href="#"
-                                                        class="action-btn action-view"
+                                                        class="action-btn action-primary"
                                                         th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='leader')}"
                                                         hx-target="#page-content" hx-select="#page-content"
                                                         hx-swap="outerHTML" hx-push-url="true">
                                                         <i class="bi bi-eye"></i> 조회
                                                     </a>
-                                                    <!-- 일반 임원: 기존 로직 -->
+                                                    <!-- 일반 임원: 상태별 제어 로직 -->
                                                     <th:block th:unless="${isAdminView}">
                                                         <button th:if="${!task.weightValid()}"
                                                             class="action-btn action-locked" disabled>
@@ -443,7 +443,14 @@
                                                             class="action-btn action-waiting" disabled>
                                                             <i class="bi bi-lock-fill"></i> 자가평가 대기중
                                                         </button>
-                                                        <a th:if="${task.selfSubmitted() && task.weightValid()}" href="#"
+                                                        <button th:if="${task.weightValid() && task.selfSubmitted() && task.isLeader() && !task.subordinateAllSubmitted()}"
+                                                            class="action-btn action-waiting" disabled
+                                                            th:title="${'부서원 다면평가 ' + task.subordinateSubmittedCount() + '/' + task.subordinateTotal() + '명 완료'}">
+                                                            <i class="bi bi-people-fill"></i> 다면평가 대기중
+                                                            <span class="ms-1" style="font-size:.65rem;opacity:.8"
+                                                                th:text="${task.subordinateSubmittedCount() + '/' + task.subordinateTotal()}">0/0</span>
+                                                        </button>
+                                                        <a th:if="${task.selfSubmitted() && task.weightValid() && (!task.isLeader() || task.subordinateAllSubmitted())}" href="#"
                                                             class="action-btn action-primary"
                                                             th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='leader')}"
                                                             hx-target="#page-content" hx-select="#page-content"
