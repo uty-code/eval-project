@@ -360,17 +360,43 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                 }
 
                 // 4) EXECUTIVE (모든 사원은 소속 본부의 임원에게 최종 평가를 받음)
-                Long rootId = rootDeptCache.get(emp.getDeptId());
-                if (rootId != null) {
-                    List<Employee> executivesInRoot = deptMembers
-                            .getOrDefault(rootId, java.util.Collections.emptyList()).stream()
-                            .filter(e -> rolesMap.getOrDefault(e.getEmpId(), java.util.Collections.emptySet())
-                                    .contains(SystemRole.ROLE_EXECUTIVE.getCode()))
-                            .toList();
-                    for (Employee exec : executivesInRoot) {
-                        if (!exec.getEmpId().equals(evaluateeId)) {
-                            addIfAbsent(newMappings, existingKeys, periodId, evaluateeId, exec.getEmpId(), RELATION_EXECUTIVE,
-                                    currentUserId, now);
+                // [본부장-하위 팀장 매핑 자동화]
+                // 피평가자가 부서장(isLeader)이고, 상위 부서(본부)가 존재하며, 그 상위 부서의 리더(본부장)가 지정되어 있고 재직 중인 경우:
+                // 그 본부장을 2차 평가자(EXECUTIVE)로 매핑합니다.
+                // 그렇지 않은 경우(일반 사원이거나 상위 리더가 없는 경우)에는 기존 로직대로 소속 본부의 임원(ROLE_EXECUTIVE)을 최종 평가자로 매핑합니다.
+                boolean isExecutiveMapped = false;
+                if (isLeader) {
+                    com.ees.eval.domain.Department myDept = deptMap.get(emp.getDeptId());
+                    if (myDept != null && myDept.getParentDeptId() != null) {
+                        com.ees.eval.domain.Department parentDept = deptMap.get(myDept.getParentDeptId());
+                        if (parentDept != null && parentDept.getLeaderId() != null) {
+                            Employee parentLeader = empMap.get(parentDept.getLeaderId());
+                            if (parentLeader != null && EmployeeStatus.EMPLOYED.getCode().equals(parentLeader.getStatusCode())) {
+                                if (!parentLeader.getEmpId().equals(evaluateeId)) {
+                                    addIfAbsent(newMappings, existingKeys, periodId, evaluateeId, parentLeader.getEmpId(), RELATION_EXECUTIVE,
+                                            currentUserId, now);
+                                    isExecutiveMapped = true;
+                                    log.info("부서장 계층 평가 매핑 추가 - 피평가자: {}({}), 2차 평가자(본부장): {}({})",
+                                            emp.getName(), evaluateeId, parentLeader.getName(), parentLeader.getEmpId());
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!isExecutiveMapped) {
+                    Long rootId = rootDeptCache.get(emp.getDeptId());
+                    if (rootId != null) {
+                        List<Employee> executivesInRoot = deptMembers
+                                .getOrDefault(rootId, java.util.Collections.emptyList()).stream()
+                                .filter(e -> rolesMap.getOrDefault(e.getEmpId(), java.util.Collections.emptySet())
+                                        .contains(SystemRole.ROLE_EXECUTIVE.getCode()))
+                                .toList();
+                        for (Employee exec : executivesInRoot) {
+                            if (!exec.getEmpId().equals(evaluateeId)) {
+                                addIfAbsent(newMappings, existingKeys, periodId, evaluateeId, exec.getEmpId(), RELATION_EXECUTIVE,
+                                        currentUserId, now);
+                            }
                         }
                     }
                 }

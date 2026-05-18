@@ -17,6 +17,7 @@ import com.ees.eval.service.EvaluatorMappingService;
 import com.ees.eval.service.ScoreCalculationService;
 import com.ees.eval.domain.FinalGrade;
 import com.ees.eval.mapper.FinalGradeMapper;
+import com.ees.eval.mapper.DepartmentMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -56,6 +57,7 @@ public class PerformanceEvaluationController {
     private final EmployeeMapper employeeMapper;
     private final ScoreCalculationService scoreCalculationService;
     private final FinalGradeMapper finalGradeMapper;
+    private final DepartmentMapper departmentMapper;
 
     /**
      * 부서별 평가 요소를 캐싱하여 동일 부서에 대한 중복 DB 호출을 방지합니다.
@@ -701,9 +703,24 @@ public class PerformanceEvaluationController {
             // 3. 부서 전체 등급 재산출 (상대평가) - 2차 평가(EXECUTIVE) 완료 시에만 실행
             // MANAGER/SELF 제출 시에는 1차 점수를 기반으로 잘못된 등급 코드가 DB에 저장되는 것을 방지
             if (submitDeptId != null && "EXECUTIVE".equals(submitMapping.relationTypeCode())) {
-                log.info("[등급재계산] 부서 상대평가 시작 - deptId={}", submitDeptId);
-                scoreCalculationService.calculateRelativeGradesForDepartment(submitMapping.periodId(), submitDeptId);
-                log.info("[등급재계산] 부서 상대평가 완료");
+                boolean isLeader = departmentMapper.countDepartmentsByLeaderId(submitMapping.evaluateeId()) > 0;
+                if (isLeader) {
+                    // 피평가자가 부서장(팀장)인 경우: 소속 부서의 상위 부서(본부) ID를 조회하여 본부 팀장 상대평가 수행
+                    departmentMapper.findById(submitDeptId).ifPresent(dept -> {
+                        if (dept.getParentDeptId() != null) {
+                            log.info("[등급재계산] 본부 내 팀장 상대평가 시작 - parentDeptId={}", dept.getParentDeptId());
+                            scoreCalculationService.calculateRelativeGradesForLeadersInHQ(submitMapping.periodId(), dept.getParentDeptId());
+                            log.info("[등급재계산] 본부 내 팀장 상대평가 완료");
+                        } else {
+                            log.warn("[등급재계산] 팀장이지만 상위 부서(본부)가 없어 본부 내 팀장 상대평가 건너뜀 - deptId={}", submitDeptId);
+                        }
+                    });
+                } else {
+                    // 피평가자가 일반 사원인 경우: 기존처럼 해당 부서 내의 일반 사원 상대평가 수행 (부서장은 자동 제외됨)
+                    log.info("[등급재계산] 부서 상대평가 시작 - deptId={}", submitDeptId);
+                    scoreCalculationService.calculateRelativeGradesForDepartment(submitMapping.periodId(), submitDeptId);
+                    log.info("[등급재계산] 부서 상대평가 완료");
+                }
             } else if (!"EXECUTIVE".equals(submitMapping.relationTypeCode())) {
                 log.info("[등급재계산] 1차 평가 제출 - 상대평가 등급 재계산 건너뜀 (relationType={})", submitMapping.relationTypeCode());
             }

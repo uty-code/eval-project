@@ -182,9 +182,10 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
     @Override
     @Transactional
     public void calculateRelativeGradesForDepartment(Long periodId, Long deptId) {
-        // 1. 해당 부서의 대상자 수 파악 (EXECUTIVE 매핑 기준)
+        // 1. 해당 부서의 대상자 중 일반 직원(STAFF)만 모수로 필터링 (부서장은 제외)
         List<Long> empIdsInDept = employeeMapper.findByDeptId(deptId).stream()
                 .map(Employee::getEmpId)
+                .filter(empId -> departmentMapper.countDepartmentsByLeaderId(empId) == 0) // 부서장 제외
                 .collect(Collectors.toList());
                 
         if (empIdsInDept.isEmpty()) return;
@@ -297,6 +298,137 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
             log.debug("[ScoreCalc] 상대평가 등급 부여 완료 - empId={}, score={}, grade={}", fg.getEmpId(), score, assignedGrade);
         }
         
+        if (!gradesToUpdate.isEmpty()) {
+            finalGradeMapper.updateBatch(gradesToUpdate);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void calculateRelativeGradesForLeadersInHQ(Long periodId, Long parentDeptId) {
+        if (parentDeptId == null) return;
+
+        // 1. parentDeptId 산하의 모든 하위 부서의 리더(팀장) 사번 목록 조회
+        List<Long> leaderEmpIds = departmentMapper.findSubordinateLeadersByParentDeptId(parentDeptId);
+        if (leaderEmpIds.isEmpty()) return;
+
+        // 2. 실제 평가 대상자로 등록된 인원만 대상 모수로 산정 (EXECUTIVE 매핑 기준)
+        List<EvaluatorMapping> allMappingsInDept = mappingMapper.findByEvaluateeIds(periodId, leaderEmpIds);
+        List<EvaluatorMapping> mappings = allMappingsInDept.stream()
+                .filter(m -> "EXECUTIVE".equals(m.getRelationTypeCode()))
+                .collect(Collectors.toList());
+
+        if (mappings.isEmpty()) {
+            log.info("[ScoreCalc] 본부 내 팀장들의 EXECUTIVE 매핑 없음, MANAGER 매핑으로 폴백 (parentDeptId={})", parentDeptId);
+            mappings = allMappingsInDept.stream()
+                    .filter(m -> "MANAGER".equals(m.getRelationTypeCode()))
+                    .collect(Collectors.toList());
+        }
+
+        // EXECUTIVE 평가가 최종 완료(제출)된 팀장들만 필터링
+        List<Long> execMappingIds = mappings.stream()
+                .map(EvaluatorMapping::getMappingId)
+                .collect(Collectors.toList());
+
+        Set<Long> submittedMappingIds = new HashSet<>();
+        if (!execMappingIds.isEmpty()) {
+            evaluationMapper.findByMappingIds(execMappingIds).stream()
+                    .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
+                    .map(Evaluation::getMappingId)
+                    .forEach(submittedMappingIds::add);
+        }
+
+        Set<Long> execCompletedEmpIds = mappings.stream()
+                .filter(m -> submittedMappingIds.contains(m.getMappingId()))
+                .map(EvaluatorMapping::getEvaluateeId)
+                .collect(Collectors.toSet());
+
+        log.info("[ScoreCalc] 본부 내 팀장 상대평가 대상: 전체 매핑={}, EXECUTIVE 완료={} (parentDeptId={})",
+                mappings.size(), execCompletedEmpIds.size(), parentDeptId);
+
+        int totalEligible = execCompletedEmpIds.size();
+        if (totalEligible == 0) return;
+
+        // Q2 결정사항: 전사 공통 등급 비율 (deptId = null) 조회
+        EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatio(periodId, null);
+        double[] exact = {
+            totalEligible * ratio.gradeSRatio() / 100.0,
+            totalEligible * ratio.gradeARatio() / 100.0,
+            totalEligible * ratio.gradeBRatio() / 100.0,
+            totalEligible * ratio.gradeCRatio() / 100.0,
+            totalEligible * ratio.gradeDRatio() / 100.0
+        };
+
+        int[] targets = new int[5];
+        double[] remainders = new double[5];
+        int assigned = 0;
+        for (int i = 0; i < 5; i++) {
+            targets[i] = (int) exact[i];
+            remainders[i] = exact[i] - targets[i];
+            assigned += targets[i];
+        }
+
+        int remaining = totalEligible - assigned;
+        List<Integer> indices = new ArrayList<>(List.of(0, 1, 2, 3, 4));
+        indices.sort((i1, i2) -> Double.compare(remainders[i2], remainders[i1]));
+        for (int i = 0; i < remaining; i++) {
+            targets[indices.get(i)]++;
+        }
+
+        // 본부 하위 부서 ID 목록 조회 (팀장들이 속해있는 부서들의 최종 성적을 모으기 위해)
+        List<com.ees.eval.domain.Department> subDepts = departmentMapper.findByParentDeptId(parentDeptId);
+        List<Long> subDeptIds = subDepts.stream().map(com.ees.eval.domain.Department::getDeptId).collect(Collectors.toList());
+        subDeptIds.add(parentDeptId); // 본부(부모 부서) 소속 팀장도 있을 수 있으므로 추가
+
+        List<FinalGrade> allGrades = new ArrayList<>();
+        for (Long subDeptId : subDeptIds) {
+            allGrades.addAll(finalGradeMapper.findByPeriodIdAndDeptId(periodId, subDeptId));
+        }
+
+        // 이들 중 제출 완료자이면서 점수가 있는 팀장들만 추림
+        List<FinalGrade> grades = allGrades.stream()
+                .filter(g -> g.getTotalScore() != null && execCompletedEmpIds.contains(g.getEmpId()))
+                .collect(Collectors.toList());
+
+        // 점수 내림차순 정렬
+        grades.sort(Comparator.comparing(FinalGrade::getTotalScore).reversed());
+
+        // 등급 부여 (동점자 처리 포함)
+        String[] gradeLabels = {"S", "A", "B", "C", "D"};
+        int currentGradeIdx = 0;
+        int currentGradeAssigned = 0;
+        Integer prevScore = null;
+        String prevGrade = null;
+
+        List<FinalGrade> gradesToUpdate = new ArrayList<>();
+
+        for (FinalGrade fg : grades) {
+            String assignedGrade;
+            Integer score = fg.getTotalScore();
+
+            if (prevScore != null && prevScore.equals(score)) {
+                assignedGrade = prevGrade;
+                currentGradeAssigned++;
+            } else {
+                while (currentGradeIdx < 5 && currentGradeAssigned >= targets[currentGradeIdx]) {
+                    currentGradeIdx++;
+                    currentGradeAssigned = 0;
+                }
+                if (currentGradeIdx >= 5) currentGradeIdx = 4;
+
+                assignedGrade = gradeLabels[currentGradeIdx];
+                currentGradeAssigned++;
+            }
+
+             fg.setFinalGradeCode(assignedGrade);
+             gradesToUpdate.add(fg);
+
+             prevScore = score;
+             prevGrade = assignedGrade;
+
+             log.debug("[ScoreCalc] 본부 팀장 상대평가 등급 부여 완료 - empId={}, score={}, grade={}", fg.getEmpId(), score, assignedGrade);
+        }
+
         if (!gradesToUpdate.isEmpty()) {
             finalGradeMapper.updateBatch(gradesToUpdate);
         }

@@ -32,4 +32,13 @@ public interface ScoreCalculationService {
      * @param deptId   부서 ID
      */
     void calculateRelativeGradesForDepartment(Long periodId, Long deptId);
+
+    /**
+     * 특정 평가 차수, 특정 본부(상위 부서) 산하의 하위 팀장(부서장)들을 대상으로 상대평가 등급 배분을 수행하고
+     * final_grades_51 테이블에 등급을 업데이트합니다.
+     *
+     * @param periodId     평가 차수 ID
+     * @param parentDeptId 상위 부서(본부) ID
+     */
+    void calculateRelativeGradesForLeadersInHQ(Long periodId, Long parentDeptId);
 }
