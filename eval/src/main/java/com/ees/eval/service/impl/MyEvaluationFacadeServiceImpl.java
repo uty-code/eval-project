@@ -187,7 +187,7 @@ public class MyEvaluationFacadeServiceImpl implements MyEvaluationFacadeService 
      */
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> getAdminDashboardData(Long periodId, String status, String keyword, int page, int pageSize) {
+    public Map<String, Object> getAdminDashboardData(Long periodId, String status, String keyword, Long filterDeptId, int page, int pageSize) {
         Map<String, Object> data = new HashMap<>();
 
         // 1. 차수 목록 조회 및 정렬
@@ -216,11 +216,12 @@ public class MyEvaluationFacadeServiceImpl implements MyEvaluationFacadeService 
         data.put("selectedPeriod", selectedPeriod);
 
         // 3. 어드민 전체 조회 (evaluator_id 필터 없음)
-        var pageData = mappingService.getAdminMyEvaluationDashboardTasks(activePeriodId, status, keyword, page, pageSize);
+        var pageData = mappingService.getAdminMyEvaluationDashboardTasks(activePeriodId, status, keyword, filterDeptId, page, pageSize);
         data.put("pageData", pageData);
         data.put("selectedPeriodId", activePeriodId);
         data.put("filterStatus", status);
         data.put("keyword", keyword);
+        data.put("filterDeptId", filterDeptId);
 
         return data;
     }

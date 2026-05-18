@@ -55,19 +55,39 @@ public class FinalGradeController {
     private final FinalGradeService finalGradeService;
     private final FinalGradeMapper finalGradeMapper;
     private final com.ees.eval.service.ScoreCalculationService scoreCalculationService;
+    private final com.ees.eval.support.ui.EvalFilterConfigFactory filterConfigFactory;
 
 
 
     @GetMapping
-    public String list(@ModelAttribute FinalGradeSearchCondition condition,
+    public String list(@RequestParam(required = false) Long periodId,
+                       @RequestParam(required = false) Long filterDeptId,
+                       @RequestParam(required = false) Long deptId, // fallback
+                       @RequestParam(required = false) String keyword,
+                       @RequestParam(required = false) String search, // fallback
+                       @RequestParam(required = false) String filterStatus,
+                       @RequestParam(required = false) String status, // fallback
+                       @RequestParam(required = false) String tab,
                        @AuthenticationPrincipal UserDetails userDetails,
                        Model model) {
         
-        String tab = condition.tab() != null ? condition.tab() : "leader";
-        Long periodId = condition.periodId();
+        String activeTab = tab != null ? tab : "leader";
+        
+        // Fallback 호환 레이어 적용
+        Long resolvedDeptId = filterDeptId != null ? filterDeptId : deptId;
+        String resolvedKeyword = keyword != null ? keyword : search;
+        String resolvedStatus = filterStatus != null ? filterStatus : status;
+
+        FinalGradeSearchCondition condition = new FinalGradeSearchCondition(
+                periodId,
+                resolvedDeptId,
+                resolvedKeyword,
+                activeTab,
+                resolvedStatus
+        );
         
         model.addAttribute("activeMenu", "final-grade");
-        model.addAttribute("activeTab", tab);
+        model.addAttribute("activeTab", activeTab);
         Long executiveEmpId = Long.parseLong(userDetails.getUsername());
 
         // 어드민 여부 판별
@@ -128,7 +148,7 @@ public class FinalGradeController {
                     activePeriodId, 
                     condition.deptId(), 
                     condition.search(), 
-                    tab,
+                    activeTab,
                     condition.status()
             );
 
@@ -149,6 +169,9 @@ public class FinalGradeController {
             model.addAttribute("staffCount", staffCount);
             
         }
+
+        // 공통 필터 바 구성 DTO 전달
+        model.addAttribute("filterConfig", filterConfigFactory.createFinalGradeConfig(periodId, resolvedStatus, resolvedKeyword, resolvedDeptId, activeTab));
 
         return "eval/final-grade/list";
     }

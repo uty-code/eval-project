@@ -249,7 +249,7 @@ class EmployeeControllerTest {
         // when & then
         mockMvc.perform(post("/employees/1001/unlock"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/employees"))
+                .andExpect(redirectedUrl("/employees/locked"))
                 .andExpect(flash().attributeExists("successMessage"));
 
         verify(employeeService).unlockAccount(1001L);

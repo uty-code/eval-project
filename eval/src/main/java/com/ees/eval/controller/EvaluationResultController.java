@@ -43,6 +43,7 @@ public class EvaluationResultController {
     private final DepartmentMapper departmentMapper;
     private final EvaluationReportService reportService;
     private final com.ees.eval.service.EvaluationGradeRatioService gradeRatioService;
+    private final com.ees.eval.support.ui.EvalFilterConfigFactory filterConfigFactory;
 
     /**
      * 평가 결과 현황 메인 페이지를 조회합니다.
@@ -55,13 +56,19 @@ public class EvaluationResultController {
      */
     @GetMapping
     public String list(@RequestParam(name = "periodId", required = false) Long periodId,
-                       @RequestParam(name = "deptId", required = false) Long deptId,
-                       @RequestParam(name = "search", required = false) String search,
+                       @RequestParam(name = "filterDeptId", required = false) Long filterDeptId,
+                       @RequestParam(name = "deptId", required = false) Long deptId, // fallback
+                       @RequestParam(name = "keyword", required = false) String keyword,
+                       @RequestParam(name = "search", required = false) String search, // fallback
                        @AuthenticationPrincipal UserDetails userDetails,
                        Model model) {
 
         model.addAttribute("activeMenu", "eval-result");
         Long loginEmpId = Long.parseLong(userDetails.getUsername());
+
+        // Fallback 호환 레이어 적용
+        Long resolvedDeptId = filterDeptId != null ? filterDeptId : deptId;
+        String resolvedKeyword = keyword != null ? keyword : search;
 
         // 1. 차수 목록 조회 (PLANNED 제외)
         List<EvaluationPeriodDTO> periods = periodService.getAllPeriods().stream()
@@ -84,8 +91,9 @@ public class EvaluationResultController {
         boolean isExecutive = userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_EXECUTIVE"));
 
+        List<com.ees.eval.dto.DepartmentDTO> deptDtos = new java.util.ArrayList<>();
         if (isAdmin || isExecutive) {
-            List<com.ees.eval.dto.DepartmentDTO> deptDtos = departments.stream()
+            deptDtos = departments.stream()
                     .map(d -> com.ees.eval.dto.DepartmentDTO.builder()
                             .deptId(d.getDeptId())
                             .parentDeptId(d.getParentDeptId())
@@ -96,9 +104,9 @@ public class EvaluationResultController {
         } else {
             Employee loginEmp = employeeMapper.findById(loginEmpId).orElse(null);
             if (loginEmp != null) {
-                deptId = loginEmp.getDeptId();
-                final Long managerDeptId = deptId;
-                List<com.ees.eval.dto.DepartmentDTO> deptDtos = departments.stream()
+                resolvedDeptId = loginEmp.getDeptId();
+                final Long managerDeptId = resolvedDeptId;
+                deptDtos = departments.stream()
                         .filter(d -> d.getDeptId().equals(managerDeptId))
                         .map(d -> com.ees.eval.dto.DepartmentDTO.builder()
                                 .deptId(d.getDeptId())
@@ -109,11 +117,11 @@ public class EvaluationResultController {
                 model.addAttribute("departments", deptDtos);
             }
         }
-        model.addAttribute("selectedDeptId", deptId);
-        model.addAttribute("search", search);
+        model.addAttribute("selectedDeptId", resolvedDeptId);
+        model.addAttribute("search", resolvedKeyword);
 
         // 3. 서비스 호출 — 핵심 로직 위임
-        List<EvaluationResultDTO> results = resultService.getResults(selectedPeriod.periodId(), deptId, search);
+        List<EvaluationResultDTO> results = resultService.getResults(selectedPeriod.periodId(), resolvedDeptId, resolvedKeyword);
 
         if (results.isEmpty()) {
             model.addAttribute("infoMessage", "평가 매핑이 설정되지 않았습니다.");
@@ -140,10 +148,13 @@ public class EvaluationResultController {
         model.addAttribute("leaderCount", leaderCount);
 
         // 6. 부서 선택 시에만 상대평가 비율(gradeRatio)을 뷰로 전달
-        if (deptId != null) {
-            com.ees.eval.dto.EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatio(selectedPeriod.periodId(), deptId);
+        if (resolvedDeptId != null) {
+            com.ees.eval.dto.EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatio(selectedPeriod.periodId(), resolvedDeptId);
             model.addAttribute("gradeRatio", ratio);
         }
+
+        // 공통 필터 바 구성 DTO 전달
+        model.addAttribute("filterConfig", filterConfigFactory.createResultConfig(selectedPeriod.periodId(), resolvedKeyword, resolvedDeptId, deptDtos));
 
         return "eval/result/list";
     }
@@ -153,12 +164,17 @@ public class EvaluationResultController {
      */
     @GetMapping("/excel")
     public void downloadExcel(@RequestParam(name = "periodId", required = false) Long periodId,
-                              @RequestParam(name = "deptId", required = false) Long deptId,
-                              @RequestParam(name = "search", required = false) String search,
+                              @RequestParam(name = "filterDeptId", required = false) Long filterDeptId,
+                              @RequestParam(name = "deptId", required = false) Long deptId, // fallback
+                              @RequestParam(name = "keyword", required = false) String keyword,
+                              @RequestParam(name = "search", required = false) String search, // fallback
                               @AuthenticationPrincipal UserDetails userDetails,
                               HttpServletResponse response) throws IOException {
 
-        log.info("Excel download requested: periodId={}, deptId={}", periodId, deptId);
+        Long resolvedDeptId = filterDeptId != null ? filterDeptId : deptId;
+        String resolvedKeyword = keyword != null ? keyword : search;
+
+        log.info("Excel download requested: periodId={}, deptId={}", periodId, resolvedDeptId);
 
         // 1. 차수 결정 로직 개선
         List<EvaluationPeriodDTO> periods = periodService.getAllPeriods().stream()
@@ -175,7 +191,7 @@ public class EvaluationResultController {
         }
 
         // 2. 결과 데이터 조회
-        List<EvaluationResultDTO> results = resultService.getResults(selectedPeriod.periodId(), deptId, search);
+        List<EvaluationResultDTO> results = resultService.getResults(selectedPeriod.periodId(), resolvedDeptId, resolvedKeyword);
 
         // 3. 프리미엄 리포트 서비스 호출 (Excel 생성 및 스트림 출력)
         reportService.generatePremiumReport(selectedPeriod, results, response);

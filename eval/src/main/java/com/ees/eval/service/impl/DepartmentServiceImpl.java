@@ -141,6 +141,38 @@ public class DepartmentServiceImpl implements DepartmentService {
      */
     @Override
     @Transactional(readOnly = true)
+    public List<DepartmentDTO> getPrunedDepartmentTree(java.util.Set<Long> validDeptIds) {
+        if (validDeptIds == null || validDeptIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<DepartmentDTO> allDepts = getAllDepartments();
+        
+        // 1. Ancestor Closure 셋 구축: validDeptIds에 포함된 부서의 모든 조상 ID를 추적
+        java.util.Set<Long> keepIds = new java.util.HashSet<>(validDeptIds);
+        Map<Long, Long> parentMap = allDepts.stream()
+                .filter(d -> d.parentDeptId() != null)
+                .collect(Collectors.toMap(DepartmentDTO::deptId, DepartmentDTO::parentDeptId));
+                
+        for (Long validId : validDeptIds) {
+            Long current = validId;
+            while (parentMap.containsKey(current)) {
+                current = parentMap.get(current);
+                keepIds.add(current);
+            }
+        }
+        
+        // 2. allDepts에서 keepIds에 포함된 부서만 남김 (트리 순서와 depth는 유지됨)
+        return allDepts.stream()
+                .filter(d -> keepIds.contains(d.deptId()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
     public long countActiveDepartments() {
         return departmentMapper.countActiveDepartments();
     }

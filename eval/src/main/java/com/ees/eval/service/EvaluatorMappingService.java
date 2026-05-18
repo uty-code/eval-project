@@ -193,7 +193,7 @@ public interface EvaluatorMappingService {
      * @return 자가평가 페이징 데이터 (MyEvaluationPageDTO)
      */
     com.ees.eval.dto.MyEvaluationPageDTO getAdminMyEvaluationDashboardTasks(
-            Long periodId, String filterStatus, String keyword, int page, int pageSize);
+            Long periodId, String filterStatus, String keyword, Long filterDeptId, int page, int pageSize);
 
     /**
      * 어드민용: 전체 다면평가 태스크를 조회합니다.

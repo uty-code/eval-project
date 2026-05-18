@@ -184,59 +184,8 @@
         </div>
 
         <div id="my-eval-container">
-            <!-- 필터 섹션 (Filter Bar Design System 적용) -->
-            <div class="ees-card mb-4 p-4">
-                <form id="filterForm" class="ees-filter-form" hx-get="/eval/my-evaluation/list" hx-target="#my-eval-container"
-                    hx-select="#my-eval-container" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace">
-                    
-                    <!-- 평가 차수 -->
-                    <div class="ees-filter-group" style="flex: 1 1 300px;">
-                        <label for="periodId" class="ees-filter-label">
-                            <i class="bi bi-calendar-event me-1"></i>평가 차수
-                        </label>
-                        <div class="ees-filter-control-wrap">
-                            <select name="periodId" id="periodId" class="ees-filter-control form-select">
-                                <option value="">전체 차수</option>
-                                <option th:each="p : ${periods}" th:value="${p.periodId()}"
-                                    th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
-                                    th:selected="${selectedPeriodId == p.periodId()}"></option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- 작성 상태 -->
-                    <div class="ees-filter-group" style="flex: 1 1 200px;">
-                        <label for="filterStatus" class="ees-filter-label">
-                            <i class="bi bi-check-circle me-1"></i>작성 상태
-                        </label>
-                        <div class="ees-filter-control-wrap">
-                            <select name="filterStatus" id="filterStatus" class="ees-filter-control form-select">
-                                <option value="">전체 상태</option>
-                                <option value="WAITING" th:selected="${filterStatus == 'WAITING'}">작성 대기</option>
-                                <option value="SUBMITTED" th:selected="${filterStatus == 'SUBMITTED'}">제출 완료</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- 차수명 검색 -->
-                    <div class="ees-filter-group flex-grow-1">
-                        <label for="keyword" class="ees-filter-label">
-                            <i class="bi bi-person-search me-1"></i>차수명 검색
-                        </label>
-                        <div class="ees-filter-control-wrap">
-                            <input type="text" name="keyword" id="keyword" class="ees-filter-control form-control"
-                                placeholder="차수 이름 입력" th:value="${keyword}" autocomplete="off">
-                        </div>
-                    </div>
-
-                    <!-- 액션 버튼 -->
-                    <div class="ees-filter-actions">
-                        <button type="submit" class="btn-ees-filter">
-                            <i class="bi bi-search"></i>조회
-                        </button>
-                    </div>
-                </form>
-            </div>
+            <!-- 공통 필터 바 fragment 연동 -->
+            <div th:replace="~{fragments/eval-filter-bar :: filterBar(${filterConfig})}"></div>
 
             <!-- 1. 평가가 시작되지 않은 계획(PLANNED) 차수 선택 시 노출할 카드 배너 -->
             <div th:if="${selectedPeriod != null && selectedPeriod.statusCode() == 'PLANNED'}"

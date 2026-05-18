@@ -145,7 +145,7 @@ class EvaluationTypeWeightServiceImplTest {
 
         // then
         verify(weightMapper).deleteByPeriodId(periodId, deptId, roleCode);
-        verify(weightMapper, times(2)).insert(any(EvaluationTypeWeight.class));
+        verify(weightMapper).insertBatch(anyList());
     }
 
     @Test
