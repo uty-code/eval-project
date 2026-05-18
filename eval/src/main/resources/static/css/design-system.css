@@ -407,7 +407,7 @@
     position: relative;
 }
 
-.weight-section:not(:last-child)::after {
+.weight-section:not(:last-child):not(.border-0)::after {
     content: '';
     position: absolute;
     right: 0;
