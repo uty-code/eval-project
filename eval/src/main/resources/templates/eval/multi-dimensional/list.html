@@ -316,31 +316,11 @@
                         </table>
                     </div>
 
-                    <!-- 페이징네이션 -->
-                    <div th:if="${pageData.totalPages() > 1}" class="pagination-container pb-4">
-                        <button class="btn btn-sm btn-outline-secondary text-white border-0"
-                            th:classappend="${!pageData.hasPrevious()} ? 'disabled'"
-                            th:attr="hx-get=@{/eval/multi-dimensional(periodId=${selectedPeriod?.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() - 1})}"
-                            hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
-                            hx-push-url="true" hx-sync="this:replace">
-                            <i class="bi bi-chevron-left"></i>
-                        </button>
-
-                        <button th:each="i : ${#numbers.sequence(1, pageData.totalPages())}"
-                            th:class="${i == pageData.currentPage()} ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-secondary text-white border-0'"
-                            th:text="${i}"
-                            th:attr="hx-get=@{/eval/multi-dimensional(periodId=${selectedPeriod?.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${i})}"
-                            hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
-                            hx-push-url="true" hx-sync="this:replace">
-                        </button>
-
-                        <button class="btn btn-sm btn-outline-secondary text-white border-0"
-                            th:classappend="${!pageData.hasNext()} ? 'disabled'"
-                            th:attr="hx-get=@{/eval/multi-dimensional(periodId=${selectedPeriod?.periodId()}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() + 1})}"
-                            hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
-                            hx-push-url="true" hx-sync="this:replace">
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
+                    <!-- 페이지네이션 UI (v2 제네릭 프래그먼트 사용) -->
+                    <div class="d-flex justify-content-center mt-3 mb-2">
+                        <div
+                            th:replace="~{fragments/pagination :: pagination(${pageData}, '/eval/multi-dimensional', '#page-content', '#filterForm')}">
+                        </div>
                     </div>
                 </div>
             </div>
