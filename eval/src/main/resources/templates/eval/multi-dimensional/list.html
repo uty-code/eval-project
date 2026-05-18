@@ -278,8 +278,9 @@
 
                 <div th:if="${pageData == null || pageData.tasks().isEmpty()}"
                     class="ees-card text-center py-5 border-0 shadow-sm rounded-3 mb-4">
-                    <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
-                    <h5 class="fw-bold text-white">조건에 맞는 다면평가 대상자가 없습니다.</h5>
+                    <i class="bi bi-search fs-1 text-muted mb-3 d-block opacity-50"></i>
+                    <h5 class="fw-bold text-white mb-2">검색 결과가 없습니다</h5>
+                    <p class="text-muted small mb-0">필터 조건을 변경하거나 검색어를 확인해 주세요.</p>
                 </div>
 
                 <!-- 테이블 영역 -->
