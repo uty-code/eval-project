@@ -70,3 +70,7 @@ score.json
 # Exclude all README files
 README.md
 **/README.md
+
+# 6. Benchmarks
+eval/benchmarks/
+**/benchmarks/
