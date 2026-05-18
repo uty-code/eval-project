@@ -38,7 +38,7 @@
             </label>
             <div class="ees-filter-control-wrap">
                 <select name="periodId" id="periodId" class="ees-filter-control form-select">
-                    <option th:if="${config.periodFilter().showAll()}" value="">전체 차수 통합</option>
+                    <option th:if="${config.periodFilter().showAll()}" value="0">전체 차수 통합</option>
                     <option th:each="p : ${config.periodFilter().periods()}" 
                             th:value="${p.periodId()}"
                             th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"

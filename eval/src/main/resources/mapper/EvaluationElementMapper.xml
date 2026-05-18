@@ -187,8 +187,10 @@
             updated_at        as UPDATED_AT,
             updated_by        as UPDATED_BY
         from evaluation_elements_51
-        where period_id = #{periodId}
-          and is_deleted = 'n'
+        where is_deleted = 'n'
+          <if test="periodId != null">
+              and period_id = #{periodId}
+          </if>
           and (
               dept_id is null
               <if test="deptIds != null and deptIds.size() > 0">

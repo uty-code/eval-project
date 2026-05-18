@@ -42,9 +42,21 @@ class EvaluationResultServiceTest {
     @Mock private DepartmentMapper departmentMapper;
     @Mock private EvaluationElementService elementService;
     @Mock private ScoreCalculationService scoreCalculationService;
+    @Mock private EvaluationPeriodService periodService;
 
     @InjectMocks
     private EvaluationResultServiceImpl resultService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        org.mockito.Mockito.lenient().when(periodService.getAllPeriods()).thenReturn(List.of(
+                com.ees.eval.dto.EvaluationPeriodDTO.builder()
+                        .periodId(1L)
+                        .periodYear(2025)
+                        .periodName("2025 상반기")
+                        .build()
+        ));
+    }
 
     private final Long periodId = 1L;
     private final Long empId = 2000L;
@@ -66,6 +78,7 @@ class EvaluationResultServiceTest {
         m.setEvaluateeId(evaluateeId);
         m.setRelationTypeCode(relationType);
         m.setIsDeleted("n");
+        m.setPeriodId(periodId);
         return m;
     }
 

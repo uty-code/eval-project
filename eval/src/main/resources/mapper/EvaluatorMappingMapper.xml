@@ -246,8 +246,10 @@
             relation_type_code  as RELATION_TYPE_CODE,
             is_deleted          as IS_DELETED
         from evaluator_mappings_51
-        where period_id = #{periodId}
-          and is_deleted = 'n'
+        where is_deleted = 'n'
+        <if test="periodId != null">
+          and period_id = #{periodId}
+        </if>
     </select>
 
     <!-- 관리자 전체 열람용: 특정 관계유형의 모든 매핑 조회 (evaluator_id 필터 없음) -->

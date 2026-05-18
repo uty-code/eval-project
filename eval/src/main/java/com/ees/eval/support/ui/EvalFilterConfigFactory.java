@@ -50,8 +50,8 @@ public class EvalFilterConfigFactory {
      */
     public EvalFilterConfig createMyEvalConfig(Long periodId, String filterStatus, String keyword, Long filterDeptId, boolean isAdmin) {
         List<EvaluationPeriodDTO> periods = getSortedPeriods();
-        EvaluationPeriodDTO selected = periodService.resolveSelectedPeriod(periodId, periods);
-        Long selectedId = selected != null ? selected.periodId() : null;
+        EvaluationPeriodDTO selected = periodService.resolveSelectedPeriod(periodId != null && periodId > 0 ? periodId : null, periods);
+        Long selectedId = (periodId != null && periodId == 0L) ? 0L : (selected != null ? selected.periodId() : 0L);
 
         List<FilterOption> statusOptions = List.of(
             new FilterOption("WAITING", "대기"),
@@ -78,8 +78,8 @@ public class EvalFilterConfigFactory {
      */
     public EvalFilterConfig createMultiDimensionalConfig(Long periodId, String filterStatus, String keyword, Long filterDeptId) {
         List<EvaluationPeriodDTO> periods = getSortedPeriods();
-        EvaluationPeriodDTO selected = periodService.resolveSelectedPeriod(periodId, periods);
-        Long selectedId = selected != null ? selected.periodId() : null;
+        EvaluationPeriodDTO selected = periodService.resolveSelectedPeriod(periodId != null && periodId > 0 ? periodId : null, periods);
+        Long selectedId = (periodId != null && periodId == 0L) ? 0L : (selected != null ? selected.periodId() : 0L);
 
         List<FilterOption> statusOptions = List.of(
             new FilterOption("WAITING", "대기"),
@@ -103,8 +103,8 @@ public class EvalFilterConfigFactory {
      */
     public EvalFilterConfig createPerformanceConfig(Long periodId, String filterStatus, String keyword, Long filterDeptId) {
         List<EvaluationPeriodDTO> periods = getSortedPeriods();
-        EvaluationPeriodDTO selected = periodService.resolveSelectedPeriod(periodId, periods);
-        Long selectedId = selected != null ? selected.periodId() : null;
+        EvaluationPeriodDTO selected = periodService.resolveSelectedPeriod(periodId != null && periodId > 0 ? periodId : null, periods);
+        Long selectedId = (periodId != null && periodId == 0L) ? 0L : (selected != null ? selected.periodId() : 0L);
 
         List<FilterOption> statusOptions = List.of(
             new FilterOption("대기", "대기"),
@@ -160,14 +160,15 @@ public class EvalFilterConfigFactory {
         List<EvaluationPeriodDTO> periods = getSortedPeriods().stream()
             .filter(p -> !"PLANNED".equals(p.statusCode()))
             .toList();
-        EvaluationPeriodDTO selected = periodService.resolveSelectedPeriod(periodId, periods);
-        Long selectedId = selected != null ? selected.periodId() : null;
+        
+        EvaluationPeriodDTO selected = periodService.resolveSelectedPeriod(periodId != null && periodId > 0 ? periodId : null, periods);
+        Long selectedId = (periodId != null && periodId == 0L) ? 0L : (selected != null ? selected.periodId() : 0L);
 
         return EvalFilterConfig.builder()
             .actionUrl("/eval/result")
             .htmxTarget("#page-content")
             .htmxSelect("#page-content")
-            .periodFilter(new EvalFilterConfig.PeriodFilter(true, periods, selectedId, false))
+            .periodFilter(new EvalFilterConfig.PeriodFilter(true, periods, selectedId, true))
             .deptFilter(new EvalFilterConfig.DeptFilter(true, filteredDepts, filterDeptId))
             .statusFilter(new EvalFilterConfig.StatusFilter(false, Collections.emptyList(), null)) // 결과는 상태 필터가 없음
             .keywordFilter(new EvalFilterConfig.KeywordFilter(true, keyword, "사번 또는 성명 입력"))

@@ -128,11 +128,20 @@ public class PerformanceEvaluationController {
 
         // 4. 선택된 차수 정보 결정 (null이면 전체 통합 조회)
         EvaluationPeriodDTO selectedPeriod = null;
-        if (periodId != null) {
+        if (periodId != null && periodId > 0) {
             selectedPeriod = allPeriods.stream()
                     .filter(p -> p.periodId().equals(periodId))
                     .findFirst()
                     .orElse(null);
+        } else if (periodId != null && periodId == 0L) {
+            selectedPeriod = EvaluationPeriodDTO.builder()
+                .periodId(0L)
+                .periodYear(java.time.LocalDate.now().getYear())
+                .periodName("전체 차수 통합")
+                .statusCode("COMPLETED")
+                .startDate(java.time.LocalDate.now())
+                .endDate(java.time.LocalDate.now())
+                .build();
         }
         model.addAttribute("selectedPeriod", selectedPeriod);
 
@@ -141,14 +150,15 @@ public class PerformanceEvaluationController {
                 .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
         model.addAttribute("isAdminView", isAdmin);
 
-        // 5. 데이터 조회 (periodId가 null이면 전체 기간 조회)
+        // 5. 데이터 조회 (periodId가 null 또는 0L이면 전체 기간 조회)
         List<EvaluatorMappingDTO> myTasks;
+        Long queryPeriodId = (periodId != null && periodId == 0L) ? null : periodId;
         if (isAdmin) {
             // 어드민: 전체 성과/역량 매핑 조회 (evaluator_id 필터 없음)
-            myTasks = mappingService.getAllPerformanceTasks(periodId);
+            myTasks = mappingService.getAllPerformanceTasks(queryPeriodId);
         } else {
             // 일반 유저: 기존 로직 유지
-            myTasks = mappingService.getMyEvaluationTasks(periodId, empId);
+            myTasks = mappingService.getMyEvaluationTasks(queryPeriodId, empId);
         }
 
         if (!myTasks.isEmpty()) {
@@ -343,9 +353,10 @@ public class PerformanceEvaluationController {
                 else evalStatus = "대기";
 
                 // CTA 상태 처리
+                boolean isPeriodActive = periodService.isPeriodActive(task.periodId());
                 boolean isLocked = teamLockMap.getOrDefault(task.mappingId(), false);
                 String ctaStatus;
-                if (isLocked) {
+                if (!isPeriodActive || isLocked) {
                     ctaStatus = "LOCKED";
                 } else if (!weightValid) {
                     ctaStatus = "WEIGHT_ERROR";

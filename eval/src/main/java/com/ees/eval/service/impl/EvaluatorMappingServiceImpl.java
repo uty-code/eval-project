@@ -1242,9 +1242,22 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
             if (isLocked) {
                 ctaType = MyEvaluationCtaType.LOCKED;
             } else {
-                // 제출 여부와 관계없이 잠기지 않았다면 '수정' 가능 상태(EDIT)로 표시
-                // (이미 제출된 경우 템플릿에서 '수정' 텍스트로 자동 전환됨)
-                ctaType = MyEvaluationCtaType.EDIT;
+                // 평가 차수의 활성 상태 판별 (IN_PROGRESS 상태일 때만 활성)
+                boolean isPeriodActive = false;
+                if (task.getPeriodId() != null) {
+                    isPeriodActive = periodMapper.findById(task.getPeriodId())
+                            .map(p -> "IN_PROGRESS".equals(p.getStatusCode()))
+                            .orElse(false);
+                }
+
+                if (!isPeriodActive) {
+                    // 평가 기간이 종료되었거나 비활성 상태인 과거 차수 데이터는 무조건 VIEW(조회 전용) 처리!
+                    ctaType = MyEvaluationCtaType.VIEW;
+                } else {
+                    // 제출 여부와 관계없이 잠기지 않았으며 진행 중인 차수라면 '수정' 가능 상태(EDIT)로 표시
+                    // (이미 제출된 경우 템플릿에서 '수정' 텍스트로 자동 전환됨)
+                    ctaType = MyEvaluationCtaType.EDIT;
+                }
             }
 
             // (D) 상태 필터링

@@ -631,17 +631,7 @@ public class FinalGradeServiceImpl implements FinalGradeService {
         return mgr;
     }
 
-    /**
-     * 종합 점수 기반으로 절대평가 등급을 추정합니다.
-     * FinalGrade 레코드가 없는 경우 UI에 예상 등급을 표시하기 위한 간이 기준입니다.
-     */
-    private String deriveGradeFromScore(int score) {
-        if (score >= 90) return "S";
-        if (score >= 80) return "A";
-        if (score >= 70) return "B";
-        if (score >= 60) return "C";
-        return "D";
-    }
+
 
     /**
      * 어드민용: 전체 최종 등급 대상자 목록 조회

@@ -49,7 +49,10 @@ public class EvaluationResultController {
      * 평가 결과 현황 메인 페이지를 조회합니다.
      *
      * @param periodId    평가 차수 ID (선택)
-     * @param deptId      부서 필터 ID (선택)
+     * @param filterDeptId 부서 필터 ID (선택)
+     * @param deptId      부서 필터 ID (선택) (Fallback)
+     * @param keyword     검색 키워드 (선택)
+     * @param search      검색 키워드 (선택) (Fallback)
      * @param userDetails 로그인 사용자
      * @param model       뷰 모델
      * @return 평가 결과 현황 뷰 경로
@@ -76,7 +79,19 @@ public class EvaluationResultController {
                 .collect(Collectors.toList());
         model.addAttribute("periods", periods);
 
-        EvaluationPeriodDTO selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
+        EvaluationPeriodDTO selectedPeriod;
+        if (periodId != null && periodId == 0L) {
+            selectedPeriod = EvaluationPeriodDTO.builder()
+                    .periodId(0L)
+                    .periodName("전체 차수 통합")
+                    .periodYear(0)
+                    .statusCode("IN_PROGRESS")
+                    .startDate(java.time.LocalDate.now())
+                    .endDate(java.time.LocalDate.now())
+                    .build();
+        } else {
+            selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
+        }
         model.addAttribute("selectedPeriod", selectedPeriod);
 
         if (selectedPeriod == null) {
@@ -125,6 +140,7 @@ public class EvaluationResultController {
 
         if (results.isEmpty()) {
             model.addAttribute("infoMessage", "평가 매핑이 설정되지 않았습니다.");
+            model.addAttribute("filterConfig", filterConfigFactory.createResultConfig(selectedPeriod.periodId(), resolvedKeyword, resolvedDeptId, deptDtos));
             return "eval/result/list";
         }
 
@@ -147,8 +163,8 @@ public class EvaluationResultController {
         model.addAttribute("staffCount", staffCount);
         model.addAttribute("leaderCount", leaderCount);
 
-        // 6. 부서 선택 시에만 상대평가 비율(gradeRatio)을 뷰로 전달
-        if (resolvedDeptId != null) {
+        // 6. 부서 선택 및 단일 차수일 때에만 상대평가 비율(gradeRatio)을 뷰로 전달
+        if (resolvedDeptId != null && selectedPeriod.periodId() != 0L) {
             com.ees.eval.dto.EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatio(selectedPeriod.periodId(), resolvedDeptId);
             model.addAttribute("gradeRatio", ratio);
         }
@@ -181,8 +197,19 @@ public class EvaluationResultController {
                 .filter(p -> !"PLANNED".equals(p.statusCode()))
                 .collect(Collectors.toList());
 
-        EvaluationPeriodDTO selectedPeriod = periodService.resolveSelectedPeriod(
-                (periodId != null && periodId > 0) ? periodId : null, periods);
+        EvaluationPeriodDTO selectedPeriod;
+        if (periodId != null && periodId == 0L) {
+            selectedPeriod = EvaluationPeriodDTO.builder()
+                    .periodId(0L)
+                    .periodName("전체 차수 통합")
+                    .periodYear(0)
+                    .statusCode("IN_PROGRESS")
+                    .startDate(java.time.LocalDate.now())
+                    .endDate(java.time.LocalDate.now())
+                    .build();
+        } else {
+            selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
+        }
 
         if (selectedPeriod == null) {
             log.warn("No evaluation period found for excel download. periodId={}", periodId);

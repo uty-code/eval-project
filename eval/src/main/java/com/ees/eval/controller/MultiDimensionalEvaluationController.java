@@ -108,18 +108,27 @@ public class MultiDimensionalEvaluationController {
 
         // 4. 선택된 차수 정보 결정 (null이면 전체 통합 조회)
         EvaluationPeriodDTO selectedPeriod = null;
-        if (periodId != null) {
+        if (periodId != null && periodId > 0) {
             selectedPeriod = allPeriods.stream()
                     .filter(p -> p.periodId().equals(periodId))
                     .findFirst()
                     .orElse(null);
+        } else if (periodId != null && periodId == 0L) {
+            selectedPeriod = EvaluationPeriodDTO.builder()
+                .periodId(0L)
+                .periodYear(java.time.LocalDate.now().getYear())
+                .periodName("전체 차수 통합")
+                .statusCode("COMPLETED")
+                .startDate(java.time.LocalDate.now())
+                .endDate(java.time.LocalDate.now())
+                .build();
         }
         model.addAttribute("selectedPeriod", selectedPeriod);
 
         // 5. 데이터 조회
         int pageSize = 10;
-        Long targetPeriodId = (selectedPeriod != null) ? selectedPeriod.periodId() : null;
-        boolean isPeriodActive = (selectedPeriod != null) && periodService.isPeriodActive(selectedPeriod.periodId());
+        Long targetPeriodId = (selectedPeriod != null && selectedPeriod.periodId() > 0) ? selectedPeriod.periodId() : null;
+        boolean isPeriodActive = (selectedPeriod != null && selectedPeriod.periodId() > 0) && periodService.isPeriodActive(selectedPeriod.periodId());
         
         model.addAttribute("isPeriodActive", isPeriodActive);
 
