@@ -117,56 +117,8 @@
             </div>
         </div>
 
-        <!-- Filter Section (Filter Bar Design System 적용) -->
-        <div class="ees-card mb-4 p-3">
-            <form th:action="@{/eval/result}" method="get" class="ees-filter-form">
-                
-                <!-- 평가 차수 -->
-                <div class="ees-filter-group" style="flex: 1 1 200px;">
-                    <label class="ees-filter-label">
-                        <i class="bi bi-calendar-check me-1"></i>평가 차수
-                    </label>
-                    <div class="ees-filter-control-wrap">
-                        <select name="periodId" class="ees-filter-control form-select">
-                            <option th:each="p : ${periods}" th:value="${p.periodId()}"
-                                    th:text="${p.periodYear() + '년 ' + p.periodName()}"
-                                    th:selected="${selectedPeriod != null and p.periodId() == selectedPeriod.periodId()}"></option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- 부서 필터 -->
-                <div class="ees-filter-group" style="flex: 1 1 220px;">
-                    <label class="ees-filter-label">
-                        <i class="bi bi-building me-1"></i>부서
-                    </label>
-                    <div class="ees-filter-control-wrap">
-                        <div th:replace="~{fragments/dept-select :: deptSelect(
-                            ${departments}, ${selectedDeptId}, 'deptId', '전체 부서', false)}">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 성명/사번 검색 -->
-                <div class="ees-filter-group flex-grow-1">
-                    <label class="ees-filter-label">
-                        <i class="bi bi-person-search me-1"></i>검색
-                    </label>
-                    <div class="ees-filter-control-wrap">
-                        <input type="text" name="search" th:value="${search}" class="form-control ees-filter-control" 
-                               placeholder="성명 또는 사번 입력" autocomplete="off">
-                    </div>
-                </div>
-
-                <!-- 액션 버튼 -->
-                <div class="ees-filter-actions">
-                    <label class="ees-filter-label"></label> <!-- 정렬용 빈 라벨 -->
-                    <button type="submit" class="btn-ees-filter" id="btn-search">
-                        <i class="bi bi-search"></i>조회
-                    </button>
-                </div>
-            </form>
-        </div>
+        <!-- 공통 필터 바 fragment 연동 -->
+        <div th:replace="~{fragments/eval-filter-bar :: filterBar(${filterConfig})}"></div>
 
         <!-- 정보 메시지 -->
         <div th:if="${infoMessage}" class="ees-card p-4 text-center mb-4" style="color:rgba(255,255,255,.5)">

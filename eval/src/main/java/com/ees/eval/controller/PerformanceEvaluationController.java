@@ -14,6 +14,7 @@ import com.ees.eval.service.EvaluationPeriodService;
 import com.ees.eval.service.EvaluationService;
 import com.ees.eval.service.EvaluationTypeWeightService;
 import com.ees.eval.service.EvaluatorMappingService;
+import com.ees.eval.service.DepartmentService;
 import com.ees.eval.service.ScoreCalculationService;
 import com.ees.eval.domain.FinalGrade;
 import com.ees.eval.mapper.FinalGradeMapper;
@@ -58,6 +59,8 @@ public class PerformanceEvaluationController {
     private final ScoreCalculationService scoreCalculationService;
     private final FinalGradeMapper finalGradeMapper;
     private final DepartmentMapper departmentMapper;
+    private final DepartmentService departmentService;
+    private final com.ees.eval.support.ui.EvalFilterConfigFactory filterConfigFactory;
 
     /**
      * 부서별 평가 요소를 캐싱하여 동일 부서에 대한 중복 DB 호출을 방지합니다.
@@ -73,11 +76,18 @@ public class PerformanceEvaluationController {
     public String list(Model model,
             @RequestParam(required = false) Long periodId,
             @RequestParam(required = false) Long filterDeptId,
+            @RequestParam(required = false) Long deptId, // fallback
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String search, // fallback
             @RequestParam(required = false) String filterStatus,
+            @RequestParam(required = false) String status, // fallback
             @RequestParam(defaultValue = "1") int page,
             @AuthenticationPrincipal UserDetails userDetails,
             jakarta.servlet.http.HttpServletRequest request) {
+
+        Long resolvedDeptId = filterDeptId != null ? filterDeptId : deptId;
+        String resolvedKeyword = keyword != null ? keyword : search;
+        String resolvedStatus = filterStatus != null ? filterStatus : status;
 
         model.addAttribute("activeMenu", "performance-eval");
 
@@ -368,11 +378,11 @@ public class PerformanceEvaluationController {
 
             // ========== 필터링 ==========
             java.util.List<com.ees.eval.dto.PerformanceEvalRowDTO> filteredList = rowList.stream()
-                    .filter(r -> filterDeptId == null || filterDeptId.equals(r.deptId()))
-                    .filter(r -> filterStatus == null || filterStatus.isEmpty() || filterStatus.equals(r.evalStatus()))
-                    .filter(r -> keyword == null || keyword.isEmpty() || 
-                                 r.name().contains(keyword) || 
-                                 r.empId().toString().contains(keyword))
+                    .filter(r -> resolvedDeptId == null || resolvedDeptId.equals(r.deptId()))
+                    .filter(r -> resolvedStatus == null || resolvedStatus.isEmpty() || resolvedStatus.equals(r.evalStatus()))
+                    .filter(r -> resolvedKeyword == null || resolvedKeyword.isEmpty() || 
+                                 r.name().contains(resolvedKeyword) || 
+                                 r.empId().toString().contains(resolvedKeyword))
                     .collect(java.util.stream.Collectors.toList());
 
             // ========== 정렬 (기본: 부서, 직급, 이름 순) ==========
@@ -397,22 +407,8 @@ public class PerformanceEvaluationController {
             
             model.addAttribute("pageData", pageData);
             
-            // 필터 드롭다운용 부서 목록 추출
-            java.util.List<com.ees.eval.dto.DepartmentDTO> filterDepts = teamTasks.stream()
-                    .map(t -> evaluateeMap.get(t.evaluateeId()))
-                    .filter(java.util.Objects::nonNull)
-                    .map(e -> com.ees.eval.dto.DepartmentDTO.builder()
-                            .deptId(e.getDeptId())
-                            .deptName(e.getDeptName())
-                            .build())
-                    .filter(d -> d.deptId() != null)
-                    .collect(java.util.stream.Collectors.collectingAndThen(
-                            java.util.stream.Collectors.toMap(
-                                    com.ees.eval.dto.DepartmentDTO::deptId, d -> d, (e1, e2) -> e1
-                            ),
-                            m -> new java.util.ArrayList<>(m.values())
-                    ));
-            filterDepts.sort(java.util.Comparator.comparing(com.ees.eval.dto.DepartmentDTO::deptName));
+            // 필터 드롭다운용 부서 목록 추출 (모두 전체 조직 트리를 조회할 수 있도록 변경)
+            java.util.List<com.ees.eval.dto.DepartmentDTO> filterDepts = departmentService.getAllDepartments();
             model.addAttribute("departments", filterDepts);
 
             // 자가평가 가중치 유효성 (현재 선택된 차수 또는 첫 번째 차수 기준)
@@ -440,9 +436,12 @@ public class PerformanceEvaluationController {
 
         // 필터 상태 유지
         model.addAttribute("periodId", periodId);
-        model.addAttribute("filterDeptId", filterDeptId);
-        model.addAttribute("keyword", keyword);
-        model.addAttribute("filterStatus", filterStatus);
+        model.addAttribute("filterDeptId", resolvedDeptId);
+        model.addAttribute("keyword", resolvedKeyword);
+        model.addAttribute("filterStatus", resolvedStatus);
+
+        // 공통 필터 바 구성 DTO 전달
+        model.addAttribute("filterConfig", filterConfigFactory.createPerformanceConfig(periodId, resolvedStatus, resolvedKeyword, resolvedDeptId));
 
         return "eval/performance/list";
     }

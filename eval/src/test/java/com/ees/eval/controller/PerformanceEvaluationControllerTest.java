@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Collections;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -61,6 +62,12 @@ class PerformanceEvaluationControllerTest {
     private EmployeeMapper employeeMapper;
 
     @Mock
+    private com.ees.eval.service.DepartmentService departmentService;
+
+    @Mock
+    private com.ees.eval.support.ui.EvalFilterConfigFactory filterConfigFactory;
+
+    @Mock
     private FinalGradeMapper finalGradeMapper;
 
     @InjectMocks
@@ -68,6 +75,18 @@ class PerformanceEvaluationControllerTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient()
+                .when(filterConfigFactory.createPerformanceConfig(any(), any(), any(), any()))
+                .thenReturn(com.ees.eval.dto.EvalFilterConfig.builder().build());
+
+        org.mockito.Mockito.lenient()
+                .when(departmentService.getAllDepartments())
+                .thenReturn(Collections.emptyList());
+
+        org.mockito.Mockito.lenient()
+                .when(finalGradeMapper.findByPeriodIds(any()))
+                .thenReturn(Collections.emptyList());
+
         mockMvc = MockMvcBuilders.standaloneSetup(performanceEvaluationController)
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();

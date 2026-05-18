@@ -27,6 +27,7 @@ import java.util.Map;
 public class MyEvaluationController {
 
     private final MyEvaluationFacadeService myEvaluationFacadeService;
+    private final com.ees.eval.support.ui.EvalFilterConfigFactory filterConfigFactory;
 
     /**
      * 자가평가 메인 페이지 (대시보드 리스트)
@@ -37,6 +38,7 @@ public class MyEvaluationController {
             @RequestParam(required = false) Long periodId,
             @RequestParam(required = false) String filterStatus,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long filterDeptId,
             @RequestParam(defaultValue = "1") int page,
             @AuthenticationPrincipal UserDetails userDetails) {
 
@@ -46,9 +48,12 @@ public class MyEvaluationController {
         boolean isAdmin = userDetails.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
 
+        // 부서 필터는 오직 어드민(관리자) 뷰에서만 활성화됩니다.
+        Long resolvedDeptId = isAdmin ? filterDeptId : null;
+
         if (isAdmin) {
             // 어드민: 전체 자가평가 현황 조회 (evaluator_id 필터 없음)
-            Map<String, Object> dashboardData = myEvaluationFacadeService.getAdminDashboardData(periodId, filterStatus, keyword, page, 10);
+            Map<String, Object> dashboardData = myEvaluationFacadeService.getAdminDashboardData(periodId, filterStatus, keyword, resolvedDeptId, page, 10);
             model.addAllAttributes(dashboardData);
             model.addAttribute("isAdminView", true);
         } else {
@@ -58,6 +63,9 @@ public class MyEvaluationController {
             model.addAllAttributes(dashboardData);
             model.addAttribute("isAdminView", false);
         }
+
+        // 공통 필터 바용 구성 설정 주입
+        model.addAttribute("filterConfig", filterConfigFactory.createMyEvalConfig(periodId, filterStatus, keyword, resolvedDeptId, isAdmin));
 
         return "eval/my-evaluation/list";
     }

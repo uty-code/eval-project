@@ -1329,7 +1329,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     @Override
     @Transactional(readOnly = true)
     public MyEvaluationPageDTO getAdminMyEvaluationDashboardTasks(
-            Long periodId, String filterStatus, String keyword, int page, int pageSize) {
+            Long periodId, String filterStatus, String keyword, Long filterDeptId, int page, int pageSize) {
 
         // 1. 전체 SELF 매핑 조회 (evaluator_id 필터 없음)
         List<EvaluatorMapping> allSelfTasks = mappingMapper.findAllByPeriodIdAndRelationType(periodId, RELATION_SELF);
@@ -1348,6 +1348,19 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         List<Long> evaluateeIds = allSelfTasks.stream().map(EvaluatorMapping::getEvaluateeId).distinct().toList();
         Map<Long, Employee> employeeMap = employeeMapper.findByIds(evaluateeIds).stream()
                 .collect(Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
+
+        // 부서 필터링 적용 (어드민에 의해서만 유효하게 들어올 수 있음)
+        if (filterDeptId != null) {
+            allSelfTasks = allSelfTasks.stream()
+                    .filter(t -> {
+                        Employee emp = employeeMap.get(t.getEvaluateeId());
+                        return emp != null && filterDeptId.equals(emp.getDeptId());
+                    })
+                    .toList();
+            if (allSelfTasks.isEmpty()) {
+                return new MyEvaluationPageDTO(Collections.emptyList(), 1, 1, 0, pageSize);
+            }
+        }
 
         // 평가요소 캐싱 맵
         Map<String, List<com.ees.eval.domain.EvaluationElement>> elementCache = new HashMap<>();
@@ -1479,6 +1492,9 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                     .collect(Collectors.groupingBy(Evaluation::getMappingId));
         }
 
+        // [N+1 수정] 평가요소 캐시 (periodId_deptId 기준) — 루프 밖 선언
+        Map<String, List<com.ees.eval.domain.EvaluationElement>> multiElementCache = new HashMap<>();
+
         // 3. 필터링 및 상태 계산
         List<com.ees.eval.dto.MultiDimensionalEvalRowDTO> rowList = new ArrayList<>();
         for (EvaluatorMapping task : allSubTasks) {
@@ -1507,6 +1523,41 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
             // 평가자명 포함
             String evaluatorName = task.getEvaluatorName() != null ? task.getEvaluatorName() : "알 수 없음";
 
+            // 점수 계산 (환산 점수) — 일반 사용자 로직과 동일
+            java.math.BigDecimal totalScore = java.math.BigDecimal.ZERO;
+            if (isSubmitted) {
+                String elemCacheKey = task.getPeriodId() + "_" + (evaluatee.getDeptId() != null ? evaluatee.getDeptId() : -1L);
+                List<com.ees.eval.domain.EvaluationElement> elements = multiElementCache.computeIfAbsent(elemCacheKey, k -> {
+                    List<com.ees.eval.domain.EvaluationElement> el = elementMapper.findByPeriodId(task.getPeriodId(), evaluatee.getDeptId());
+                    return el.isEmpty() ? elementMapper.findByPeriodId(task.getPeriodId(), null) : el;
+                });
+
+                Map<Long, com.ees.eval.domain.EvaluationElement> elementMap = elements.stream()
+                        .collect(Collectors.toMap(com.ees.eval.domain.EvaluationElement::getElementId, e -> e, (a, b) -> a));
+
+                java.math.BigDecimal weightedSum = java.math.BigDecimal.ZERO;
+                java.math.BigDecimal totalWeight = java.math.BigDecimal.ZERO;
+
+                for (Evaluation e : myEvals) {
+                    com.ees.eval.domain.EvaluationElement el = elementMap.get(e.getElementId());
+                    if (el != null && e.getScore() != null) {
+                        java.math.BigDecimal maxScore = el.getMaxScore();
+                        if (maxScore.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                            java.math.BigDecimal normalized = java.math.BigDecimal.valueOf(e.getScore())
+                                    .divide(maxScore, 10, java.math.RoundingMode.HALF_UP)
+                                    .multiply(el.getWeight());
+                            weightedSum = weightedSum.add(normalized);
+                            totalWeight = totalWeight.add(el.getWeight());
+                        }
+                    }
+                }
+                if (totalWeight.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                    totalScore = weightedSum.divide(totalWeight, 10, java.math.RoundingMode.HALF_UP)
+                            .multiply(java.math.BigDecimal.valueOf(100))
+                            .setScale(1, java.math.RoundingMode.HALF_UP);
+                }
+            }
+
             rowList.add(com.ees.eval.dto.MultiDimensionalEvalRowDTO.builder()
                     .mappingId(task.getMappingId())
                     .evaluateeId(task.getEvaluateeId())
@@ -1523,7 +1574,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                     .displayCta(ctaType.getDescription())
                     .canWrite(false)
                     .canView(true)
-                    .score(null)
+                    .score(isSubmitted ? totalScore : null)
                     .build());
         }
 

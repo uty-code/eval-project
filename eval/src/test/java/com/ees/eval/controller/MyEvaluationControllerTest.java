@@ -37,8 +37,15 @@ class MyEvaluationControllerTest {
     @InjectMocks
     private MyEvaluationController myEvaluationController;
 
+    @Mock
+    private com.ees.eval.support.ui.EvalFilterConfigFactory filterConfigFactory;
+
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient()
+                .when(filterConfigFactory.createMyEvalConfig(any(), any(), any(), any(), anyBoolean()))
+                .thenReturn(com.ees.eval.dto.EvalFilterConfig.builder().build());
+
         mockMvc = MockMvcBuilders.standaloneSetup(myEvaluationController)
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();

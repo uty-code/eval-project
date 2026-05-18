@@ -52,5 +52,5 @@ public interface MyEvaluationFacadeService {
      * @param pageSize 페이지 크기
      * @return 대시보드용 모델 데이터 맵
      */
-    Map<String, Object> getAdminDashboardData(Long periodId, String status, String keyword, int page, int pageSize);
+    Map<String, Object> getAdminDashboardData(Long periodId, String status, String keyword, Long filterDeptId, int page, int pageSize);
 }

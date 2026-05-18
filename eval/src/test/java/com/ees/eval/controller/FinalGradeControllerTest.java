@@ -73,8 +73,15 @@ class FinalGradeControllerTest {
     @InjectMocks
     private FinalGradeController finalGradeController;
 
+    @Mock
+    private com.ees.eval.support.ui.EvalFilterConfigFactory filterConfigFactory;
+
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient()
+                .when(filterConfigFactory.createFinalGradeConfig(any(), any(), any(), any(), any()))
+                .thenReturn(com.ees.eval.dto.EvalFilterConfig.builder().build());
+
         mockMvc = MockMvcBuilders.standaloneSetup(finalGradeController)
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();

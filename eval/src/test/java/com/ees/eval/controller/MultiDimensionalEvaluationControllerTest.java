@@ -61,13 +61,20 @@ class MultiDimensionalEvaluationControllerTest {
     private EmployeeMapper employeeMapper;
 
     @Mock
-    private EvaluatorMappingMapper evaluatorMappingMapper;
+    private DepartmentService departmentService;
 
     @InjectMocks
     private MultiDimensionalEvaluationController multiDimensionalEvaluationController;
 
+    @Mock
+    private com.ees.eval.support.ui.EvalFilterConfigFactory filterConfigFactory;
+
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient()
+                .when(filterConfigFactory.createMultiDimensionalConfig(any(), any(), any(), any()))
+                .thenReturn(com.ees.eval.dto.EvalFilterConfig.builder().build());
+
         mockMvc = MockMvcBuilders.standaloneSetup(multiDimensionalEvaluationController)
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
@@ -102,7 +109,7 @@ class MultiDimensionalEvaluationControllerTest {
                 .willReturn(mockPageData);
 
         // myTasks는 비어있도록 설정하여 evaluateeIds를 빈 목록으로 만듦
-        given(mappingService.getMyEvaluationTasks(periodId, empId)).willReturn(Collections.emptyList());
+        given(departmentService.getAllDepartments()).willReturn(Collections.emptyList());
 
         // when & then
         mockMvc.perform(get("/eval/multi-dimensional")
@@ -177,7 +184,7 @@ class MultiDimensionalEvaluationControllerTest {
         );
         given(mappingService.getMultiDimensionalTasks(any(), eq(empId), any(), any(), any(), anyInt(), anyInt(), anyBoolean()))
                 .willReturn(mockPageData);
-        given(mappingService.getMyEvaluationTasks(any(), eq(empId))).willReturn(Collections.emptyList());
+        given(departmentService.getAllDepartments()).willReturn(Collections.emptyList());
 
         // when & then
         mockMvc.perform(get("/eval/multi-dimensional")

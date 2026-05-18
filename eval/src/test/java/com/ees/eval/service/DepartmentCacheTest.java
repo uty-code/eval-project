@@ -78,6 +78,9 @@ class DepartmentCacheTest {
         when(departmentMapper.findAll()).thenReturn(List.of(mockDept));
         when(departmentMapper.findDepartmentDetailsByDeptIds(any())).thenReturn(Collections.emptyList());
         when(departmentMapper.findById(any())).thenReturn(Optional.of(mockDept));
+        com.ees.eval.dto.DepartmentDtos.DepartmentDetailDTO mockDetail = 
+            new com.ees.eval.dto.DepartmentDtos.DepartmentDetailDTO(1L, null, null, "테스트부서", null, null, 0, "y", "n", 1, null, null);
+        when(departmentMapper.findDepartmentDetailById(any())).thenReturn(mockDetail);
 
         // 1. 첫 조회로 캐시 생성
         departmentService.getAllDepartments();
