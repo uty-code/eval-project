@@ -71,24 +71,26 @@
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/eval/my-evaluation}" hx-get="/eval/my-evaluation" hx-target="#page-content"
                 hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
-                sec:authorize="!hasRole('ADMIN')"
                 th:classappend="${activeMenu == 'my-evaluation' ? 'active' : ''}">
                 <i class="bi bi-person-workspace"></i>
-                <span>나의 자가평가</span>
+                <span sec:authorize="!hasRole('ADMIN')">나의 자가평가</span>
+                <span sec:authorize="hasRole('ADMIN')">자가평가 현황</span>
             </a>
             <a class="nav-link" th:href="@{/eval/performance}" hx-get="/eval/performance" hx-target="#page-content"
                 hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                 sec:authorize="hasAnyRole('ADMIN', 'MANAGER')"
                 th:classappend="${activeMenu == 'performance-eval' ? 'active' : ''}">
                 <i class="bi bi-pencil-square"></i>
-                <span>성과/역량 평가</span>
+                <span sec:authorize="!hasRole('ADMIN')">성과/역량 평가</span>
+                <span sec:authorize="hasRole('ADMIN')">성과/역량 평가 현황</span>
             </a>
             <a class="nav-link" th:href="@{/eval/multi-dimensional}" hx-get="/eval/multi-dimensional" hx-target="#page-content"
                 hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
-                sec:authorize="!hasAnyRole('MANAGER', 'EXECUTIVE')"
+                sec:authorize="!hasAnyRole('MANAGER', 'EXECUTIVE') or hasRole('ADMIN')"
                 th:classappend="${activeMenu == 'multi-dimensional-eval' ? 'active' : ''}">
                 <i class="bi bi-people"></i>
-                <span>다면 평가</span>
+                <span sec:authorize="!hasRole('ADMIN')">다면 평가</span>
+                <span sec:authorize="hasRole('ADMIN')">다면평가 현황</span>
             </a>
             <a class="nav-link" th:href="@{/eval/interview}" hx-get="/eval/interview" hx-target="#page-content"
                 hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
@@ -102,7 +104,8 @@
                 sec:authorize="hasAnyRole('ADMIN', 'EXECUTIVE')"
                 th:classappend="${activeMenu == 'final-grade' ? 'active' : ''}">
                 <i class="bi bi-check-all"></i>
-                <span>최종 등급 확정</span>
+                <span sec:authorize="!hasRole('ADMIN')">최종 등급 확정</span>
+                <span sec:authorize="hasRole('ADMIN')">최종 등급 현황</span>
             </a>
         </nav>
     </div>

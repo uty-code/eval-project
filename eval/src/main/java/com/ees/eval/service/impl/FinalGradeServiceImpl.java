@@ -53,9 +53,27 @@ public class FinalGradeServiceImpl implements FinalGradeService {
         if (teamTasks.isEmpty()) {
             return Collections.emptyList();
         }
+        // 공통 계산 파이프라인 메서드를 호출하여 점수 및 예상 등급을 계산
+        return buildFinalGradeTaskDTOs(periodId, teamTasks, condition);
+    }
 
-        // 2. 피평가자 ID 목록 추출 및 부서 전체 인원(모수) 확장
-        List<Long> targetEvaluateeIds = teamTasks.stream()
+    /**
+     * 공통 계산 및 DTO 빌드 파이프라인 메서드입니다.
+     * 일반 임원 조회 및 관리자 전체 조회 경로에서 동일한 계산 로직을 공유하도록 합니다.
+     * 모든 주석은 한국어로 작성하며 비즈니스 로직 단계를 상세히 명시합니다.
+     *
+     * @param periodId 평가 차수 ID
+     * @param targetTasks 계산 대상 매핑 목록
+     * @param condition 검색/필터링 조건
+     * @return 계산 및 필터링이 완료된 FinalGradeTaskDTO 목록
+     */
+    private List<FinalGradeTaskDTO> buildFinalGradeTaskDTOs(
+            Long periodId,
+            List<EvaluatorMapping> targetTasks,
+            com.ees.eval.dto.FinalGradeSearchCondition condition) {
+
+        // 1. 피평가자 ID 목록 추출 및 부서 전체 인원(모수) 확장
+        List<Long> targetEvaluateeIds = targetTasks.stream()
                 .map(EvaluatorMapping::getEvaluateeId)
                 .distinct()
                 .collect(Collectors.toList());
@@ -81,7 +99,7 @@ public class FinalGradeServiceImpl implements FinalGradeService {
         Map<Long, Employee> employeeMap = employeeMapper.findByIds(evaluateeIds).stream()
                 .collect(Collectors.toMap(Employee::getEmpId, e -> e));
 
-        // 3. 전체 모수의 모든 매핑 정보 벌크 조회
+        // 2. 전체 모수의 모든 매핑 정보 벌크 조회
         List<EvaluatorMapping> allMappingsForEvaluatees = mappingMapper.findByEvaluateeIds(periodId, evaluateeIds);
 
         Map<Long, Long> selfMappingIdMap = allMappingsForEvaluatees.stream()
@@ -101,7 +119,7 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                 .collect(Collectors.groupingBy(EvaluatorMapping::getEvaluateeId,
                         Collectors.mapping(EvaluatorMapping::getMappingId, Collectors.toList())));
 
-        // 4. 매핑 ID별 평가 결과 벌크 조회
+        // 3. 매핑 ID별 평가 결과 벌크 조회
         List<Long> allRelatedMappingIds = allMappingsForEvaluatees.stream()
                 .map(EvaluatorMapping::getMappingId)
                 .collect(Collectors.toList());
@@ -110,13 +128,13 @@ public class FinalGradeServiceImpl implements FinalGradeService {
         Map<Long, List<Evaluation>> evalGroupMap = allEvals.stream()
                 .collect(Collectors.groupingBy(Evaluation::getMappingId));
 
-        // 5. FinalGrade 벌크 조회
+        // 4. FinalGrade 벌크 조회
         List<FinalGrade> allGrades = finalGradeMapper.findByPeriodId(periodId);
         // 전체 차수 조회 시 empId만으로는 부족하므로 periodId + empId 복합키 사용
         Map<String, FinalGrade> gradeMap = allGrades.stream()
                 .collect(Collectors.toMap(g -> g.getPeriodId() + "_" + g.getEmpId(), g -> g, (a, b) -> a));
 
-        // 6. 캐싱 및 차수별 데이터 준비
+        // 5. 캐싱 및 차수별 데이터 준비
         Map<Long, Boolean> weightValidCache = new HashMap<>();
         Map<String, List<com.ees.eval.dto.EvaluationTypeWeightDTO>> typeWeightsCache = new HashMap<>();
         Map<String, List<EvaluationElementDTO>> elementCache = new HashMap<>();
@@ -127,11 +145,11 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // 7. 모수 전원의 종합 점수 추산 및 차수/부서별 예상 등급 부여
+        // 6. 모수 전원의 종합 점수 추산 및 차수/부서별 예상 등급 부여
         Map<Long, Integer> totalScoreMap = new HashMap<>();
         Map<Long, String> expectedGradeMap = new HashMap<>();
 
-        // 7-1. 점수 계산 (각 매핑의 실제 periodId 사용)
+        // 6-1. 점수 계산 (각 매핑의 실제 periodId 사용)
         for (EvaluatorMapping mapping : allMappingsForEvaluatees) {
             Long currentPeriodId = mapping.getPeriodId();
             Long empId = mapping.getEvaluateeId();
@@ -189,8 +207,6 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             FinalGrade fg = gradeMap.get(currentPeriodId + "_" + empId);
             if (fg != null && fg.getTotalScore() != null) {
                 totalScoreMap.put(empId, fg.getTotalScore());
-                // "-"는 미확정 플레이스홀더이므로 실제 등급(S/A/B/C/D)만 사용
-                // "-"인 경우 in-memory 상대평가 계산에 맡겨 예상등급을 표시
                 if (fg.getFinalGradeCode() != null && !"-".equals(fg.getFinalGradeCode())) {
                     expectedGradeMap.put(empId, fg.getFinalGradeCode());
                 }
@@ -203,7 +219,7 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             }
         }
 
-        // 7-2. 차수별 + 부서별로 그룹화하여 동적 상대평가 적용
+        // 6-2. 차수별 + 부서별로 그룹화하여 동적 상대평가 적용
         Map<String, List<Long>> empsByGroup = allMappingsForEvaluatees.stream()
                 .filter(m -> {
                     Employee e = employeeMap.get(m.getEvaluateeId());
@@ -212,7 +228,6 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                 .collect(Collectors.groupingBy(m -> m.getPeriodId() + "_" + employeeMap.get(m.getEvaluateeId()).getDeptId(),
                         Collectors.mapping(EvaluatorMapping::getEvaluateeId, Collectors.toList())));
 
-        // [New Optimization] N+1 쿼리 방지를 위한 등급 비율 캐시 맵
         Map<Long, Map<Long, com.ees.eval.dto.EvaluationGradeRatioDTO>> periodRatioMapCache = new HashMap<>();
 
         for (Map.Entry<String, List<Long>> groupEntry : empsByGroup.entrySet()) {
@@ -224,7 +239,6 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             int totalEligible = deptEmpIds.size();
             if (totalEligible == 0) continue;
 
-            // N+1 방지: 루프 내 단건 조회 대신 캐시 맵 활용
             Map<Long, com.ees.eval.dto.EvaluationGradeRatioDTO> ratioMap = periodRatioMapCache.computeIfAbsent(
                     currentPeriodId, pid -> gradeRatioService.getAllRatiosByPeriodMap(pid)
             );
@@ -258,7 +272,6 @@ public class FinalGradeServiceImpl implements FinalGradeService {
 
             String[] gradeNames = {"S", "A", "B", "C", "D"};
 
-            // 1. 이미 확정된 등급(S, A, B, C, D)의 개수를 카운트
             int[] finalizedCounts = new int[5];
             for (Long empId : deptEmpIds) {
                 if (expectedGradeMap.containsKey(empId)) {
@@ -272,13 +285,11 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                 }
             }
 
-            // 2. 남은 TO(티오) 계산
             int[] remainingTargets = new int[5];
             for (int i = 0; i < 5; i++) {
                 remainingTargets[i] = Math.max(0, targets[i] - finalizedCounts[i]);
             }
 
-            // 3. 확정되지 않은 사원들에게 차례대로 남은 등급 배분
             int currentGradeIndex = 0;
             for (Long empId : deptEmpIds) {
                 if (!expectedGradeMap.containsKey(empId)) {
@@ -295,8 +306,8 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             }
         }
 
-        // 8. 대상자(teamTasks)에 대한 결과 DTO 조립
-        List<FinalGradeTaskDTO> dtoList = teamTasks.stream().map(task -> {
+        // 7. 대상자(targetTasks)에 대한 결과 DTO 조립
+        List<FinalGradeTaskDTO> dtoList = targetTasks.stream().map(task -> {
             Long currentPeriodId = task.getPeriodId();
             Employee evaluatee = employeeMap.get(task.getEvaluateeId());
             Long deptId = (evaluatee != null) ? evaluatee.getDeptId() : null;
@@ -421,7 +432,7 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                     .build();
         }).collect(Collectors.toList());
 
-        // 9. 실무형 후처리 필터링 적용 (상대평가 정합성 유지를 위해 조립 후 필터링)
+        // 8. 실무형 후처리 필터링 적용 (상대평가 정합성 유지를 위해 조립 후 필터링)
         String normalizedSearch = condition.getNormalizedSearch();
         Long filterDeptId = condition.deptId();
 
@@ -580,5 +591,23 @@ public class FinalGradeServiceImpl implements FinalGradeService {
         if (score >= 70) return "B";
         if (score >= 60) return "C";
         return "D";
+    }
+
+    /**
+     * 어드민용: 전체 최종 등급 대상자 목록 조회
+     * 임원 필터 없이 모든 EXECUTIVE 매핑의 피평가자를 대상으로 합니다.
+     * 기존 getFinalGradeTasks 로직과 동일한 점수/등급 계산을 수행합니다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<FinalGradeTaskDTO> getAdminFinalGradeTasks(com.ees.eval.dto.FinalGradeSearchCondition condition) {
+        Long periodId = condition.periodId();
+        // 1. 전체 EXECUTIVE 매핑 조회 (evaluator_id 필터 없음)
+        List<EvaluatorMapping> allExecTasks = mappingMapper.findAllByPeriodIdAndRelationType(periodId, RelationType.EXECUTIVE.getCode());
+        if (allExecTasks.isEmpty()) {
+            return Collections.emptyList();
+        }
+        // 공통 계산 파이프라인 메서드를 호출하여 전체 직원의 최종 등급 현황을 점수 계산 포함하여 계산
+        return buildFinalGradeTaskDTOs(periodId, allExecTasks, condition);
     }
 }

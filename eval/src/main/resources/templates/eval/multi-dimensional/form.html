@@ -118,13 +118,13 @@
         </div>
 
         <!-- 메시지 영역 -->
-        <div th:if="${submitted and not isLocked}" class="alert alert-info bg-opacity-10 border-info border-opacity-25 text-info mb-4 d-flex align-items-center gap-3 py-3">
+        <div th:if="${submitted and not isLocked and not isAdminView}" class="alert alert-info bg-opacity-10 border-info border-opacity-25 text-info mb-4 d-flex align-items-center gap-3 py-3">
             <i class="bi bi-patch-check-fill fs-4"></i>
             <span class="fw-bold">평가가 제출되었습니다. 수정 후 다시 제출할 수 있습니다.</span>
         </div>
 
         <!-- 평가 잠금 배너 -->
-        <div th:if="${isLocked}" class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4 d-flex align-items-center gap-3 py-3">
+        <div th:if="${isLocked and not isAdminView}" class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4 d-flex align-items-center gap-3 py-3">
             <i class="bi bi-lock-fill fs-4"></i>
             <div th:if="${!isPeriodActive}">
                 <strong class="fw-bold">평가 기간이 종료되었습니다.</strong> 현재 조회 모드이며 수정할 수 없습니다.
@@ -134,8 +134,15 @@
             </div>
         </div>
         
+        <!-- 어드민 읽기 전용 배너 -->
+        <div th:if="${isAdminView}" class="alert d-flex align-items-center mb-4 py-3 gap-3" role="alert"
+            style="background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: #93c5fd; border-radius: 0.75rem;">
+            <i class="bi bi-shield-lock-fill fs-4"></i>
+            <div>관리자 열람 모드 — 해당 다면평가 내용을 조회하고 있습니다. 수정 및 제출 기능은 비활성화되어 있습니다.</div>
+        </div>
+        
         <!-- 부서장 자가평가 미완료 시 경고 -->
-        <div th:if="${!isEvaluateeSelfSubmitted}" class="alert alert-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4 d-flex align-items-center gap-3 py-3">
+        <div th:if="${!isEvaluateeSelfSubmitted and not isAdminView}" class="alert alert-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4 d-flex align-items-center gap-3 py-3">
             <i class="bi bi-exclamation-triangle-fill fs-4"></i>
             <span class="fw-bold">현재 피평가자(부서장)의 자가평가가 완료되지 않았습니다.</span>
         </div>
@@ -149,7 +156,7 @@
         <!-- 평가 폼 -->
         <form th:if="${elements != null && !elements.isEmpty()}" id="evaluationForm"
               th:action="@{/eval/multi-dimensional/submit}" method="post">
-            <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
+            <fieldset th:disabled="${isLocked or isAdminView}" style="border:none; padding:0; margin:0;">
             <input type="hidden" name="mappingId" th:value="${mappingId}">
 
             <div th:each="element : ${elements}" class="eval-card">
@@ -189,7 +196,7 @@
                                th:data-max="${element.maxScore()}"
                                oninput="calculateTotalConvertedScore()"
                                min="0" th:max="${element.maxScore()}" step="1" 
-                               required>
+                               th:required="${not isAdminView}">
                     </div>
 
                     <!-- 코멘트 영역 (본인이 아닐 때만 노출) -->
@@ -199,7 +206,7 @@
                         </div>
                         <textarea class="eval-textarea" th:name="'comment_' + ${element.elementId()}"
                                   placeholder="부서장의 역량 및 리더십에 대한 구체적인 피드백을 입력해주세요."
-                                  required th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
+                                  th:required="${not isAdminView}" th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
                     </div>
 
                     <!-- 본인일 경우 코멘트 숨김 처리 -->
@@ -215,10 +222,10 @@
                 <div class="total-score-display fw-bold fs-5 px-4 py-2">
                     총 환산점수: <span id="totalConvertedScore">0.0</span>점
                 </div>
-                <button th:if="${!isLocked}" type="submit" class="btn btn-submit-eval btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg">
+                <button th:if="${!isLocked and !isAdminView}" type="submit" class="btn btn-submit-eval btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg">
                     <i class="bi bi-check2-circle me-2"></i> 다면평가 제출하기
                 </button>
-                <a th:if="${isLocked}" href="#" class="btn btn-outline-light btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg"
+                <a th:if="${isLocked or isAdminView}" href="#" class="btn btn-outline-light btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg"
                    hx-get="/eval/multi-dimensional" hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
                     <i class="bi bi-arrow-left me-2"></i> 목록으로 돌아가기
                 </a>

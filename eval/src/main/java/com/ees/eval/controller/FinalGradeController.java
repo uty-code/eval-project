@@ -69,6 +69,11 @@ public class FinalGradeController {
         model.addAttribute("activeMenu", "final-grade");
         model.addAttribute("activeTab", tab);
         Long executiveEmpId = Long.parseLong(userDetails.getUsername());
+
+        // 어드민 여부 판별
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        model.addAttribute("isAdminView", isAdmin);
         
         // 1. 차수 목록 조회
         List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
@@ -113,7 +118,6 @@ public class FinalGradeController {
         model.addAttribute("condition", condition);
 
         // 4. 데이터 조회 (전체 차수이거나 특정 차수가 선택된 경우)
-        // selectedPeriod가 null이면 전체 차수 조회를 위해 service에 null 전달
         Long activePeriodId = (selectedPeriod != null) ? selectedPeriod.periodId() : null;
         
         if (selectedPeriod != null && "PLANNED".equals(selectedPeriod.statusCode())) {
@@ -127,8 +131,15 @@ public class FinalGradeController {
                     tab,
                     condition.status()
             );
-            
-            List<FinalGradeTaskDTO> tasks = finalGradeService.getFinalGradeTasks(executiveEmpId, activeCondition);
+
+            List<FinalGradeTaskDTO> tasks;
+            if (isAdmin) {
+                // 어드민: 임원 필터 없이 전체 최종 등급 대상 조회
+                tasks = finalGradeService.getAdminFinalGradeTasks(activeCondition);
+            } else {
+                // 일반 임원: 기존 로직
+                tasks = finalGradeService.getFinalGradeTasks(executiveEmpId, activeCondition);
+            }
             model.addAttribute("tasks", tasks);
             
             // 인원수 미리 계산
@@ -147,6 +158,10 @@ public class FinalGradeController {
                           Model model,
                           @AuthenticationPrincipal UserDetails userDetails,
                           RedirectAttributes redirectAttributes) {
+
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        model.addAttribute("isAdminView", isAdmin);
 
         EvaluatorMappingDTO mapping = mappingService.getMappingById(mappingId);
 

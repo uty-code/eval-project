@@ -180,4 +180,43 @@ public interface EvaluatorMappingService {
      */
     com.ees.eval.dto.MultiDimensionalEvalPageDTO getMultiDimensionalTasks(
             Long periodId, Long evaluatorId, Long filterDeptId, String filterStatus, String keyword, int page, int pageSize, boolean isPeriodActive);
+
+    /**
+     * 어드민용: 전체 자가평가 대시보드 태스크를 조회합니다.
+     * 특정 사원(evaluator_id)에 제한하지 않고 모든 SELF 매핑을 조회합니다.
+     *
+     * @param periodId     평가 차수 ID (null이면 전체)
+     * @param filterStatus 상태 필터 (null이면 전체)
+     * @param keyword      검색어 (null이면 전체)
+     * @param page         페이지 번호 (1부터 시작)
+     * @param pageSize     페이지 크기
+     * @return 자가평가 페이징 데이터 (MyEvaluationPageDTO)
+     */
+    com.ees.eval.dto.MyEvaluationPageDTO getAdminMyEvaluationDashboardTasks(
+            Long periodId, String filterStatus, String keyword, int page, int pageSize);
+
+    /**
+     * 어드민용: 전체 다면평가 태스크를 조회합니다.
+     * 특정 평가자에 제한하지 않고 모든 SUBORDINATE 매핑을 조회합니다.
+     *
+     * @param periodId      평가 차수 ID (null이면 전체)
+     * @param filterDeptId  부서 필터 (null이면 전체)
+     * @param filterStatus  상태 필터 (null이면 전체)
+     * @param keyword       검색어 (null이면 전체)
+     * @param page          페이지 번호
+     * @param pageSize      페이지 크기
+     * @param isPeriodActive 차수 활성 여부
+     * @return 다면평가 페이징 데이터
+     */
+    com.ees.eval.dto.MultiDimensionalEvalPageDTO getAdminMultiDimensionalTasks(
+            Long periodId, Long filterDeptId, String filterStatus, String keyword, int page, int pageSize, boolean isPeriodActive);
+
+    /**
+     * 어드민용: 전체 성과/역량 평가 태스크를 조회합니다.
+     * 모든 MANAGER/EXECUTIVE 매핑을 evaluator_id 필터 없이 조회합니다.
+     *
+     * @param periodId 평가 차수 ID (null이면 전체)
+     * @return 전체 성과/역량 매핑 DTO 리스트
+     */
+    List<EvaluatorMappingDTO> getAllPerformanceTasks(Long periodId);
 }

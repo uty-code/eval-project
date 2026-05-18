@@ -126,6 +126,18 @@ public interface EvaluatorMappingMapper {
     List<EvaluatorMapping> findAllByPeriodId(@Param("periodId") Long periodId);
 
     /**
+     * 특정 차수에서 지정된 관계유형의 전체 매핑 목록을 조회합니다. (관리자 전체 열람용)
+     * evaluator_id 필터 없이 해당 관계유형의 모든 매핑을 반환합니다.
+     *
+     * @param periodId         차수 식별자 (null이면 전체 차수)
+     * @param relationTypeCode 관계유형 코드 (SELF, MANAGER, SUBORDINATE, EXECUTIVE)
+     * @return 해당 관계유형의 전체 매핑 리스트
+     */
+    List<EvaluatorMapping> findAllByPeriodIdAndRelationType(
+            @Param("periodId") Long periodId,
+            @Param("relationTypeCode") String relationTypeCode);
+
+    /**
      * 다건의 매핑 정보를 일괄 삽입합니다. (성능 최적화)
      *
      * @param list 삽입할 매핑 엔티티 리스트

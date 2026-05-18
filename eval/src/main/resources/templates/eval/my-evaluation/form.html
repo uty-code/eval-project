@@ -276,13 +276,13 @@
         </div>
 
         <!-- 제출 완료 배너 -->
-        <div th:if="${submitted and not isLocked}" class="submitted-banner">
+        <div th:if="${submitted and not isLocked and not isAdminView}" class="submitted-banner">
             <i class="bi bi-patch-check-fill fs-5"></i>
             <span>평가가 제출된 상태입니다. 내용을 수정하여 재제출할 수 있습니다.</span>
         </div>
 
         <!-- 평가 잠금 배너 -->
-        <div th:if="${isLocked}" class="error-banner"
+        <div th:if="${isLocked and not isAdminView}" class="error-banner"
              style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:0.75rem;padding:14px 22px;margin-bottom:24px;display:flex;align-items:center;gap:12px;color:#fca5a5;">
             <i class="bi bi-lock-fill"></i>
             <div>

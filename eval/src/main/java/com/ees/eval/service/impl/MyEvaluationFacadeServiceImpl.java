@@ -153,8 +153,13 @@ public class MyEvaluationFacadeServiceImpl implements MyEvaluationFacadeService 
     private EvaluatorMappingDTO validateAndGetMapping(Long mappingId, Long empId) {
         EvaluatorMappingDTO mapping = mappingService.getMappingById(mappingId);
 
-        // 권한 검증: 본인의 매핑인지 확인
-        if (!mapping.evaluatorId().equals(empId)) {
+        // 어드민 여부 확인
+        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+
+        // 권한 검증: 본인의 매핑인지 확인 (어드민이 아닌 경우만 본인 검증)
+        if (!isAdmin && !mapping.evaluatorId().equals(empId)) {
             throw new SecurityException("해당 평가에 대한 접근 권한이 없습니다.");
         }
 
@@ -163,8 +168,8 @@ public class MyEvaluationFacadeServiceImpl implements MyEvaluationFacadeService 
             throw new IllegalArgumentException("자가평가 매핑이 아닙니다.");
         }
 
-        // 기간 검증: 차수가 활성 상태인지 확인
-        if (!periodService.isPeriodActive(mapping.periodId())) {
+        // 기간 검증: 차수가 활성 상태인지 확인 (어드민이 아닌 경우만 기간 제한 적용)
+        if (!isAdmin && !periodService.isPeriodActive(mapping.periodId())) {
             throw new IllegalStateException("평가 기간이 아니거나 이미 종료되었습니다.");
         }
 
@@ -175,5 +180,48 @@ public class MyEvaluationFacadeServiceImpl implements MyEvaluationFacadeService 
         return elements.stream()
                 .filter(e -> type.getCode().equals(e.elementTypeCode()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 어드민용: 전체 자가평가 대시보드 데이터 조회
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getAdminDashboardData(Long periodId, String status, String keyword, int page, int pageSize) {
+        Map<String, Object> data = new HashMap<>();
+
+        // 1. 차수 목록 조회 및 정렬
+        List<EvaluationPeriodDTO> allPeriods = periodService.getAllPeriods();
+        List<EvaluationPeriodDTO> sortedPeriods = new ArrayList<>(allPeriods);
+        sortedPeriods.sort((p1, p2) -> {
+            boolean p1Active = EvaluationPeriodStatus.IN_PROGRESS.getCode().equals(p1.statusCode());
+            boolean p2Active = EvaluationPeriodStatus.IN_PROGRESS.getCode().equals(p2.statusCode());
+            if (p1Active && !p2Active) return -1;
+            if (!p1Active && p2Active) return 1;
+            int yearCompare = p2.periodYear().compareTo(p1.periodYear());
+            if (yearCompare != 0) return yearCompare;
+            return p2.periodId().compareTo(p1.periodId());
+        });
+        data.put("periods", sortedPeriods);
+
+        // 2. 선택 차수 결정
+        EvaluationPeriodDTO selectedPeriod = null;
+        if (periodId != null && periodId > 0) {
+            selectedPeriod = periodService.getPeriodById(periodId);
+        } else {
+            selectedPeriod = periodService.resolveSelectedPeriod(null, sortedPeriods);
+        }
+
+        Long activePeriodId = (selectedPeriod != null) ? selectedPeriod.periodId() : null;
+        data.put("selectedPeriod", selectedPeriod);
+
+        // 3. 어드민 전체 조회 (evaluator_id 필터 없음)
+        var pageData = mappingService.getAdminMyEvaluationDashboardTasks(activePeriodId, status, keyword, page, pageSize);
+        data.put("pageData", pageData);
+        data.put("selectedPeriodId", activePeriodId);
+        data.put("filterStatus", status);
+        data.put("keyword", keyword);
+
+        return data;
     }
 }

@@ -1296,4 +1296,243 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
 
         return new MyEvaluationPageDTO(pagedList, currentPage, totalPages, totalCount, pageSize);
     }
+
+    /**
+     * 어드민용: 전체 자가평가 대시보드 태스크 조회 (evaluator_id 필터 없음)
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public MyEvaluationPageDTO getAdminMyEvaluationDashboardTasks(
+            Long periodId, String filterStatus, String keyword, int page, int pageSize) {
+
+        // 1. 전체 SELF 매핑 조회 (evaluator_id 필터 없음)
+        List<EvaluatorMapping> allSelfTasks = mappingMapper.findAllByPeriodIdAndRelationType(periodId, RELATION_SELF);
+
+        if (allSelfTasks.isEmpty()) {
+            return new MyEvaluationPageDTO(Collections.emptyList(), 1, 1, 0, pageSize);
+        }
+
+        // 2. 관련 데이터 벌크 조회 (N+1 방지)
+        List<Long> mappingIds = allSelfTasks.stream().map(EvaluatorMapping::getMappingId).toList();
+        List<Evaluation> allEvals = evaluationMapper.findByMappingIds(mappingIds);
+        Map<Long, List<Evaluation>> evalGroupMap = allEvals.stream()
+                .collect(Collectors.groupingBy(Evaluation::getMappingId));
+
+        // 피평가자들의 부서 정보를 알아내기 위한 사원 벌크 조회
+        List<Long> evaluateeIds = allSelfTasks.stream().map(EvaluatorMapping::getEvaluateeId).distinct().toList();
+        Map<Long, Employee> employeeMap = employeeMapper.findByIds(evaluateeIds).stream()
+                .collect(Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
+
+        // 평가요소 캐싱 맵
+        Map<String, List<com.ees.eval.domain.EvaluationElement>> elementCache = new HashMap<>();
+
+        // 3. 필터링 및 상태 계산
+        List<MyEvaluationRowDTO> rowList = new ArrayList<>();
+        for (EvaluatorMapping task : allSelfTasks) {
+
+            // (A) 키워드 필터 (사원명, 사번, 차수명 검색)
+            if (keyword != null && !keyword.isEmpty()) {
+                boolean match = (task.getEvaluateeName() != null && task.getEvaluateeName().contains(keyword))
+                        || (task.getEvaluateeId() != null && task.getEvaluateeId().toString().contains(keyword))
+                        || (task.getPeriodName() != null && task.getPeriodName().contains(keyword));
+                if (!match) continue;
+            }
+
+            // (B) 상태 계산
+            List<Evaluation> myEvals = evalGroupMap.getOrDefault(task.getMappingId(), Collections.emptyList());
+            boolean isSubmitted = myEvals.stream().anyMatch(e -> ConfirmStatus.SUBMITTED.getCode().equals(e.getConfirmStatusCode()));
+            boolean isInProgress = !isSubmitted && !myEvals.isEmpty();
+
+            MyEvaluationStatus statusType = isSubmitted ? MyEvaluationStatus.SUBMITTED :
+                                           isInProgress ? MyEvaluationStatus.IN_PROGRESS :
+                                           MyEvaluationStatus.WAITING;
+
+            // (C) 상태 필터링
+            if (filterStatus != null && !filterStatus.isEmpty() && !statusType.name().equals(filterStatus)) continue;
+
+            // (D) 어드민은 항상 읽기 전용 → VIEW 타입
+            MyEvaluationCtaType ctaType = MyEvaluationCtaType.VIEW;
+
+            // (E) 점수 계산 (자가평가 환산 점수)
+            java.math.BigDecimal totalScore = null;
+            if (isSubmitted) {
+                Employee emp = employeeMap.get(task.getEvaluateeId());
+                Long deptId = (emp != null) ? emp.getDeptId() : null;
+
+                String elemKey = task.getPeriodId() + "_" + (deptId != null ? deptId : -1L);
+                List<com.ees.eval.domain.EvaluationElement> elements = elementCache.computeIfAbsent(elemKey, k -> {
+                    List<com.ees.eval.domain.EvaluationElement> el =
+                            elementMapper.findByPeriodId(task.getPeriodId(), deptId);
+                    return el.isEmpty() ? elementMapper.findByPeriodId(task.getPeriodId(), null) : el;
+                });
+
+                Map<Long, com.ees.eval.domain.EvaluationElement> elementMap = elements.stream()
+                        .collect(Collectors.toMap(com.ees.eval.domain.EvaluationElement::getElementId, e -> e, (a, b) -> a));
+
+                java.math.BigDecimal weightedSum = java.math.BigDecimal.ZERO;
+                java.math.BigDecimal totalWeight = java.math.BigDecimal.ZERO;
+
+                for (Evaluation e : myEvals) {
+                    com.ees.eval.domain.EvaluationElement el = elementMap.get(e.getElementId());
+                    if (el != null && e.getScore() != null) {
+                        java.math.BigDecimal maxScore = el.getMaxScore();
+                        if (maxScore.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                            java.math.BigDecimal normalized = java.math.BigDecimal.valueOf(e.getScore())
+                                    .divide(maxScore, 10, java.math.RoundingMode.HALF_UP)
+                                    .multiply(el.getWeight());
+                            weightedSum = weightedSum.add(normalized);
+                            totalWeight = totalWeight.add(el.getWeight());
+                        }
+                    }
+                }
+                if (totalWeight.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                    totalScore = weightedSum.divide(totalWeight, 10, java.math.RoundingMode.HALF_UP)
+                            .multiply(java.math.BigDecimal.valueOf(100))
+                            .setScale(1, java.math.RoundingMode.HALF_UP);
+                }
+            }
+
+            rowList.add(MyEvaluationRowDTO.builder()
+                    .mappingId(task.getMappingId())
+                    .periodId(task.getPeriodId())
+                    .periodName(task.getPeriodName())
+                    .periodYear(task.getPeriodYear() != null ? task.getPeriodYear().toString() : "")
+                    .empId(task.getEvaluateeId())
+                    .name(task.getEvaluateeName())
+                    .deptName(task.getDeptName())
+                    .titleName(task.getTitleName())
+                    .statusType(statusType)
+                    .displayStatus(statusType.getDescription())
+                    .ctaType(ctaType)
+                    .displayCta(ctaType.getDescription())
+                    .isLocked(false)
+                    .isSubmitted(isSubmitted)
+                    .score(totalScore)
+                    .build());
+        }
+
+        // 4. 정렬 (부서→이름순)
+        rowList.sort(Comparator.comparing(MyEvaluationRowDTO::deptName, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(MyEvaluationRowDTO::name, Comparator.nullsLast(Comparator.naturalOrder())));
+
+        // 5. 페이징
+        int totalCount = rowList.size();
+        int totalPages = (int) Math.ceil((double) totalCount / pageSize);
+        if (totalPages == 0) totalPages = 1;
+        int currentPage = Math.max(1, Math.min(page, totalPages));
+        int startIndex = (currentPage - 1) * pageSize;
+        int endIndex = Math.min(startIndex + pageSize, totalCount);
+
+        return new MyEvaluationPageDTO(rowList.subList(startIndex, endIndex), currentPage, totalPages, totalCount, pageSize);
+    }
+
+    /**
+     * 어드민용: 전체 다면평가 태스크 조회 (evaluator_id 필터 없음)
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public com.ees.eval.dto.MultiDimensionalEvalPageDTO getAdminMultiDimensionalTasks(
+            Long periodId, Long filterDeptId, String filterStatus, String keyword, int page, int pageSize, boolean isPeriodActive) {
+
+        // 1. 전체 SUBORDINATE 매핑 조회 (evaluator_id 필터 없음)
+        List<EvaluatorMapping> allSubTasks = mappingMapper.findAllByPeriodIdAndRelationType(periodId, RELATION_SUBORDINATE);
+
+        if (allSubTasks.isEmpty()) {
+            return new com.ees.eval.dto.MultiDimensionalEvalPageDTO(Collections.emptyList(), 1, 1, 0, pageSize);
+        }
+
+        // 2. 벌크 조회
+        List<Long> evaluateeIds = allSubTasks.stream().map(EvaluatorMapping::getEvaluateeId).distinct().toList();
+        Map<Long, Employee> evaluateeMap = employeeMapper.findByIds(evaluateeIds).stream()
+                .collect(Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
+
+        List<Long> allMappingIds = allSubTasks.stream().map(EvaluatorMapping::getMappingId).toList();
+        Map<Long, List<Evaluation>> evalGroupMap = new HashMap<>();
+        if (!allMappingIds.isEmpty()) {
+            evalGroupMap = evaluationMapper.findByMappingIds(allMappingIds).stream()
+                    .collect(Collectors.groupingBy(Evaluation::getMappingId));
+        }
+
+        // 3. 필터링 및 상태 계산
+        List<com.ees.eval.dto.MultiDimensionalEvalRowDTO> rowList = new ArrayList<>();
+        for (EvaluatorMapping task : allSubTasks) {
+            Employee evaluatee = evaluateeMap.get(task.getEvaluateeId());
+            if (evaluatee == null) continue;
+
+            if (filterDeptId != null && !filterDeptId.equals(evaluatee.getDeptId())) continue;
+            if (keyword != null && !keyword.isEmpty() &&
+                !(evaluatee.getName().contains(keyword) || evaluatee.getEmpId().toString().contains(keyword))) {
+                continue;
+            }
+
+            List<Evaluation> myEvals = evalGroupMap.getOrDefault(task.getMappingId(), Collections.emptyList());
+            boolean isSubmitted = myEvals.stream().anyMatch(e -> ConfirmStatus.SUBMITTED.getCode().equals(e.getConfirmStatusCode()));
+            boolean isInProgress = !isSubmitted && !myEvals.isEmpty();
+
+            MultiDimensionalEvalStatus statusType = isSubmitted ? MultiDimensionalEvalStatus.SUBMITTED :
+                                                   isInProgress ? MultiDimensionalEvalStatus.IN_PROGRESS :
+                                                   MultiDimensionalEvalStatus.WAITING;
+
+            if (filterStatus != null && !filterStatus.isEmpty() && !statusType.name().equals(filterStatus)) continue;
+
+            // 어드민은 항상 읽기 전용
+            MultiDimensionalEvalCtaType ctaType = MultiDimensionalEvalCtaType.VIEW;
+
+            // 평가자명 포함
+            String evaluatorName = task.getEvaluatorName() != null ? task.getEvaluatorName() : "알 수 없음";
+
+            rowList.add(com.ees.eval.dto.MultiDimensionalEvalRowDTO.builder()
+                    .mappingId(task.getMappingId())
+                    .evaluateeId(task.getEvaluateeId())
+                    .empId(evaluatee.getEmpId().toString())
+                    .name(evaluatee.getName())
+                    .deptId(evaluatee.getDeptId())
+                    .deptName(evaluatee.getDeptName())
+                    .titleName(evaluatee.getPositionName() != null ? evaluatee.getPositionName() : "부서장")
+                    .relationName(evaluatorName + "→" + evaluatee.getName())
+                    .periodName(task.getPeriodName())
+                    .statusType(statusType)
+                    .displayStatus(statusType.getDescription())
+                    .ctaType(ctaType)
+                    .displayCta(ctaType.getDescription())
+                    .canWrite(false)
+                    .canView(true)
+                    .score(null)
+                    .build());
+        }
+
+        // 4. 정렬 (부서→피평가자명→평가자)
+        rowList.sort(Comparator.comparing(com.ees.eval.dto.MultiDimensionalEvalRowDTO::deptName, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(com.ees.eval.dto.MultiDimensionalEvalRowDTO::name));
+
+        // 5. 페이징
+        int totalCount = rowList.size();
+        int totalPages = (int) Math.ceil((double) totalCount / pageSize);
+        if (totalPages == 0) totalPages = 1;
+        int currentPage = Math.max(1, Math.min(page, totalPages));
+        int startIndex = (currentPage - 1) * pageSize;
+        int endIndex = Math.min(startIndex + pageSize, totalCount);
+
+        return new com.ees.eval.dto.MultiDimensionalEvalPageDTO(rowList.subList(startIndex, endIndex), currentPage, totalPages, totalCount, pageSize);
+    }
+
+    /**
+     * 어드민용: 전체 성과/역량 평가 태스크 조회 (evaluator_id 필터 없음)
+     * MANAGER + EXECUTIVE 관계의 모든 매핑을 반환합니다.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<EvaluatorMappingDTO> getAllPerformanceTasks(Long periodId) {
+        // MANAGER 매핑 조회
+        List<EvaluatorMapping> managerTasks = mappingMapper.findAllByPeriodIdAndRelationType(periodId, RELATION_MANAGER);
+        // EXECUTIVE 매핑 조회
+        List<EvaluatorMapping> executiveTasks = mappingMapper.findAllByPeriodIdAndRelationType(periodId, RELATION_EXECUTIVE);
+
+        List<EvaluatorMapping> allTasks = new ArrayList<>(managerTasks);
+        allTasks.addAll(executiveTasks);
+
+        return allTasks.stream()
+                .map(this::enrichDto)
+                .collect(Collectors.toList());
+    }
 }

@@ -17,18 +17,20 @@ import java.util.Map;
 /**
  * 나의 자가평가 전용 컨트롤러
  * 로그인한 사용자의 자가평가(SELF) 현황 및 작성을 전담합니다.
+ * 어드민은 읽기 전용으로 전체 자가평가 현황을 열람할 수 있습니다.
  */
 @Slf4j
 @Controller
 @RequestMapping("/eval/my-evaluation")
 @RequiredArgsConstructor
-@PreAuthorize("!hasRole('ADMIN')")
+@PreAuthorize("isAuthenticated()")
 public class MyEvaluationController {
 
     private final MyEvaluationFacadeService myEvaluationFacadeService;
 
     /**
-     * 나의 자가평가 메인 페이지 (대시보드 리스트)
+     * 자가평가 메인 페이지 (대시보드 리스트)
+     * 어드민의 경우 전체 자가평가 현황을 읽기 전용으로 조회합니다.
      */
     @GetMapping({"", "/list"})
     public String list(Model model,
@@ -39,22 +41,39 @@ public class MyEvaluationController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         model.addAttribute("activeMenu", "my-evaluation");
-        Long empId = Long.parseLong(userDetails.getUsername());
 
-        Map<String, Object> dashboardData = myEvaluationFacadeService.getDashboardData(empId, periodId, filterStatus, keyword, page, 10);
-        model.addAllAttributes(dashboardData);
+        // 어드민 여부 판별
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+
+        if (isAdmin) {
+            // 어드민: 전체 자가평가 현황 조회 (evaluator_id 필터 없음)
+            Map<String, Object> dashboardData = myEvaluationFacadeService.getAdminDashboardData(periodId, filterStatus, keyword, page, 10);
+            model.addAllAttributes(dashboardData);
+            model.addAttribute("isAdminView", true);
+        } else {
+            // 일반 유저: 기존 로직 유지
+            Long empId = Long.parseLong(userDetails.getUsername());
+            Map<String, Object> dashboardData = myEvaluationFacadeService.getDashboardData(empId, periodId, filterStatus, keyword, page, 10);
+            model.addAllAttributes(dashboardData);
+            model.addAttribute("isAdminView", false);
+        }
 
         return "eval/my-evaluation/list";
     }
 
     /**
-     * 자가평가 통합 마법사 페이지
+     * 자가평가 통합 마법사 페이지 (어드민은 읽기 전용 열람)
      */
     @GetMapping("/wizard")
     public String getWizard(@RequestParam Long mappingId,
             Model model,
             @AuthenticationPrincipal UserDetails userDetails,
             RedirectAttributes redirectAttributes) {
+
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        model.addAttribute("isAdminView", isAdmin);
 
         try {
             Long empId = Long.parseLong(userDetails.getUsername());
@@ -69,9 +88,10 @@ public class MyEvaluationController {
     }
 
     /**
-     * 자가평가 제출
+     * 자가평가 제출 (어드민 접근 차단)
      */
     @PostMapping("/submit")
+    @PreAuthorize("!hasRole('ADMIN')")
     public String submitForm(@RequestParam Long mappingId,
             @RequestParam Map<String, String> params,
             @AuthenticationPrincipal UserDetails userDetails,

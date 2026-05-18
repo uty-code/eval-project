@@ -127,19 +127,26 @@
             </div>
 
             <!-- 제출 완료 배너 -->
-            <div th:if="${submitted and not isLocked}"
+            <div th:if="${submitted and not isLocked and not isAdminView}"
                 class="alert alert-success bg-opacity-10 border-success border-opacity-25 text-success mb-4 d-flex align-items-center gap-3 py-3">
                 <i class="bi bi-patch-check-fill fs-4"></i>
                 <span class="fw-bold">평가가 제출된 상태입니다. 내용을 수정하여 재제출할 수 있습니다.</span>
             </div>
 
             <!-- 평가 잠금 배너 -->
-            <div th:if="${isLocked}"
+            <div th:if="${isLocked and not isAdminView}"
                 class="alert alert-warning bg-opacity-10 border-warning border-opacity-25 text-warning mb-4 d-flex align-items-center gap-3 py-3">
                 <i class="bi bi-eye-fill fs-4"></i>
                 <div>
                     평가가 마감되어 조회만 가능합니다
                 </div>
+            </div>
+
+            <!-- 어드민 읽기 전용 배너 -->
+            <div th:if="${isAdminView}" class="alert d-flex align-items-center mb-4 py-3 gap-3" role="alert"
+                style="background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: #93c5fd; border-radius: 0.75rem;">
+                <i class="bi bi-shield-lock-fill fs-4"></i>
+                <div>관리자 열람 모드 — 해당 평가 내용을 조회하고 있습니다. 수정 및 제출 기능은 비활성화되어 있습니다.</div>
             </div>
 
             <!-- 평가요소 없을 때 -->
@@ -151,7 +158,7 @@
             <!-- 평가 폼 -->
             <form th:if="${elements != null && !elements.isEmpty()}" id="evaluationForm"
                 th:action="@{/eval/performance/submit}" method="post">
-                <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
+                <fieldset th:disabled="${isLocked or isAdminView}" style="border:none; padding:0; margin:0;">
                     <input type="hidden" name="mappingId" th:value="${mappingId}">
                     <input type="hidden" name="evalType" th:value="${evalType}">
 
@@ -205,7 +212,7 @@
                                     th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
                                     th:data-weight="${element.weight()}" th:data-max="${element.maxScore()}"
                                     oninput="calculateTotalConvertedScore()" min="0" th:max="${element.maxScore()}"
-                                    step="1" required>
+                                    step="1" th:required="${not isAdminView}">
                             </div>
 
                             <!-- 코멘트 영역 (평가자만 노출) -->
@@ -214,7 +221,7 @@
                                     <i class="bi bi-chat-left-text"></i> 최종 코멘트 (평가 사유 및 피드백)
                                 </div>
                                 <textarea class="eval-textarea" th:name="'comment_' + ${element.elementId()}"
-                                    placeholder="평가 사유 및 피드백을 입력해주세요." th:readonly="${isLocked}" required
+                                    placeholder="평가 사유 및 피드백을 입력해주세요." th:readonly="${isLocked or isAdminView}" th:required="${not isAdminView}"
                                     th:text="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getReason() : ''}"></textarea>
                             </div>
 
@@ -230,14 +237,14 @@
                             style="background: rgba(13,202,240,0.1); border-radius: 8px; border: 1px solid rgba(13,202,240,0.2);">
                             총 환산점수: <span id="totalConvertedScore">0.0</span>점
                         </div>
-                        <button th:if="${!isLocked}" type="submit" form="evaluationForm"
+                        <button th:if="${!isLocked and !isAdminView}" type="submit" form="evaluationForm"
                             class="btn btn-primary btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg"
                             style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none;">
                             <i class="bi bi-check2-circle me-2"></i>
                             평가 저장 및 제출
                         </button>
-                        <div th:if="${isLocked}" class="text-muted small">
-                            <i class="bi bi-info-circle me-1"></i> 마감된 평가는 수정할 수 없습니다.
+                        <div th:if="${isLocked or isAdminView}" class="text-muted small">
+                            <i class="bi bi-info-circle me-1"></i> 마감되었거나 관리자 열람 중인 평가는 수정할 수 없습니다.
                         </div>
                     </div>
                 </fieldset>
