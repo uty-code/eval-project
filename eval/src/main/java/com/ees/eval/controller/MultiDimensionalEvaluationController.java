@@ -64,6 +64,8 @@ public class MultiDimensionalEvaluationController {
 
         Long empId = Long.parseLong(userDetails.getUsername());
         model.addAttribute("activeMenu", "multi-dimensional-eval");
+        // 부서 목록 조기 방어 바인딩 (NPE 원천 차단)
+        model.addAttribute("departments", java.util.Collections.emptyList());
 
         // 1. 전체 차수 목록 로드 (필터용)
         List<EvaluationPeriodDTO> allPeriods = periodService.getAllPeriods();
