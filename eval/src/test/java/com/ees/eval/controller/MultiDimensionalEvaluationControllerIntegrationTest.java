@@ -93,6 +93,6 @@ class MultiDimensionalEvaluationControllerIntegrationTest extends AbstractMssqlT
                 .andExpect(model().attributeExists("departments"))
                 // 4. HTML 본문 내 id="filterForm" 과 "다면평가 준비 중" 텍스트의 동시 공존 강력 검증
                 .andExpect(content().string(containsString("id=\"filterForm\"")))
-                .andExpect(content().string(containsString("다면평가 준비 중")));
+                .andExpect(content().string(containsString("평가 준비 중")));
     }
 }

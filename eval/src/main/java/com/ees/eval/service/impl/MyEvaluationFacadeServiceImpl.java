@@ -55,10 +55,21 @@ public class MyEvaluationFacadeServiceImpl implements MyEvaluationFacadeService 
         });
         data.put("periods", sortedPeriods);
 
-        // 2. 자가평가 태스크 페이징 조회
-        var pageData = mappingService.getMyEvaluationDashboardTasks(empId, periodId, status, keyword, page, pageSize);
+        // 2. 기본 선택 차수 결정 (기본 조회 값을 진행 중인 차수로 변경)
+        EvaluationPeriodDTO selectedPeriod = null;
+        if (periodId != null && periodId > 0) {
+            selectedPeriod = periodService.getPeriodById(periodId);
+        } else {
+            selectedPeriod = periodService.resolveSelectedPeriod(null, sortedPeriods);
+        }
+        
+        Long activePeriodId = (selectedPeriod != null) ? selectedPeriod.periodId() : null;
+        data.put("selectedPeriod", selectedPeriod);
+
+        // 3. 자가평가 태스크 페이징 조회
+        var pageData = mappingService.getMyEvaluationDashboardTasks(empId, activePeriodId, status, keyword, page, pageSize);
         data.put("pageData", pageData);
-        data.put("selectedPeriodId", periodId);
+        data.put("selectedPeriodId", activePeriodId);
         data.put("filterStatus", status);
         data.put("keyword", keyword);
 

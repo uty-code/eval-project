@@ -224,110 +224,120 @@
                 </form>
             </div>
 
-            <!-- 데이터 없음 -->
-            <div th:if="${pageData == null || pageData.content().isEmpty()}" class="ees-card text-center py-5">
-                <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
-                <h5 class="fw-bold text-white">조회된 자가평가 내역이 없습니다.</h5>
+            <!-- 1. 평가가 시작되지 않은 계획(PLANNED) 차수 선택 시 노출할 카드 배너 -->
+            <div th:if="${selectedPeriod != null && selectedPeriod.statusCode() == 'PLANNED'}"
+                class="ees-card p-5 text-center text-muted mb-4">
+                <i class="bi bi-clock-history fs-1 mb-3 d-block opacity-25 text-info"></i>
+                <h5 class="fw-bold text-white mb-2">평가 준비 중</h5>
             </div>
 
-            <!-- 테이블 영역 -->
-            <div th:if="${pageData != null && !pageData.content().isEmpty()}" class="ees-card mb-5">
-                <div class="result-table-wrap">
-                    <table class="result-table">
-                        <thead>
-                            <tr>
-                                <th class="col-period" style="width: 15.6%;">평가 차수</th>
-                                <th class="col-dept" style="width: 18.2%;">부서</th>
-                                <th class="col-title" style="width: 10.4%;">직급</th>
-                                <th class="col-empid" style="width: 100px; width: 10.4%;">사번</th>
-                                <th class="col-name" style="width: 13.0%; border-right: 1px solid rgba(255, 255, 255, .35);">성명</th>
-                                <th style="width: 11.7%; border-right: 1px solid rgba(255, 255, 255, .35);">환산 점수</th>
-                                <th style="width: 10.4%; border-right: 1px solid rgba(255, 255, 255, .35);">상태</th>
-                                <th style="width: 10.3%;">진행</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="r : ${pageData.content()}">
-                                <td class="col-period text-center" style="text-align: center !important;"
-                                    th:text="${r.periodName()}">2024 상반기</td>
-                                <td class="col-dept" th:text="${r.deptName()}">-</td>
-                                <td class="col-title" th:text="${r.titleName()}">-</td>
-                                <td class="col-empid" th:text="${r.empId()}">-</td>
-                                <td class="col-name"
-                                    style="border-right: 1px solid rgba(255, 255, 255, .35);" th:text="${r.name()}">-
-                                </td>
-                                <td class="fw-bold text-center"
-                                    style="color: #a855f7; border-right: 1px solid rgba(255, 255, 255, .35);">
-                                    <span th:if="${r.score() != null}"
-                                        th:text="${#numbers.formatDecimal(r.score(), 1, 1)}">0.0</span>
-                                    <span th:if="${r.score() == null}">-</span>
-                                </td>
-                                <td style="border-right: 1px solid rgba(255, 255, 255, .35);">
-                                    <!-- 상태 배지 -->
-                                    <span class="status-badge"
-                                        th:classappend="${r.statusType().name() == 'SUBMITTED' ? 'status-done' : (r.statusType().name() == 'IN_PROGRESS' ? 'status-prog' : 'status-wait')}"
-                                        th:text="${r.statusType().name() == 'SUBMITTED' ? '완료' : (r.statusType().name() == 'IN_PROGRESS' ? '진행중' : '대기')}">대기</span>
-                                </td>
-                                <td style="border-right: 1px solid rgba(255, 255, 255, .35);">
-                                    <!-- 액션 버튼 -->
-                                    <div class="action-wrap">
-                                        <!-- 작성하기/수정하기 -->
-                                        <a th:if="${r.ctaType().name() == 'EDIT'}" href="#"
-                                            class="action-btn action-primary"
-                                            th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
-                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
-                                            hx-push-url="true">
-                                            <i class="bi bi-pencil-square"></i>
-                                            <span th:text="${r.isSubmitted ? '수정' : '진행'}">진행</span>
-                                        </a>
-                                        <!-- 조회하기 -->
-                                        <a th:if="${r.ctaType().name() == 'VIEW'}" href="#"
-                                            class="action-btn action-view"
-                                            th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
-                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
-                                            hx-push-url="true">
-                                            <i class="bi bi-search"></i> 조회
-                                        </a>
-                                        <!-- 잠김 -->
-                                        <a th:if="${r.ctaType().name() == 'LOCKED'}" href="#"
-                                            class="action-btn action-locked"
-                                            th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
-                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
-                                            hx-push-url="true">
-                                            <i class="bi bi-search"></i> 조회
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <!-- 2. 평가가 시작되었거나 진행 중인 경우 대상자 목록 및 테이블 -->
+            <div th:if="${selectedPeriod == null || selectedPeriod.statusCode() != 'PLANNED'}">
+                <!-- 데이터 없음 -->
+                <div th:if="${pageData == null || pageData.content().isEmpty()}" class="ees-card text-center py-5 mb-4">
+                    <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+                    <h5 class="fw-bold text-white">조회된 자가평가 내역이 없습니다.</h5>
                 </div>
 
-                <!-- 페이징네이션 -->
-                <div th:if="${pageData.totalPages() > 1}" class="pagination-container pb-4">
-                    <button class="btn btn-sm btn-outline-secondary text-white border-0"
-                        th:classappend="${pageData.currentPage() <= 1} ? 'disabled'"
-                        th:attr="hx-get=@{/eval/my-evaluation/list(periodId=${selectedPeriodId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() - 1})}"
-                        hx-target="#my-eval-container" hx-select="#my-eval-container" hx-swap="outerHTML"
-                        hx-push-url="true">
-                        <i class="bi bi-chevron-left"></i>
-                    </button>
+                <!-- 테이블 영역 -->
+                <div th:if="${pageData != null && !pageData.content().isEmpty()}" class="ees-card mb-5">
+                    <div class="result-table-wrap">
+                        <table class="result-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-period" style="width: 15.6%;">평가 차수</th>
+                                    <th class="col-dept" style="width: 18.2%;">부서</th>
+                                    <th class="col-title" style="width: 10.4%;">직급</th>
+                                    <th class="col-empid" style="width: 100px; width: 10.4%;">사번</th>
+                                    <th class="col-name" style="width: 13.0%; border-right: 1px solid rgba(255, 255, 255, .35);">성명</th>
+                                    <th style="width: 11.7%; border-right: 1px solid rgba(255, 255, 255, .35);">환산 점수</th>
+                                    <th style="width: 10.4%; border-right: 1px solid rgba(255, 255, 255, .35);">상태</th>
+                                    <th style="width: 10.3%;">진행</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="r : ${pageData.content()}">
+                                    <td class="col-period text-center" style="text-align: center !important;"
+                                        th:text="${r.periodName()}">2024 상반기</td>
+                                    <td class="col-dept" th:text="${r.deptName()}">-</td>
+                                    <td class="col-title" th:text="${r.titleName()}">-</td>
+                                    <td class="col-empid" th:text="${r.empId()}">-</td>
+                                    <td class="col-name"
+                                        style="border-right: 1px solid rgba(255, 255, 255, .35);" th:text="${r.name()}">-
+                                    </td>
+                                    <td class="fw-bold text-center"
+                                        style="color: #a855f7; border-right: 1px solid rgba(255, 255, 255, .35);">
+                                        <span th:if="${r.score() != null}"
+                                            th:text="${#numbers.formatDecimal(r.score(), 1, 1)}">0.0</span>
+                                        <span th:if="${r.score() == null}">-</span>
+                                    </td>
+                                    <td style="border-right: 1px solid rgba(255, 255, 255, .35);">
+                                        <!-- 상태 배지 -->
+                                        <span class="status-badge"
+                                            th:classappend="${r.statusType().name() == 'SUBMITTED' ? 'status-done' : (r.statusType().name() == 'IN_PROGRESS' ? 'status-prog' : 'status-wait')}"
+                                            th:text="${r.statusType().name() == 'SUBMITTED' ? '완료' : (r.statusType().name() == 'IN_PROGRESS' ? '진행중' : '대기')}">대기</span>
+                                    </td>
+                                    <td style="border-right: 1px solid rgba(255, 255, 255, .35);">
+                                        <!-- 액션 버튼 -->
+                                        <div class="action-wrap">
+                                            <!-- 작성하기/수정하기 -->
+                                            <a th:if="${r.ctaType().name() == 'EDIT'}" href="#"
+                                                class="action-btn action-primary"
+                                                th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
+                                                hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                                hx-push-url="true">
+                                                <i class="bi bi-pencil-square"></i>
+                                                <span th:text="${r.isSubmitted ? '수정' : '진행'}">진행</span>
+                                            </a>
+                                            <!-- 조회하기 -->
+                                            <a th:if="${r.ctaType().name() == 'VIEW'}" href="#"
+                                                class="action-btn action-view"
+                                                th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
+                                                hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                                hx-push-url="true">
+                                                <i class="bi bi-search"></i> 조회
+                                            </a>
+                                            <!-- 잠김 -->
+                                            <a th:if="${r.ctaType().name() == 'LOCKED'}" href="#"
+                                                class="action-btn action-locked"
+                                                th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
+                                                hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                                hx-push-url="true">
+                                                <i class="bi bi-search"></i> 조회
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
-                    <button th:each="i : ${#numbers.sequence(1, pageData.totalPages())}"
-                        th:class="${i == pageData.currentPage()} ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-secondary text-white border-0'"
-                        th:text="${i}"
-                        th:attr="hx-get=@{/eval/my-evaluation/list(periodId=${selectedPeriodId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${i})}"
-                        hx-target="#my-eval-container" hx-select="#my-eval-container" hx-swap="outerHTML"
-                        hx-push-url="true">
-                    </button>
+                    <!-- 페이징네이션 -->
+                    <div th:if="${pageData.totalPages() > 1}" class="pagination-container pb-4">
+                        <button class="btn btn-sm btn-outline-secondary text-white border-0"
+                            th:classappend="${pageData.currentPage() <= 1} ? 'disabled'"
+                            th:attr="hx-get=@{/eval/my-evaluation/list(periodId=${selectedPeriodId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() - 1})}"
+                            hx-target="#my-eval-container" hx-select="#my-eval-container" hx-swap="outerHTML"
+                            hx-push-url="true">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
 
-                    <button class="btn btn-sm btn-outline-secondary text-white border-0"
-                        th:classappend="${pageData.currentPage() >= pageData.totalPages()} ? 'disabled'"
-                        th:attr="hx-get=@{/eval/my-evaluation/list(periodId=${selectedPeriodId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() + 1})}"
-                        hx-target="#my-eval-container" hx-select="#my-eval-container" hx-swap="outerHTML"
-                        hx-push-url="true">
-                        <i class="bi bi-chevron-right"></i>
-                    </button>
+                        <button th:each="i : ${#numbers.sequence(1, pageData.totalPages())}"
+                            th:class="${i == pageData.currentPage()} ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-secondary text-white border-0'"
+                            th:text="${i}"
+                            th:attr="hx-get=@{/eval/my-evaluation/list(periodId=${selectedPeriodId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${i})}"
+                            hx-target="#my-eval-container" hx-select="#my-eval-container" hx-swap="outerHTML"
+                            hx-push-url="true">
+                        </button>
+
+                        <button class="btn btn-sm btn-outline-secondary text-white border-0"
+                            th:classappend="${pageData.currentPage() >= pageData.totalPages()} ? 'disabled'"
+                            th:attr="hx-get=@{/eval/my-evaluation/list(periodId=${selectedPeriodId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() + 1})}"
+                            hx-target="#my-eval-container" hx-select="#my-eval-container" hx-swap="outerHTML"
+                            hx-push-url="true">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

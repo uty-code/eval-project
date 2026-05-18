@@ -1,15 +1,6 @@
 package com.ees.eval.controller;
 
-import com.ees.eval.domain.Employee;
-import com.ees.eval.dto.EvaluationPeriodDTO;
-import com.ees.eval.dto.EvaluatorMappingDTO;
-import com.ees.eval.mapper.DepartmentMapper;
-import com.ees.eval.mapper.EmployeeMapper;
-import com.ees.eval.mapper.EvaluationMapper;
-import com.ees.eval.service.EvaluationElementService;
-import com.ees.eval.service.EvaluationPeriodService;
-import com.ees.eval.service.EvaluationTypeWeightService;
-import com.ees.eval.service.EvaluatorMappingService;
+import com.ees.eval.service.MyEvaluationFacadeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,9 +18,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Collections;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -40,25 +32,7 @@ class MyEvaluationControllerTest {
     private MockMvc mockMvc;
 
     @Mock
-    private EvaluationPeriodService periodService;
-
-    @Mock
-    private EvaluatorMappingService mappingService;
-
-    @Mock
-    private EvaluationElementService elementService;
-
-    @Mock
-    private EvaluationTypeWeightService typeWeightService;
-
-    @Mock
-    private EvaluationMapper evaluationMapper;
-
-    @Mock
-    private EmployeeMapper employeeMapper;
-
-    @Mock
-    private DepartmentMapper departmentMapper;
+    private MyEvaluationFacadeService myEvaluationFacadeService;
 
     @InjectMocks
     private MyEvaluationController myEvaluationController;
@@ -77,60 +51,42 @@ class MyEvaluationControllerTest {
     }
 
     @Test
-    @DisplayName("평가 차수가 PLANNED 상태일 때 자가평가 폼 진입 차단 테스트")
+    @DisplayName("평가 차수가 PLANNED 상태일 때 자가평가 폼(마법사) 진입 차단 테스트")
     void blockAccessWhenPeriodIsPlanned() throws Exception {
         // Given
         Long mappingId = 1L;
-        Long periodId = 10L;
+        Long empId = 1001L;
 
-        EvaluatorMappingDTO mapping = EvaluatorMappingDTO.builder()
-                .mappingId(mappingId)
-                .periodId(periodId)
-                .evaluateeId(1001L)
-                .relationTypeCode("SELF")
-                .build();
-
-        EvaluationPeriodDTO period = EvaluationPeriodDTO.builder()
-                .periodId(periodId)
-                .statusCode("PLANNED")
-                .build();
-
-        given(mappingService.getMappingById(mappingId)).willReturn(mapping);
-        given(periodService.getPeriodById(periodId)).willReturn(period);
+        given(myEvaluationFacadeService.getWizardData(eq(mappingId), eq(empId)))
+                .willThrow(new IllegalArgumentException("평가 시작 전입니다. 평가 기간에 다시 접속해 주세요."));
 
         // When & Then
-        mockMvc.perform(get("/eval/my-evaluation/form")
+        mockMvc.perform(get("/eval/my-evaluation/wizard")
                         .param("mappingId", mappingId.toString()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/eval/my-evaluation?periodId=" + periodId))
+                .andExpect(redirectedUrl("/eval/my-evaluation"))
                 .andExpect(flash().attribute("errorMessage", "평가 시작 전입니다. 평가 기간에 다시 접속해 주세요."));
     }
 
     @Test
-    @DisplayName("평가 차수가 PLANNED 상태일 때 목록 페이지에 안내 메시지 표시 테스트")
+    @DisplayName("평가 차수가 PLANNED 상태일 때 목록 페이지 정상 렌더링 테스트")
     void showInfoMessageWhenPeriodIsPlanned() throws Exception {
         // Given
         Long periodId = 10L;
         Long empId = 1001L;
-        EvaluationPeriodDTO period = EvaluationPeriodDTO.builder()
-                .periodId(periodId)
-                .statusCode("PLANNED")
-                .build();
+        
+        Map<String, Object> mockDashboardData = new HashMap<>();
+        mockDashboardData.put("periods", Collections.emptyList());
+        mockDashboardData.put("selectedPeriodId", periodId);
 
-        Employee emp = new Employee();
-        emp.setEmpId(empId);
-        emp.setDeptId(1L);
-
-        given(periodService.getAllPeriods()).willReturn(Collections.singletonList(period));
-        given(periodService.getPeriodById(periodId)).willReturn(period);
-        given(employeeMapper.findById(empId)).willReturn(Optional.of(emp));
-        given(departmentMapper.countDepartmentsByLeaderId(empId)).willReturn(0); // 부서장 아님
+        given(myEvaluationFacadeService.getDashboardData(eq(empId), eq(periodId), any(), any(), anyInt(), anyInt()))
+                .willReturn(mockDashboardData);
 
         // When & Then
         mockMvc.perform(get("/eval/my-evaluation")
                         .param("periodId", periodId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("eval/my-evaluation/list"))
-                .andExpect(model().attribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다."));
+                .andExpect(model().attribute("selectedPeriodId", periodId));
     }
 }

@@ -270,8 +270,7 @@
             <!-- 1. 평가가 시작되지 않은 계획(PLANNED) 차수 선택 시 노출할 카드 배너 -->
             <div th:if="${selectedPeriod != null && selectedPeriod.statusCode() == 'PLANNED'}" class="ees-card p-5 text-center text-muted mb-4">
                 <i class="bi bi-clock-history fs-1 mb-3 d-block opacity-25 text-info"></i>
-                <h5 class="fw-bold text-white mb-2">다면평가 준비 중</h5>
-                <p class="mb-0">평가가 시작되면 대상 리스트가 활성화됩니다.</p>
+                <h5 class="fw-bold text-white mb-2">평가 준비 중</h5>
             </div>
 
             <!-- 2. 평가가 시작되었거나 진행 중인 경우 대상자 목록 및 페이지네이션 -->

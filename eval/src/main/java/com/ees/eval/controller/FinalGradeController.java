@@ -72,6 +72,20 @@ public class FinalGradeController {
         
         // 1. 차수 목록 조회
         List<EvaluationPeriodDTO> periods = periodService.getAllPeriods();
+        
+        // 진행중(IN_PROGRESS)인 차수가 최상단에 오고, 그 외에는 연도 및 ID 내림차순(최신순)으로 정렬
+        periods.sort((p1, p2) -> {
+            boolean p1Prog = "IN_PROGRESS".equals(p1.statusCode());
+            boolean p2Prog = "IN_PROGRESS".equals(p2.statusCode());
+            if (p1Prog && !p2Prog) return -1;
+            if (!p1Prog && p2Prog) return 1;
+            
+            int yearCompare = Integer.compare(p2.periodYear(), p1.periodYear());
+            if (yearCompare != 0) return yearCompare;
+            
+            return Long.compare(p2.periodId(), p1.periodId());
+        });
+        
         model.addAttribute("periods", periods);
 
         // 2. 선택된 차수 처리 (periodId가 0이면 '전체 차수', null이면 초기 진입으로 보고 자동 선택)
@@ -103,7 +117,7 @@ public class FinalGradeController {
         Long activePeriodId = (selectedPeriod != null) ? selectedPeriod.periodId() : null;
         
         if (selectedPeriod != null && "PLANNED".equals(selectedPeriod.statusCode())) {
-            model.addAttribute("infoMessage", "현재 평가 시작 전입니다.");
+            // PLANNED 차수인 경우 템플릿의 카드 배너만 활용하고 상단 infoMessage는 노출하지 않습니다.
         } else {
             // [최적화] FinalGradeService를 통해 벌크 조회 및 상태 플래그 계산
             FinalGradeSearchCondition activeCondition = new FinalGradeSearchCondition(
