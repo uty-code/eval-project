@@ -363,6 +363,32 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             Integer totalScore = totalScoreMap.get(task.getEvaluateeId());
             String expectedGrade = expectedGradeMap.getOrDefault(task.getEvaluateeId(), "-");
 
+            // 부서장인 경우: 부서원(SUBORDINATE) 다면평가 전원 제출 여부 계산 (벌크 데이터 활용, 추가 DB 호출 없음)
+            int subordinateTotal = 0;
+            int subordinateSubmittedCount = 0;
+            boolean subordinateAllSubmitted = true;
+
+            if (isLeader) {
+                List<Long> subIds = subordinateMappingIdsMap.getOrDefault(task.getEvaluateeId(), Collections.emptyList());
+                subordinateTotal = subIds.size();
+
+                List<EvaluationElementDTO> multiElements = requiredElements.stream()
+                        .filter(e -> "MULTI_DIMENSIONAL".equals(e.elementTypeCode()))
+                        .collect(Collectors.toList());
+
+                for (Long subMappingId : subIds) {
+                    List<Evaluation> subEvals = evalGroupMap.getOrDefault(subMappingId, Collections.emptyList());
+                    boolean thisSubSubmitted = !multiElements.isEmpty() && multiElements.stream()
+                            .allMatch(elem -> subEvals.stream()
+                                    .anyMatch(e -> elem.elementId().equals(e.getElementId())
+                                            && "SUBMITTED".equals(e.getConfirmStatusCode())));
+                    if (thisSubSubmitted) {
+                        subordinateSubmittedCount++;
+                    }
+                }
+                subordinateAllSubmitted = subordinateTotal > 0 && subordinateSubmittedCount == subordinateTotal;
+            }
+
             return FinalGradeTaskDTO.builder()
                     .mappingId(task.getMappingId())
                     .periodId(task.getPeriodId())
@@ -389,6 +415,9 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                     .weightValid(weightValid)
                     .isLeader(isLeader)
                     .deptId(deptId)
+                    .subordinateAllSubmitted(isLeader ? subordinateAllSubmitted : true)
+                    .subordinateTotal(subordinateTotal)
+                    .subordinateSubmittedCount(subordinateSubmittedCount)
                     .build();
         }).collect(Collectors.toList());
 

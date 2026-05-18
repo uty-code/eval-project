@@ -181,6 +181,17 @@
                 <span class="fw-bold">평가가 제출된 상태입니다. 내용을 수정하여 재제출할 수 있습니다.</span>
             </div>
 
+            <div th:if="${isLeader && subordinateAllSubmitted != null && !subordinateAllSubmitted}"
+                 class="alert d-flex align-items-center mb-4 py-3"
+                 style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); color: #fcd34d; border-radius: 0.75rem;">
+                <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                <div>
+                    <strong>부서원 다면평가가 완료되지 않았습니다.</strong><br>
+                    <span class="small" style="opacity:.8"
+                        th:text="${subordinateSubmittedCount + '/' + subordinateTotal + '명 완료 — 전원 완료 후 제출 가능합니다.'}"></span>
+                </div>
+            </div>
+
             <div th:if="${errorMessage}" class="alert alert-danger d-flex align-items-center mb-4" role="alert">
                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
                 <div th:text="${errorMessage}"></div>
@@ -399,7 +410,9 @@
                             </div>
                             <button type="submit" form="evaluationForm"
                                 class="btn btn-success btn-lg py-3 px-5 fs-5 rounded-pill shadow-lg"
-                                style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
+                                style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;"
+                                th:disabled="${isLeader && subordinateAllSubmitted != null && !subordinateAllSubmitted}"
+                                th:classappend="${isLeader && subordinateAllSubmitted != null && !subordinateAllSubmitted ? 'opacity-50' : ''}">
                                 <i class="bi bi-check2-circle me-2"></i> 최종 등급 확정 및 제출
                             </button>
                         </div>

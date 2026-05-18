@@ -43,6 +43,11 @@ public record FinalGradeTaskDTO(
         boolean selfSubmitted,
         boolean weightValid,
         boolean isLeader,
-        Long deptId
+        Long deptId,
+
+        // ── 부서장 다면평가 선행조건 ──
+        boolean subordinateAllSubmitted,  // 부서원 전원 다면평가 제출 완료 여부
+        int subordinateTotal,             // 전체 부서원(SUBORDINATE 매핑) 수
+        int subordinateSubmittedCount     // 제출 완료 부서원 수
 ) {
 }
