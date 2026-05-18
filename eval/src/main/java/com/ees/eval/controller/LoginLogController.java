@@ -31,12 +31,14 @@ public class LoginLogController {
     public String list(
             @org.springframework.web.bind.annotation.RequestParam(defaultValue = "1") int page,
             @org.springframework.web.bind.annotation.RequestParam(defaultValue = "50") int size,
-            @org.springframework.web.bind.annotation.RequestParam(required = false) String keyword,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String searchEmpId,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String searchIp,
             Model model) {
-        com.ees.eval.dto.PageResponseDTO<LoginLog> pageResponse = loginLogService.findAll(page, size, keyword);
+        com.ees.eval.dto.PageResponseDTO<LoginLog> pageResponse = loginLogService.findAll(page, size, searchEmpId, searchIp);
         model.addAttribute("pageResponse", pageResponse);
         model.addAttribute("logs", pageResponse.getContent());
-        model.addAttribute("keyword", keyword);
+        model.addAttribute("searchEmpId", searchEmpId);
+        model.addAttribute("searchIp", searchIp);
         return "admin/login-logs";
     }
 

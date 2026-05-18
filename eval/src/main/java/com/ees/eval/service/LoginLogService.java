@@ -61,10 +61,10 @@ public class LoginLogService {
     /**
      * 전체 로그인 이력을 페이징 조회합니다. (관리자용)
      */
-    public com.ees.eval.dto.PageResponseDTO<LoginLog> findAll(int page, int size, String keyword) {
+    public com.ees.eval.dto.PageResponseDTO<LoginLog> findAll(int page, int size, String searchEmpId, String searchIp) {
         int offset = (page - 1) * size;
-        List<LoginLog> list = loginLogMapper.findAll(size, offset, keyword);
-        int total = loginLogMapper.countAll(keyword);
+        List<LoginLog> list = loginLogMapper.findAll(size, offset, searchEmpId, searchIp);
+        int total = loginLogMapper.countAll(searchEmpId, searchIp);
         return com.ees.eval.dto.PageResponseDTO.of(list, page, size, total);
     }
 

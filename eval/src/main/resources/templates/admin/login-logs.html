@@ -22,15 +22,12 @@
                 </nav>
                 <h1 class="fw-bold fs-3 mb-0">
                     <i class="bi bi-clock-history me-2 text-primary"></i>로그인 이력
-                    <span th:if="${empId}" class="fs-5 fw-normal text-muted ms-2">
-                        — 사번 <span th:text="${empId}"></span>
-                    </span>
                 </h1>
             </div>
             <div class="col-auto d-flex gap-2">
-                <a th:if="${empId}" th:href="@{/admin/login-logs}"
+                <a th:href="@{/admin/login-logs}"
                    class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-list-ul me-1"></i>전체 보기
+                    <i class="bi bi-list-ul me-1"></i>전체 이력 보기
                 </a>
             </div>
         </div>
@@ -67,26 +64,58 @@
             </div>
         </div>
 
+        <!-- 고급 가로 카드형 필터 바 (Glassmorphic) -->
+        <div class="ees-card p-4 mb-4">
+            <form th:action="@{/admin/login-logs}" method="get" class="row g-3 align-items-end" id="searchForm">
+                <!-- 사번 검색 영역 -->
+                <div class="col-12 col-md-5">
+                    <label class="form-label text-muted small fw-semibold mb-2" style="font-size: 0.85rem; letter-spacing: 0.5px;">
+                        <i class="bi bi-person-badge text-primary me-1"></i>사번 검색
+                    </label>
+                    <div class="input-group">
+                        <input type="text" name="searchEmpId" id="searchEmpId" th:value="${searchEmpId}"
+                               class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white rounded-start"
+                               style="height: 48px; border-right: none;" placeholder="사원 번호 입력...">
+                        <button type="button" class="btn btn-outline-secondary border-secondary border-opacity-50 bg-dark bg-opacity-25"
+                                style="height: 48px; border-left: none; color: #a5b4fc; border-top-right-radius: 8px; border-bottom-right-radius: 8px;"
+                                onclick="window.openEmployeeSelector((emp) => { document.getElementById('searchEmpId').value = emp.id; })"
+                                title="사원 검색 모달 열기">
+                            <i class="bi bi-person-plus-fill"></i> 사원 지정
+                        </button>
+                    </div>
+                </div>
+                <!-- IP 주소 검색 영역 -->
+                <div class="col-12 col-md-5">
+                    <label class="form-label text-muted small fw-semibold mb-2" style="font-size: 0.85rem; letter-spacing: 0.5px;">
+                        <i class="bi bi-globe text-primary me-1"></i>접속 IP 검색
+                    </label>
+                    <input type="text" name="searchIp" th:value="${searchIp}"
+                           class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
+                           style="height: 48px; border-radius: 8px;" placeholder="접속 IP 주소 입력 (예: 127.0.0.1)...">
+                </div>
+                <!-- 버튼 그룹 -->
+                <div class="col-12 col-md-2 d-flex gap-2">
+                    <!-- 조회 버튼 -->
+                    <button type="submit" class="btn fw-semibold w-100 text-white d-flex align-items-center justify-content-center gap-1"
+                            style="height: 48px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
+                        <i class="bi bi-search"></i> 조회
+                    </button>
+                    <!-- 리셋 버튼 -->
+                    <a th:href="@{/admin/login-logs}" class="btn btn-outline-secondary d-flex align-items-center justify-content-center"
+                       style="height: 48px; width: 48px; min-width: 48px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15);"
+                       title="검색 조건 초기화">
+                        <i class="bi bi-arrow-counterclockwise text-white-50" style="font-size: 1.2rem;"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+
         <!-- 테이블 카드 -->
         <div class="ees-card p-4">
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <h5 class="fw-bold mb-0">
-                    <i class="bi bi-table me-2 text-primary"></i>상세 이력
+                    <i class="bi bi-table me-2 text-primary"></i>상세 이력 목록
                 </h5>
-                <!-- 서버 연동 검색 (Form) -->
-                <form th:action="@{${empId != null ? '/admin/login-logs/emp/' + empId : '/admin/login-logs'}}" method="get" class="input-group" style="max-width:350px;">
-                    <button type="button" class="btn btn-outline-info" 
-                            onclick="window.openEmployeeSelector((emp) => { window.location.href = '/admin/login-logs/emp/' + emp.id; })"
-                            title="특정 사원의 로그인 이력만 봅니다">
-                        <i class="bi bi-person-badge"></i> 사원 지정
-                    </button>
-                    <input type="text" name="keyword" th:value="${keyword}"
-                           class="form-control bg-dark bg-opacity-25 border-secondary border-opacity-50 text-white"
-                           placeholder="IP / 사번 / 내용 검색...">
-                    <button type="submit" class="btn btn-outline-secondary">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </form>
             </div>
 
             <div class="table-responsive">
@@ -166,35 +195,35 @@
             </div>
         </div>
 
-            <!-- Pagination -->
-            <nav th:if="${pageResponse.totalPages > 1}" class="mt-4" aria-label="Page navigation">
-                <ul class="pagination justify-content-center pagination-sm">
-                    <!-- 이전 페이지 -->
-                    <li class="page-item" th:classappend="${pageResponse.currentPage == 1} ? 'disabled'">
-                        <a class="page-link bg-dark border-secondary text-white" 
-                           th:href="@{${empId != null ? '/admin/login-logs/emp/' + empId : '/admin/login-logs'}(page=${pageResponse.currentPage - 1}, keyword=${keyword})}">이전</a>
-                    </li>
-                    
-                    <!-- 페이지 번호: 좌우 5개씩 (총 11개) -->
-                    <li class="page-item" 
-                        th:each="pageNum : ${#numbers.sequence(
-                            pageResponse.currentPage - 5 < 1 ? 1 : pageResponse.currentPage - 5,
-                            pageResponse.currentPage + 5 > pageResponse.totalPages ? pageResponse.totalPages : pageResponse.currentPage + 5)}"
-                        th:classappend="${pageNum == pageResponse.currentPage} ? 'active'">
-                        <a class="page-link border-secondary"
-                           th:classappend="${pageNum == pageResponse.currentPage} ? 'bg-primary text-white border-primary' : 'bg-dark text-white'"
-                           th:href="@{${empId != null ? '/admin/login-logs/emp/' + empId : '/admin/login-logs'}(page=${pageNum}, keyword=${keyword})}"
-                           th:text="${pageNum}">1</a>
-                    </li>
-                    
-                    <!-- 다음 페이지 -->
-                    <li class="page-item" th:classappend="${pageResponse.currentPage == pageResponse.totalPages} ? 'disabled'">
-                        <a class="page-link bg-dark border-secondary text-white" 
-                           th:href="@{${empId != null ? '/admin/login-logs/emp/' + empId : '/admin/login-logs'}(page=${pageResponse.currentPage + 1}, keyword=${keyword})}">다음</a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
+        <!-- Pagination -->
+        <nav th:if="${pageResponse.totalPages > 1}" class="mt-4" aria-label="Page navigation">
+            <ul class="pagination justify-content-center pagination-sm">
+                <!-- 이전 페이지 -->
+                <li class="page-item" th:classappend="${pageResponse.currentPage == 1} ? 'disabled'">
+                    <a class="page-link bg-dark border-secondary text-white" 
+                       th:href="@{/admin/login-logs(page=${pageResponse.currentPage - 1}, searchEmpId=${searchEmpId}, searchIp=${searchIp})}">이전</a>
+                </li>
+                
+                <!-- 페이지 번호 -->
+                <li class="page-item" 
+                    th:each="pageNum : ${#numbers.sequence(
+                        pageResponse.currentPage - 5 < 1 ? 1 : pageResponse.currentPage - 5,
+                        pageResponse.currentPage + 5 > pageResponse.totalPages ? pageResponse.totalPages : pageResponse.currentPage + 5)}"
+                    th:classappend="${pageNum == pageResponse.currentPage} ? 'active'">
+                    <a class="page-link border-secondary"
+                       th:classappend="${pageNum == pageResponse.currentPage} ? 'bg-primary text-white border-primary' : 'bg-dark text-white'"
+                       th:href="@{/admin/login-logs(page=${pageNum}, searchEmpId=${searchEmpId}, searchIp=${searchIp})}"
+                       th:text="${pageNum}">1</a>
+                </li>
+                
+                <!-- 다음 페이지 -->
+                <li class="page-item" th:classappend="${pageResponse.currentPage == pageResponse.totalPages} ? 'disabled'">
+                    <a class="page-link bg-dark border-secondary text-white" 
+                       th:href="@{/admin/login-logs(page=${pageResponse.currentPage + 1}, searchEmpId=${searchEmpId}, searchIp=${searchIp})}">다음</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
     </div>
 </body>
 </html>
