@@ -18,4 +18,12 @@ public interface FinalGradeService {
      * @return 상태 플래그가 계산된 대상 목록
      */
     List<FinalGradeTaskDTO> getFinalGradeTasks(Long executiveEmpId, FinalGradeSearchCondition condition);
+
+    /**
+     * 어드민용: 임원 필터 없이 전체 최종 등급 대상자 목록을 조회합니다.
+     *
+     * @param condition 검색 및 필터 조건
+     * @return 전체 최종 등급 대상 목록
+     */
+    List<FinalGradeTaskDTO> getAdminFinalGradeTasks(FinalGradeSearchCondition condition);
 }

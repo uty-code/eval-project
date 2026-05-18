@@ -40,4 +40,17 @@ public interface MyEvaluationFacadeService {
      * @param empId     제출자 사원 ID
      */
     void submitEvaluation(Long mappingId, Map<String, String> params, Long empId);
+
+    /**
+     * 어드민용: 전체 자가평가 대시보드 데이터를 조회합니다.
+     * 특정 사원에 제한하지 않고 모든 SELF 매핑을 대상으로 합니다.
+     *
+     * @param periodId 차수 ID (필터)
+     * @param status   상태 (필터)
+     * @param keyword  검색어 (필터)
+     * @param page     페이지 번호
+     * @param pageSize 페이지 크기
+     * @return 대시보드용 모델 데이터 맵
+     */
+    Map<String, Object> getAdminDashboardData(Long periodId, String status, String keyword, int page, int pageSize);
 }

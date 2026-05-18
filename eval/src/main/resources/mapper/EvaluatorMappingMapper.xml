@@ -250,6 +250,43 @@
           and is_deleted = 'n'
     </select>
 
+    <!-- 관리자 전체 열람용: 특정 관계유형의 모든 매핑 조회 (evaluator_id 필터 없음) -->
+    <select id="findAllByPeriodIdAndRelationType" resultType="com.ees.eval.domain.EvaluatorMapping">
+        select
+            m.mapping_id        as MAPPING_ID,
+            m.period_id         as PERIOD_ID,
+            m.evaluatee_id      as EVALUATEE_ID,
+            m.evaluator_id      as EVALUATOR_ID,
+            m.relation_type_code as RELATION_TYPE_CODE,
+            e1.name             as EVALUATEE_NAME,
+            e2.name             as EVALUATOR_NAME,
+            ep.period_name       as PERIOD_NAME,
+            m.is_deleted        as IS_DELETED,
+            m.version           as VERSION,
+            m.created_at        as CREATED_AT,
+            m.created_by        as CREATED_BY,
+            m.updated_at        as UPDATED_AT,
+            m.updated_by        as UPDATED_BY,
+            d.dept_name         as DEPT_NAME,
+            pos.position_name     as TITLE_NAME,
+            ep.period_year       as PERIOD_YEAR
+        from evaluator_mappings_51 m
+        inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
+        inner join employees_51 e2 on m.evaluator_id = e2.emp_id
+        inner join evaluation_periods_51 ep on m.period_id = ep.period_id
+        left join departments_51 d on e1.dept_id = d.dept_id and d.is_deleted = 'n'
+        left join positions_51 pos on e1.position_id = pos.position_id and pos.is_deleted = 'n'
+        <where>
+            <if test="periodId != null">
+                and m.period_id = #{periodId}
+            </if>
+            and m.relation_type_code = #{relationTypeCode}
+            and m.is_deleted = 'n'
+            and e1.status_code = 'EMPLOYED'
+        </where>
+        order by ep.start_date desc, d.dept_name asc, e1.name asc
+    </select>
+
     <!-- 평가자 매핑 일괄 삽입 -->
     <insert id="insertBatch">
         insert into evaluator_mappings_51 (

@@ -198,9 +198,23 @@
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h1 class="text-white fs-3 mb-1"><i class="bi bi-check-all text-primary me-2"></i>최종 등급 확정</h1>
-                <p class="text-muted mb-0 small">배정된 인원에 대한 성과 및 역량 최종 등급을 확정해주세요.</p>
+                <h1 class="text-white fs-3 mb-1">
+                    <i class="bi bi-check-all text-primary me-2"></i>
+                    <span th:if="${isAdminView}">최종 등급 현황</span>
+                    <span th:unless="${isAdminView}">최종 등급 확정</span>
+                </h1>
+                <p class="text-muted mb-0 small">
+                    <span th:if="${isAdminView}">전체 조직의 최종 등급 확정 현황을 확인합니다.</span>
+                    <span th:unless="${isAdminView}">배정된 인원에 대한 성과 및 역량 최종 등급을 확정해주세요.</span>
+                </p>
             </div>
+        </div>
+
+        <!-- 어드민 읽기 전용 배너 -->
+        <div th:if="${isAdminView}" class="alert d-flex align-items-center mb-3" role="alert"
+            style="background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: #93c5fd; border-radius: 0.75rem;">
+            <i class="bi bi-shield-lock-fill me-2 fs-5"></i>
+            <div>관리자 열람 모드 — 전체 조직의 최종 등급 현황을 조회하고 있습니다. 수정 및 제출 기능은 비활성화되어 있습니다.</div>
         </div>
 
         <div th:if="${errorMessage}" class="alert alert-danger d-flex align-items-center mb-3" role="alert"
@@ -411,22 +425,33 @@
 
                                                 <!-- 진행 버튼 -->
                                                 <td>
-                                                    <button th:if="${!task.weightValid()}"
-                                                        class="action-btn action-locked" disabled>
-                                                        <i class="bi bi-lock-fill"></i> 가중치 미설정
-                                                    </button>
-                                                    <button th:if="${task.weightValid() && !task.selfSubmitted()}"
-                                                        class="action-btn action-waiting" disabled>
-                                                        <i class="bi bi-lock-fill"></i> 자가평가 대기중
-                                                    </button>
-                                                    <a th:if="${task.selfSubmitted() && task.weightValid()}" href="#"
-                                                        class="action-btn action-primary"
+                                                    <!-- 어드민: 읽기 전용 '조회' (상세 페이지로 이동) -->
+                                                    <a th:if="${isAdminView}" href="#"
+                                                        class="action-btn action-view"
                                                         th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='leader')}"
                                                         hx-target="#page-content" hx-select="#page-content"
                                                         hx-swap="outerHTML" hx-push-url="true">
-                                                        <i class="bi bi-pencil-square"></i> <span
-                                                            th:text="${task.allSubmitted() ? '수정' : '진행'}"></span>
+                                                        <i class="bi bi-eye"></i> 조회
                                                     </a>
+                                                    <!-- 일반 임원: 기존 로직 -->
+                                                    <th:block th:unless="${isAdminView}">
+                                                        <button th:if="${!task.weightValid()}"
+                                                            class="action-btn action-locked" disabled>
+                                                            <i class="bi bi-lock-fill"></i> 가중치 미설정
+                                                        </button>
+                                                        <button th:if="${task.weightValid() && !task.selfSubmitted()}"
+                                                            class="action-btn action-waiting" disabled>
+                                                            <i class="bi bi-lock-fill"></i> 자가평가 대기중
+                                                        </button>
+                                                        <a th:if="${task.selfSubmitted() && task.weightValid()}" href="#"
+                                                            class="action-btn action-primary"
+                                                            th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='leader')}"
+                                                            hx-target="#page-content" hx-select="#page-content"
+                                                            hx-swap="outerHTML" hx-push-url="true">
+                                                            <i class="bi bi-pencil-square"></i> <span
+                                                                th:text="${task.allSubmitted() ? '수정' : '진행'}"></span>
+                                                        </a>
+                                                    </th:block>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -522,22 +547,33 @@
 
                                                 <!-- 진행 버튼 -->
                                                 <td>
-                                                    <button th:if="${!task.weightValid()}"
-                                                        class="action-btn action-locked" disabled>
-                                                        <i class="bi bi-lock-fill"></i> 가중치 미설정
-                                                    </button>
-                                                    <button th:if="${task.weightValid() && !task.selfSubmitted()}"
-                                                        class="action-btn action-waiting" disabled>
-                                                        <i class="bi bi-lock-fill"></i> 대기중
-                                                    </button>
-                                                    <a th:if="${task.selfSubmitted() && task.weightValid()}" href="#"
-                                                        class="action-btn action-primary"
+                                                    <!-- 어드민: 읽기 전용 '조회' (상세 페이지로 이동) -->
+                                                    <a th:if="${isAdminView}" href="#"
+                                                        class="action-btn action-view"
                                                         th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='staff')}"
                                                         hx-target="#page-content" hx-select="#page-content"
                                                         hx-swap="outerHTML" hx-push-url="true">
-                                                        <i class="bi bi-pencil-square"></i> <span
-                                                            th:text="${task.allSubmitted() ? '수정' : '진행'}"></span>
+                                                        <i class="bi bi-eye"></i> 조회
                                                     </a>
+                                                    <!-- 일반 임원: 기존 로직 -->
+                                                    <th:block th:unless="${isAdminView}">
+                                                        <button th:if="${!task.weightValid()}"
+                                                            class="action-btn action-locked" disabled>
+                                                            <i class="bi bi-lock-fill"></i> 가중치 미설정
+                                                        </button>
+                                                        <button th:if="${task.weightValid() && !task.selfSubmitted()}"
+                                                            class="action-btn action-waiting" disabled>
+                                                            <i class="bi bi-lock-fill"></i> 대기중
+                                                        </button>
+                                                        <a th:if="${task.selfSubmitted() && task.weightValid()}" href="#"
+                                                            class="action-btn action-primary"
+                                                            th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='staff')}"
+                                                            hx-target="#page-content" hx-select="#page-content"
+                                                            hx-swap="outerHTML" hx-push-url="true">
+                                                            <i class="bi bi-pencil-square"></i> <span
+                                                                th:text="${task.allSubmitted() ? '수정' : '진행'}"></span>
+                                                        </a>
+                                                    </th:block>
                                                 </td>
                                             </tr>
                                         </tbody>

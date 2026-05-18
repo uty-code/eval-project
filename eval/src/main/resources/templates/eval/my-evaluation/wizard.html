@@ -162,15 +162,21 @@
             </div>
 
             <!-- 제출 완료 및 잠금 배너 -->
-            <div th:if="${submitted and not isLocked}" class="alert alert-success bg-opacity-10 border-success border-opacity-25 text-success mb-4 py-3 d-flex align-items-center gap-3">
+            <div th:if="${submitted and not isLocked and not isAdminView}" class="alert alert-success bg-opacity-10 border-success border-opacity-25 text-success mb-4 py-3 d-flex align-items-center gap-3">
                 <i class="bi bi-patch-check-fill fs-4"></i>
                 <span class="fw-bold">평가가 이미 제출된 상태입니다. 수정 후 재제출이 가능합니다.</span>
             </div>
-            <div th:if="${isLocked}" class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4 py-3 d-flex align-items-center gap-3">
+            <div th:if="${isLocked and not isAdminView}" class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 text-danger mb-4 py-3 d-flex align-items-center gap-3">
                 <i class="bi bi-lock-fill fs-4"></i>
                 <div>
                     <strong th:text="${lockedBy}">상위 평가자</strong>가 평가를 확정하여 더 이상 수정할 수 없습니다.
                 </div>
+            </div>
+            <!-- 어드민 읽기 전용 배너 -->
+            <div th:if="${isAdminView}" class="alert d-flex align-items-center mb-4 py-3 gap-3" role="alert"
+                style="background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: #93c5fd; border-radius: 0.75rem;">
+                <i class="bi bi-shield-lock-fill fs-4"></i>
+                <div>관리자 열람 모드 — 해당 사원의 자가평가 내용을 조회하고 있습니다. 수정 및 제출 기능은 비활성화되어 있습니다.</div>
             </div>
 
             <!-- Step Indicator -->
@@ -191,7 +197,7 @@
             </div>
 
             <form id="evaluationForm" th:action="@{/eval/my-evaluation/submit}" method="post">
-                <fieldset th:disabled="${isLocked}" style="border:none; padding:0; margin:0;">
+                <fieldset th:disabled="${isLocked or isAdminView}" style="border:none; padding:0; margin:0;">
                 <input type="hidden" name="mappingId" th:value="${mappingId}">
 
                 <!-- [CASE 1] 부서원: 성과 + 역량 -->
@@ -221,7 +227,7 @@
                                         th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
                                         th:data-weight="${element.weight()}"
                                         th:data-max="${element.maxScore()}"
-                                        oninput="calculateScores()" min="0" th:max="${element.maxScore()}" required>
+                                        oninput="calculateScores()" min="0" th:max="${element.maxScore()}" th:required="${not isAdminView}">
                                     <div class="text-muted small mt-2">해당 성과 항목에 대한 자가 점수를 입력하세요.</div>
                                 </div>
                             </div>
@@ -261,7 +267,7 @@
                                         th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
                                         th:data-weight="${element.weight()}"
                                         th:data-max="${element.maxScore()}"
-                                        oninput="calculateScores()" min="0" th:max="${element.maxScore()}" required>
+                                        oninput="calculateScores()" min="0" th:max="${element.maxScore()}" th:required="${not isAdminView}">
                                     <div class="text-muted small mt-2">해당 역량 항목에 대한 자가 점수를 입력하세요.</div>
                                 </div>
                             </div>
@@ -271,7 +277,7 @@
                             <button type="button" class="btn btn-outline-light border-opacity-25 py-3 px-5 rounded-pill" onclick="prevStep(2)">
                                 <i class="bi bi-arrow-left me-2"></i> 이전 (성과 평가)
                             </button>
-                            <button type="submit" class="btn btn-success btn-lg py-3 px-5 rounded-pill shadow-lg"
+                            <button th:unless="${isAdminView}" type="submit" class="btn btn-success btn-lg py-3 px-5 rounded-pill shadow-lg"
                                 style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border:none;">
                                 <i class="bi bi-check2-circle me-2"></i> 자가평가 최종 제출
                             </button>
@@ -306,14 +312,14 @@
                                         th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
                                         th:data-weight="${element.weight()}"
                                         th:data-max="${element.maxScore()}"
-                                        oninput="calculateScores()" min="0" th:max="${element.maxScore()}" required>
+                                        oninput="calculateScores()" min="0" th:max="${element.maxScore()}" th:required="${not isAdminView}">
                                     <div class="text-muted small mt-2">협업 및 리더십에 대한 자가 점수를 입력하세요.</div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="d-flex justify-content-end mt-4">
-                            <button type="submit" class="btn btn-danger btn-lg py-3 px-5 rounded-pill shadow-lg"
+                            <button th:unless="${isAdminView}" type="submit" class="btn btn-danger btn-lg py-3 px-5 rounded-pill shadow-lg"
                                 style="background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); border:none;">
                                 <i class="bi bi-check2-circle me-2"></i> 자가평가 최종 제출
                             </button>

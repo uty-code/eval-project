@@ -46,6 +46,7 @@ public class MultiDimensionalEvaluationController {
     private final EvaluationMapper evaluationMapper;
     private final EmployeeMapper employeeMapper;
     private final EvaluatorMappingMapper evaluatorMappingMapper;
+    private final com.ees.eval.mapper.DepartmentMapper departmentMapper;
 
 
 
@@ -67,6 +68,11 @@ public class MultiDimensionalEvaluationController {
         // 부서 목록 조기 방어 바인딩 (NPE 원천 차단)
         model.addAttribute("departments", java.util.Collections.emptyList());
 
+        // 어드민 여부 판별
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        model.addAttribute("isAdminView", isAdmin);
+
         // 1. 전체 차수 목록 로드 및 정렬 정책 적용 (IN_PROGRESS 우선, 그 외 최신순)
         List<EvaluationPeriodDTO> allPeriods = periodService.getAllPeriods();
         List<EvaluationPeriodDTO> sortedPeriods = new java.util.ArrayList<>(allPeriods);
@@ -75,7 +81,6 @@ public class MultiDimensionalEvaluationController {
             boolean p2Active = "IN_PROGRESS".equals(p2.statusCode());
             if (p1Active && !p2Active) return -1;
             if (!p1Active && p2Active) return 1;
-            // 둘 다 같은 상태거나 둘 다 활성이 아니면 연도/ID 내림차순
             int yearCompare = p2.periodYear().compareTo(p1.periodYear());
             if (yearCompare != 0) return yearCompare;
             return p2.periodId().compareTo(p1.periodId());
@@ -110,8 +115,16 @@ public class MultiDimensionalEvaluationController {
         
         model.addAttribute("isPeriodActive", isPeriodActive);
 
-        com.ees.eval.dto.MultiDimensionalEvalPageDTO pageData = mappingService.getMultiDimensionalTasks(
-                targetPeriodId, empId, filterDeptId, filterStatus, keyword, page, pageSize, isPeriodActive);
+        com.ees.eval.dto.MultiDimensionalEvalPageDTO pageData;
+        if (isAdmin) {
+            // 어드민: 전체 다면평가 현황 조회 (evaluator_id 필터 없음)
+            pageData = mappingService.getAdminMultiDimensionalTasks(
+                    targetPeriodId, filterDeptId, filterStatus, keyword, page, pageSize, isPeriodActive);
+        } else {
+            // 일반 유저: 기존 로직 유지
+            pageData = mappingService.getMultiDimensionalTasks(
+                    targetPeriodId, empId, filterDeptId, filterStatus, keyword, page, pageSize, isPeriodActive);
+        }
         
         model.addAttribute("pageData", pageData);
         
@@ -120,25 +133,37 @@ public class MultiDimensionalEvaluationController {
         model.addAttribute("keyword", keyword);
         model.addAttribute("filterStatus", filterStatus);
 
-        // 6. 필터 드롭다운용 부서 목록 추출 (전체 조회 시에도 대응)
-        List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(targetPeriodId, empId);
-        List<Long> evaluateeIds = myTasks.stream()
-                .filter(m -> "SUBORDINATE".equals(m.relationTypeCode()))
-                .map(EvaluatorMappingDTO::evaluateeId)
-                .distinct()
-                .toList();
-        
-        if (!evaluateeIds.isEmpty()) {
-            List<com.ees.eval.domain.Employee> evaluatees = employeeMapper.findByIds(evaluateeIds);
-            List<com.ees.eval.dto.DepartmentDTO> filterDepts = evaluatees.stream()
-                    .map(e -> com.ees.eval.dto.DepartmentDTO.builder()
-                            .deptId(e.getDeptId())
-                            .deptName(e.getDeptName())
+        // 6. 필터 드롭다운용 부서 목록 추출
+        if (isAdmin) {
+            // 어드민은 전체 부서 목록을 사용
+            List<com.ees.eval.dto.DepartmentDTO> allDepts = departmentMapper.findAll().stream()
+                    .map(d -> com.ees.eval.dto.DepartmentDTO.builder()
+                            .deptId(d.getDeptId())
+                            .deptName(d.getDeptName())
                             .build())
-                    .distinct()
                     .sorted(java.util.Comparator.comparing(com.ees.eval.dto.DepartmentDTO::deptName))
                     .toList();
-            model.addAttribute("departments", filterDepts);
+            model.addAttribute("departments", allDepts);
+        } else {
+            List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(targetPeriodId, empId);
+            List<Long> evaluateeIds = myTasks.stream()
+                    .filter(m -> "SUBORDINATE".equals(m.relationTypeCode()))
+                    .map(EvaluatorMappingDTO::evaluateeId)
+                    .distinct()
+                    .toList();
+            
+            if (!evaluateeIds.isEmpty()) {
+                List<com.ees.eval.domain.Employee> evaluatees = employeeMapper.findByIds(evaluateeIds);
+                List<com.ees.eval.dto.DepartmentDTO> filterDepts = evaluatees.stream()
+                        .map(e -> com.ees.eval.dto.DepartmentDTO.builder()
+                                .deptId(e.getDeptId())
+                                .deptName(e.getDeptName())
+                                .build())
+                        .distinct()
+                        .sorted(java.util.Comparator.comparing(com.ees.eval.dto.DepartmentDTO::deptName))
+                        .toList();
+                model.addAttribute("departments", filterDepts);
+            }
         }
 
         if (selectedPeriod != null && "PLANNED".equals(selectedPeriod.statusCode())) {
@@ -151,13 +176,17 @@ public class MultiDimensionalEvaluationController {
     }
 
     /**
-     * 다면평가 입력 폼
+     * 다면평가 입력 폼 (어드민은 읽기 전용 열람)
      */
     @GetMapping("/form")
     public String getForm(@RequestParam Long mappingId,
                           Model model,
                           @AuthenticationPrincipal UserDetails userDetails,
                           RedirectAttributes redirectAttributes) {
+
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        model.addAttribute("isAdminView", isAdmin);
 
         EvaluatorMappingDTO mapping = mappingService.getMappingById(mappingId);
 
@@ -234,6 +263,7 @@ public class MultiDimensionalEvaluationController {
      */
 
     @PostMapping("/submit")
+    @PreAuthorize("!hasRole('ADMIN')")
     public String submitForm(@RequestParam Long mappingId,
                              @RequestParam java.util.Map<String, String> params,
                              @AuthenticationPrincipal UserDetails userDetails,

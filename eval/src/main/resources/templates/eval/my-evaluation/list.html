@@ -152,9 +152,23 @@
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h1 class="text-white fs-3 mb-1"><i class="bi bi-person-workspace text-primary me-2"></i>나의 자가평가</h1>
-                <p class="text-muted mb-0 small">차수별 나의 성과와 역량을 진단하고 기록합니다.</p>
+                <h1 class="text-white fs-3 mb-1">
+                    <i class="bi bi-person-workspace text-primary me-2"></i>
+                    <span th:if="${isAdminView}">자가평가 현황</span>
+                    <span th:unless="${isAdminView}">나의 자가평가</span>
+                </h1>
+                <p class="text-muted mb-0 small">
+                    <span th:if="${isAdminView}">전체 사원의 자가평가 진행 현황을 확인합니다.</span>
+                    <span th:unless="${isAdminView}">차수별 나의 성과와 역량을 진단하고 기록합니다.</span>
+                </p>
             </div>
+        </div>
+
+        <!-- 어드민 읽기 전용 배너 -->
+        <div th:if="${isAdminView}" class="alert d-flex align-items-center mb-3" role="alert"
+            style="background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: #93c5fd; border-radius: 0.75rem;">
+            <i class="bi bi-shield-lock-fill me-2 fs-5"></i>
+            <div>관리자 열람 모드 — 모든 사원의 자가평가 현황을 조회하고 있습니다. 수정 및 제출 기능은 비활성화되어 있습니다.</div>
         </div>
 
         <!-- 메시지 영역 -->
@@ -282,31 +296,42 @@
                                     <td style="border-right: 1px solid rgba(255, 255, 255, .35);">
                                         <!-- 액션 버튼 -->
                                         <div class="action-wrap">
-                                            <!-- 작성하기/수정하기 -->
-                                            <a th:if="${r.ctaType().name() == 'EDIT'}" href="#"
-                                                class="action-btn action-primary"
-                                                th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
-                                                hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
-                                                hx-push-url="true">
-                                                <i class="bi bi-pencil-square"></i>
-                                                <span th:text="${r.isSubmitted ? '수정' : '진행'}">진행</span>
-                                            </a>
-                                            <!-- 조회하기 -->
-                                            <a th:if="${r.ctaType().name() == 'VIEW'}" href="#"
+                                            <!-- 어드민: 읽기 전용 '조회' (상세 페이지로 이동) -->
+                                            <a th:if="${isAdminView}" href="#"
                                                 class="action-btn action-view"
                                                 th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
                                                 hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
                                                 hx-push-url="true">
-                                                <i class="bi bi-search"></i> 조회
+                                                <i class="bi bi-eye"></i> 조회
                                             </a>
-                                            <!-- 잠김 -->
-                                            <a th:if="${r.ctaType().name() == 'LOCKED'}" href="#"
-                                                class="action-btn action-locked"
-                                                th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
-                                                hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
-                                                hx-push-url="true">
-                                                <i class="bi bi-search"></i> 조회
-                                            </a>
+                                            <!-- 일반 유저: 기존 로직 -->
+                                            <th:block th:unless="${isAdminView}">
+                                                <!-- 작성하기/수정하기 -->
+                                                <a th:if="${r.ctaType().name() == 'EDIT'}" href="#"
+                                                    class="action-btn action-primary"
+                                                    th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
+                                                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                                    hx-push-url="true">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                    <span th:text="${r.isSubmitted ? '수정' : '진행'}">진행</span>
+                                                </a>
+                                                <!-- 조회하기 -->
+                                                <a th:if="${r.ctaType().name() == 'VIEW'}" href="#"
+                                                    class="action-btn action-view"
+                                                    th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
+                                                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                                    hx-push-url="true">
+                                                    <i class="bi bi-search"></i> 조회
+                                                </a>
+                                                <!-- 잠김 -->
+                                                <a th:if="${r.ctaType().name() == 'LOCKED'}" href="#"
+                                                    class="action-btn action-locked"
+                                                    th:attr="hx-get=@{/eval/my-evaluation/wizard(mappingId=${r.mappingId()})}"
+                                                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                                    hx-push-url="true">
+                                                    <i class="bi bi-search"></i> 조회
+                                                </a>
+                                            </th:block>
                                         </div>
                                     </td>
                                 </tr>
@@ -314,31 +339,11 @@
                         </table>
                     </div>
 
-                    <!-- 페이징네이션 -->
-                    <div th:if="${pageData.totalPages() > 1}" class="pagination-container pb-4">
-                        <button class="btn btn-sm btn-outline-secondary text-white border-0"
-                            th:classappend="${pageData.currentPage() <= 1} ? 'disabled'"
-                            th:attr="hx-get=@{/eval/my-evaluation/list(periodId=${selectedPeriodId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() - 1})}"
-                            hx-target="#my-eval-container" hx-select="#my-eval-container" hx-swap="outerHTML"
-                            hx-push-url="true">
-                            <i class="bi bi-chevron-left"></i>
-                        </button>
-
-                        <button th:each="i : ${#numbers.sequence(1, pageData.totalPages())}"
-                            th:class="${i == pageData.currentPage()} ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-secondary text-white border-0'"
-                            th:text="${i}"
-                            th:attr="hx-get=@{/eval/my-evaluation/list(periodId=${selectedPeriodId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${i})}"
-                            hx-target="#my-eval-container" hx-select="#my-eval-container" hx-swap="outerHTML"
-                            hx-push-url="true">
-                        </button>
-
-                        <button class="btn btn-sm btn-outline-secondary text-white border-0"
-                            th:classappend="${pageData.currentPage() >= pageData.totalPages()} ? 'disabled'"
-                            th:attr="hx-get=@{/eval/my-evaluation/list(periodId=${selectedPeriodId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() + 1})}"
-                            hx-target="#my-eval-container" hx-select="#my-eval-container" hx-swap="outerHTML"
-                            hx-push-url="true">
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
+                    <!-- 페이지네이션 UI (v2 제네릭 프래그먼트 사용) -->
+                    <div class="d-flex justify-content-center mt-3 mb-2">
+                        <div
+                            th:replace="~{fragments/pagination :: pagination(${pageData}, '/eval/my-evaluation/list', '#page-content', '#filterForm')}">
+                        </div>
                     </div>
                 </div>
             </div>

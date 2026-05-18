@@ -124,8 +124,20 @@ public class PerformanceEvaluationController {
         }
         model.addAttribute("selectedPeriod", selectedPeriod);
 
+        // 어드민 여부 판별
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        model.addAttribute("isAdminView", isAdmin);
+
         // 5. 데이터 조회 (periodId가 null이면 전체 기간 조회)
-        List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(periodId, empId);
+        List<EvaluatorMappingDTO> myTasks;
+        if (isAdmin) {
+            // 어드민: 전체 성과/역량 매핑 조회 (evaluator_id 필터 없음)
+            myTasks = mappingService.getAllPerformanceTasks(periodId);
+        } else {
+            // 일반 유저: 기존 로직 유지
+            myTasks = mappingService.getMyEvaluationTasks(periodId, empId);
+        }
 
         if (!myTasks.isEmpty()) {
             // 관련 차수 ID 목록 추출 (N+1 방지용 벌크 조회 대상)
@@ -477,6 +489,10 @@ public class PerformanceEvaluationController {
             Model model,
             @AuthenticationPrincipal UserDetails userDetails,
             RedirectAttributes redirectAttributes) {
+
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        model.addAttribute("isAdminView", isAdmin);
 
         // 매핑 정보 조회 (피평가자 정보, 차수 정보 포함)
         EvaluatorMappingDTO mapping = mappingService.getMappingById(mappingId);
