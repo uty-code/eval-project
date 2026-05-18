@@ -187,4 +187,12 @@ public interface DepartmentMapper {
      * @return 경량 부서 DTO 리스트
      */
     List<com.ees.eval.dto.DepartmentDtos.SimpleDepartmentDTO> findSimpleDepartments();
+
+    /**
+     * 특정 상위 부서(parentDeptId) 산하의 하위 부서 리더(부서장) 사번 목록을 중복 없이 조회합니다.
+     *
+     * @param parentDeptId 상위 부서 식별자
+     * @return 하위 부서장 사원 ID 목록
+     */
+    List<Long> findSubordinateLeadersByParentDeptId(@Param("parentDeptId") Long parentDeptId);
 }

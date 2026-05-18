@@ -443,9 +443,24 @@ public class FinalGradeController {
                         
                 // 해당 부서 전체의 상대평가 랭킹 및 등급 실시간 재계산
                 if (submitDeptId != null) {
-                    scoreCalculationService.calculateRelativeGradesForDepartment(
-                            submitMapping.periodId(), submitDeptId);
-                    log.info("[FinalGrade] 부서 단위 상대평가 실시간 랭킹 산정 완료 - deptId={}", submitDeptId);
+                    boolean isLeaderVal = departmentMapper.countDepartmentsByLeaderId(submitMapping.evaluateeId()) > 0;
+                    if (isLeaderVal) {
+                        // 피평가자가 부서장(팀장)인 경우: 소속 부서의 상위 부서(본부) ID를 조회하여 본부 팀장 상대평가 수행
+                        departmentMapper.findById(submitDeptId).ifPresent(dept -> {
+                            if (dept.getParentDeptId() != null) {
+                                log.info("[FinalGrade] 본부 내 팀장 상대평가 시작 - parentDeptId={}", dept.getParentDeptId());
+                                scoreCalculationService.calculateRelativeGradesForLeadersInHQ(submitMapping.periodId(), dept.getParentDeptId());
+                                log.info("[FinalGrade] 본부 내 팀장 상대평가 완료");
+                            } else {
+                                log.warn("[FinalGrade] 팀장이지만 상위 부서(본부)가 없어 본부 내 팀장 상대평가 건너뜀 - deptId={}", submitDeptId);
+                            }
+                        });
+                    } else {
+                        // 피평가자가 일반 사원인 경우: 기존처럼 해당 부서 내의 일반 사원 상대평가 수행 (부서장은 자동 제외됨)
+                        scoreCalculationService.calculateRelativeGradesForDepartment(
+                                submitMapping.periodId(), submitDeptId);
+                        log.info("[FinalGrade] 부서 단위 상대평가 실시간 랭킹 산정 완료 - deptId={}", submitDeptId);
+                    }
                 }
             }
         } catch (Exception e) {

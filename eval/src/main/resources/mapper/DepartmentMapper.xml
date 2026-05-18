@@ -313,4 +313,14 @@
         order by dept_name asc
     </select>
 
+    <!-- 특정 상위 부서(본부) 산하의 모든 하위 부서의 리더(팀장) 사번 목록 조회 -->
+    <select id="findSubordinateLeadersByParentDeptId" resultType="java.lang.Long">
+        select distinct
+            d.leader_id
+        from departments_51 d
+        where d.parent_dept_id = #{parentDeptId}
+          and d.leader_id is not null
+          and d.is_deleted = 'n'
+    </select>
+
 </mapper>

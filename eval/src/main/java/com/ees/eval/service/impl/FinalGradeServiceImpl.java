@@ -140,10 +140,13 @@ public class FinalGradeServiceImpl implements FinalGradeService {
         Map<String, List<EvaluationElementDTO>> elementCache = new HashMap<>();
         Map<Long, List<EvaluationElementDTO>> globalElementsCache = new HashMap<>();
         
-        Set<Long> leaderEmpIds = departmentMapper.findAll().stream()
+        List<com.ees.eval.domain.Department> allDepts = departmentMapper.findAll();
+        Set<Long> leaderEmpIds = allDepts.stream()
                 .map(com.ees.eval.domain.Department::getLeaderId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+        Map<Long, com.ees.eval.domain.Department> deptMap = allDepts.stream()
+                .collect(Collectors.toMap(com.ees.eval.domain.Department::getDeptId, d -> d, (a, b) -> a));
 
         // 6. 모수 전원의 종합 점수 추산 및 차수/부서별 예상 등급 부여
         Map<Long, Integer> totalScoreMap = new HashMap<>();
@@ -219,21 +222,45 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             }
         }
 
-        // 6-2. 차수별 + 부서별로 그룹화하여 동적 상대평가 적용
-        Map<String, List<Long>> empsByGroup = allMappingsForEvaluatees.stream()
-                .filter(m -> {
-                    Employee e = employeeMap.get(m.getEvaluateeId());
-                    return e != null && e.getDeptId() != null && totalScoreMap.get(m.getEvaluateeId()) != null;
-                })
-                .collect(Collectors.groupingBy(m -> m.getPeriodId() + "_" + employeeMap.get(m.getEvaluateeId()).getDeptId(),
-                        Collectors.mapping(EvaluatorMapping::getEvaluateeId, Collectors.toList())));
+        // 6-2. 차수별 + 부서별(일반) 또는 차수별 + 본부별(부서장)로 그룹화하여 동적 상대평가 적용
+        Map<String, List<Long>> empsByGroup = new HashMap<>();
+        for (EvaluatorMapping m : allMappingsForEvaluatees) {
+            Employee e = employeeMap.get(m.getEvaluateeId());
+            if (e == null || e.getDeptId() == null || totalScoreMap.get(m.getEvaluateeId()) == null) {
+                continue;
+            }
+            
+            boolean isLeader = leaderEmpIds.contains(m.getEvaluateeId());
+            String key;
+            if (isLeader) {
+                com.ees.eval.domain.Department dept = deptMap.get(e.getDeptId());
+                Long parentDeptId = (dept != null) ? dept.getParentDeptId() : null;
+                if (parentDeptId != null) {
+                    key = m.getPeriodId() + "_leader_" + parentDeptId;
+                } else {
+                    key = m.getPeriodId() + "_leader_global";
+                }
+            } else {
+                key = m.getPeriodId() + "_staff_" + e.getDeptId();
+            }
+            empsByGroup.computeIfAbsent(key, k -> new ArrayList<>()).add(m.getEvaluateeId());
+        }
 
         Map<Long, Map<Long, com.ees.eval.dto.EvaluationGradeRatioDTO>> periodRatioMapCache = new HashMap<>();
 
         for (Map.Entry<String, List<Long>> groupEntry : empsByGroup.entrySet()) {
             String groupKey = groupEntry.getKey();
-            Long currentPeriodId = Long.parseLong(groupKey.split("_")[0]);
-            Long deptId = Long.parseLong(groupKey.split("_")[1]);
+            String[] parts = groupKey.split("_");
+            Long currentPeriodId = Long.parseLong(parts[0]);
+            String roleType = parts[1]; // "leader" or "staff"
+            
+            Long deptId = null;
+            if ("staff".equals(roleType)) {
+                deptId = Long.parseLong(parts[2]);
+            } else if ("leader".equals(roleType) && !"global".equals(parts[2])) {
+                deptId = Long.parseLong(parts[2]); // 본부 ID (parentDeptId)
+            }
+            
             List<Long> deptEmpIds = groupEntry.getValue().stream().distinct().collect(Collectors.toList());
 
             int totalEligible = deptEmpIds.size();
@@ -242,7 +269,10 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             Map<Long, com.ees.eval.dto.EvaluationGradeRatioDTO> ratioMap = periodRatioMapCache.computeIfAbsent(
                     currentPeriodId, pid -> gradeRatioService.getAllRatiosByPeriodMap(pid)
             );
-            com.ees.eval.dto.EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatioFromMap(ratioMap, currentPeriodId, deptId);
+            
+            // 만약 리더 그룹이거나 global인 경우 ratio Query 시 deptId = null로 처리하여 전사 공통 비율 적용
+            Long ratioDeptId = "staff".equals(roleType) ? deptId : null;
+            com.ees.eval.dto.EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatioFromMap(ratioMap, currentPeriodId, ratioDeptId);
             
             double[] exact = {
                     totalEligible * ratio.gradeSRatio() / 100.0,
