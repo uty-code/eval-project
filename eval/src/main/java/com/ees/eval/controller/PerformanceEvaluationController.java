@@ -79,6 +79,9 @@ public class PerformanceEvaluationController {
 
         model.addAttribute("activeMenu", "performance-eval");
 
+        // 필터 드롭다운용 부서 목록의 기본값 조기 바인딩 (어떤 로직 분기를 타더라도 안전한 렌더링 보장)
+        model.addAttribute("departments", java.util.Collections.emptyList());
+
         Long empId = Long.parseLong(userDetails.getUsername());
 
         // 1. 전체 차수 목록 로드 및 정렬 정책 적용 (IN_PROGRESS 우선, 그 외 최신순)
@@ -406,12 +409,16 @@ public class PerformanceEvaluationController {
             model.addAttribute("selfWeightValid", selfWeightValid);
 
             if (selectedPeriod != null && "PLANNED".equals(selectedPeriod.statusCode())) {
-                // 상단 메시지 제거
+                // 평가 준비 중 상태일 때 안내 메시지 노출
+                model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
             } else if (pageData.totalCount() == 0) {
                 // 상단 메시지 제거
             }
         } else {
-            // 상단 메시지 제거
+            if (selectedPeriod != null && "PLANNED".equals(selectedPeriod.statusCode())) {
+                // 평가 준비 중 상태이면서 할당된 태스크가 없을 때도 안전하게 안내 메시지 노출
+                model.addAttribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다.");
+            }
             // 빈 페이지 데이터 설정
             model.addAttribute("pageData", new com.ees.eval.dto.PerformanceEvalPageDTO(
                     Collections.emptyList(), 1, 1, 0, 10));

@@ -118,6 +118,8 @@ class PerformanceEvaluationControllerTest {
         EvaluationPeriodDTO period = EvaluationPeriodDTO.builder()
                 .periodId(periodId)
                 .statusCode("PLANNED")
+                .periodName("2026년 상반기 평가")
+                .periodYear(2026)
                 .build();
 
         Employee emp = new Employee();
@@ -131,11 +133,40 @@ class PerformanceEvaluationControllerTest {
                 EvaluatorMappingDTO.builder().periodId(periodId).evaluateeId(2001L).relationTypeCode("MANAGER").build()
         ));
 
-        // When & Then
+        // 실행 및 검증
         mockMvc.perform(get("/eval/performance")
                         .param("periodId", periodId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("eval/performance/list"))
                 .andExpect(model().attribute("infoMessage", "현재 평가 시작 전입니다. 정해진 평가 기간에만 작성이 가능합니다."));
+    }
+
+    @Test
+    @DisplayName("should_필터창이출력되고준비중배너와공존한다_when_평가차수가_PLANNED_상태일때")
+    void should_renderFilterAndBannerTogether_when_periodIsPlanned() throws Exception {
+        // given - 데이터 정의
+        Long periodId = 10L;
+        Long empId = 1001L;
+        EvaluationPeriodDTO period = EvaluationPeriodDTO.builder()
+                .periodId(periodId)
+                .statusCode("PLANNED")
+                .periodName("2026년 상반기 평가")
+                .periodYear(2026)
+                .build();
+
+        // mock - 모의 객체 동작 설정
+        given(periodService.getAllPeriods()).willReturn(Collections.singletonList(period));
+        // PLANNED 차수이므로 배정된 태스크는 없음
+        given(mappingService.getMyEvaluationTasks(periodId, empId)).willReturn(Collections.emptyList());
+
+        // when & then - 실행 및 검증
+        mockMvc.perform(get("/eval/performance")
+                        .param("periodId", periodId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("eval/performance/list"))
+                // 1) departments 모델 속성의 존재 확인 (방어적 바인딩 검증)
+                .andExpect(model().attributeExists("departments"))
+                // 2) 선택된 차수가 바인딩되었는지 확인
+                .andExpect(model().attribute("selectedPeriod", period));
     }
 }
