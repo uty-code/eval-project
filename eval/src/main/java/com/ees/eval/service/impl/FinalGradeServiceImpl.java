@@ -257,26 +257,39 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             deptEmpIds.sort((id1, id2) -> totalScoreMap.get(id2).compareTo(totalScoreMap.get(id1)));
 
             String[] gradeNames = {"S", "A", "B", "C", "D"};
-            int currentGradeIndex = 0;
-            int countInCurrentGrade = 0;
 
+            // 1. 이미 확정된 등급(S, A, B, C, D)의 개수를 카운트
+            int[] finalizedCounts = new int[5];
+            for (Long empId : deptEmpIds) {
+                if (expectedGradeMap.containsKey(empId)) {
+                    String existingGrade = expectedGradeMap.get(empId);
+                    for (int i = 0; i < 5; i++) {
+                        if (gradeNames[i].equals(existingGrade)) {
+                            finalizedCounts[i]++;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 2. 남은 TO(티오) 계산
+            int[] remainingTargets = new int[5];
+            for (int i = 0; i < 5; i++) {
+                remainingTargets[i] = Math.max(0, targets[i] - finalizedCounts[i]);
+            }
+
+            // 3. 확정되지 않은 사원들에게 차례대로 남은 등급 배분
+            int currentGradeIndex = 0;
             for (Long empId : deptEmpIds) {
                 if (!expectedGradeMap.containsKey(empId)) {
-                    while (currentGradeIndex < 5 && countInCurrentGrade >= targets[currentGradeIndex]) {
+                    while (currentGradeIndex < 5 && remainingTargets[currentGradeIndex] <= 0) {
                         currentGradeIndex++;
-                        countInCurrentGrade = 0;
                     }
                     if (currentGradeIndex < 5) {
                         expectedGradeMap.put(empId, gradeNames[currentGradeIndex]);
-                        countInCurrentGrade++;
+                        remainingTargets[currentGradeIndex]--;
                     } else {
                         expectedGradeMap.put(empId, "D");
-                    }
-                } else {
-                    countInCurrentGrade++;
-                    while (currentGradeIndex < 5 && countInCurrentGrade > targets[currentGradeIndex]) {
-                        currentGradeIndex++;
-                        countInCurrentGrade = 1;
                     }
                 }
             }
