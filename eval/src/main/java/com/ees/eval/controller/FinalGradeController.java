@@ -287,6 +287,23 @@ public class FinalGradeController {
 
             model.addAttribute("multiEvalDataMap", multiEvalDataMap);
             model.addAttribute("multiEvalAvgMap", multiEvalAvgMap);
+
+            // 부서원(SUBORDINATE) 다면평가 전원 제출 여부 계산
+            int subTotal = subMappingIds.size();
+            int subSubmittedCount = 0;
+            for (Long subMappingId : subMappingIds) {
+                List<Evaluation> subEvals = subEvalGroupMap.getOrDefault(subMappingId, java.util.Collections.emptyList());
+                boolean allElementsSubmitted = !competencyElements.isEmpty() && competencyElements.stream()
+                        .allMatch(elem -> subEvals.stream()
+                                .anyMatch(e -> elem.elementId().equals(e.getElementId())
+                                        && "SUBMITTED".equals(e.getConfirmStatusCode())));
+                if (allElementsSubmitted) subSubmittedCount++;
+            }
+            boolean subordinateAllSubmitted = subTotal > 0 && subSubmittedCount == subTotal;
+
+            model.addAttribute("subordinateAllSubmitted", subordinateAllSubmitted);
+            model.addAttribute("subordinateTotal", subTotal);
+            model.addAttribute("subordinateSubmittedCount", subSubmittedCount);
         }
 
         return "eval/final-grade/wizard";
@@ -310,6 +327,41 @@ public class FinalGradeController {
         if (!typeWeightService.isWeightSumValid(submitMapping.periodId(), submitDeptId, targetRoleCode)) {
             redirectAttributes.addFlashAttribute("errorMessage", "유형별 가중치 합계가 올바르지 않습니다.");
             return "redirect:/eval/final-grade/form?mappingId=" + mappingId;
+        }
+
+        // 부서장인 경우: 부서원(SUBORDINATE) 다면평가 전원 제출 완료 검증
+        if (isLeader) {
+            List<com.ees.eval.domain.EvaluatorMapping> allEvaluateeMappings = evaluatorMappingMapper
+                    .findByEvaluateeId(submitMapping.periodId(), submitMapping.evaluateeId());
+            List<Long> subMappingIds = allEvaluateeMappings.stream()
+                    .filter(m -> "SUBORDINATE".equals(m.getRelationTypeCode()))
+                    .map(com.ees.eval.domain.EvaluatorMapping::getMappingId)
+                    .collect(Collectors.toList());
+
+            if (!subMappingIds.isEmpty()) {
+                List<Evaluation> subEvals = evaluationMapper.findByMappingIds(subMappingIds);
+                Map<Long, List<Evaluation>> subEvalGroup = subEvals.stream()
+                        .collect(Collectors.groupingBy(Evaluation::getMappingId));
+
+                List<EvaluationElementDTO> multiElements = elementService
+                        .getElementsWithFallback(submitMapping.periodId(), submitDeptId)
+                        .stream()
+                        .filter(e -> "MULTI_DIMENSIONAL".equals(e.elementTypeCode()))
+                        .collect(Collectors.toList());
+
+                for (Long subMappingId : subMappingIds) {
+                    List<Evaluation> evals = subEvalGroup.getOrDefault(subMappingId, java.util.Collections.emptyList());
+                    boolean allSubSubmitted = !multiElements.isEmpty() && multiElements.stream()
+                            .allMatch(elem -> evals.stream()
+                                    .anyMatch(e -> elem.elementId().equals(e.getElementId())
+                                            && "SUBMITTED".equals(e.getConfirmStatusCode())));
+                    if (!allSubSubmitted) {
+                        redirectAttributes.addFlashAttribute("errorMessage",
+                                "부서원 다면평가가 모두 완료되지 않아 제출할 수 없습니다.");
+                        return "redirect:/eval/final-grade/form?mappingId=" + mappingId;
+                    }
+                }
+            }
         }
 
         // 평가 데이터 Upsert 처리
