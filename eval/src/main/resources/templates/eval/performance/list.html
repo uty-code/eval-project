@@ -247,245 +247,249 @@
             <div th:text="${successMessage}"></div>
         </div>
 
-        <!-- 정보 메시지 -->
-        <div th:if="${infoMessage}" class="ees-card p-4 text-center mb-4" style="color:rgba(255,255,255,.5)">
-            <i class="bi bi-info-circle me-1"></i> <span th:text="${infoMessage}"></span>
-        </div>
+        <!-- 정보 메시지 (사용자 요청으로 UI 제거) -->
 
         <!-- ━━━━ 팀원 평가 리스트 영역 (부서장 이상 권한만 노출) ━━━━ -->
-        <div sec:authorize="hasAnyRole('MANAGER', 'ADMIN', 'EXECUTIVE')"
-            th:if="${periods != null && !periods.isEmpty()}">
+        <div sec:authorize="hasAnyRole('MANAGER', 'ADMIN', 'EXECUTIVE')">
 
-            <!-- 가중치 미설정 경고 배너 -->
-            <div th:if="${selfWeightValid != null && !selfWeightValid}" class="alert d-flex align-items-center mb-3"
-                role="alert"
-                style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); color: #fde68a; border-radius: 0.75rem;">
-                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
-                <div>
-                    <strong>⚠️ 유형별 가중치 미설정</strong>
-                    <span class="ms-1">본인 평가 유형별 가중치 합계가 100%가 아닙니다. 관리자에게 설정 확인을 요청해주세요.</span>
+            <!-- [안전망] 등록된 평가 차수가 아예 없을 때 노출할 빈 상태(Empty-State) 안내 배너 -->
+            <div th:if="${periods == null || periods.isEmpty()}" class="ees-card p-5 text-center text-muted">
+                <i class="bi bi-calendar-x fs-1 mb-3 d-block opacity-25 text-warning"></i>
+                <h5 class="fw-bold text-white mb-2">등록된 평가 차수가 없습니다</h5>
+                <p class="mb-0 text-muted">현재 시스템에 활성화된 성과/역량 평가 차수가 존재하지 않습니다.<br>관리자에게 평가 차수 생성을 요청해 주세요.</p>
+            </div>
+
+            <!-- 평가 차수가 존재할 때 (본문 실행) -->
+            <div th:if="${periods != null && !periods.isEmpty()}">
+
+                <!-- 가중치 미설정 경고 배너 (기존 로직 보존) -->
+                <div th:if="${selfWeightValid != null && !selfWeightValid}" class="alert d-flex align-items-center mb-3"
+                    role="alert"
+                    style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); color: #fde68a; border-radius: 0.75rem;">
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                    <div>
+                        <strong>⚠️ 유형별 가중치 미설정</strong>
+                        <span class="ms-1">본인 평가 유형별 가중치 합계가 100%가 아닙니다. 관리자에게 설정 확인을 요청해주세요.</span>
+                    </div>
                 </div>
-            </div>
 
-            <!-- 평가 시작 전인 경우의 대체 화면 -->
-            <div th:if="${selectedPeriod != null && selectedPeriod.statusCode() == 'PLANNED'}"
-                class="ees-card p-5 text-center text-muted">
-                <i class="bi bi-clock-history fs-1 mb-3 d-block opacity-25 text-info"></i>
-                <h5 class="fw-bold text-white mb-2">평가 준비 중</h5>
-                <p class="mb-0 text-muted">현재 차수는 평가 항목 구성 및 정합성 검토 중입니다.<br>평가가 시작되면 팀원 리스트가 활성화됩니다.</p>
-            </div>
+                <!-- [항상 렌더링] HTMX 비동기 갱신 대상 루트 컨테이너 (분기 조건 제거) -->
+                <div id="eval-table-container">
 
-            <!-- 평가 진행 중 / 마감 상태 화면 / 전체 조회 (HTMX 갱신 영역) -->
-            <div th:if="${selectedPeriod == null || selectedPeriod.statusCode() != 'PLANNED'}"
-                id="eval-table-container">
-
-                <!-- 필터 섹션 (Filter Bar Design System 적용) -->
-                <div class="ees-card mb-4 p-3">
-                    <form id="filterForm" hx-get="/eval/performance" hx-target="#eval-table-container"
-                        hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace"
-                        class="ees-filter-form">
-                        
-                        <!-- 평가 차수 -->
-                        <div class="ees-filter-group" style="flex: 1 1 250px;">
-                            <label class="ees-filter-label">
-                                <i class="bi bi-calendar-check me-1"></i>평가 차수
-                            </label>
-                            <div class="ees-filter-control-wrap">
-                                <select name="periodId" class="ees-filter-control form-select">
-                                    <option value="" th:selected="${selectedPeriod == null}">전체 차수 조회</option>
-                                    <option th:each="p : ${periods}" th:value="${p.periodId()}"
-                                        th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
-                                        th:selected="${selectedPeriod?.periodId() == p.periodId()}"></option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- 부서 필터 -->
-                        <div class="ees-filter-group" style="flex: 1 1 200px;">
-                            <label class="ees-filter-label">
-                                <i class="bi bi-building me-1"></i>부서 필터
-                            </label>
-                            <div class="ees-filter-control-wrap">
-                                <div th:replace="~{fragments/dept-select :: deptSelect(
-                                    ${departments}, ${filterDeptId}, 'filterDeptId', '전체 부서', false)}">
+                    <!-- 1. 검색 필터 섹션 (언제나 노출 및 HTMX 교체 대상 내부에 존재하여 상태 동기화 보장) -->
+                    <div class="ees-card mb-4 p-3">
+                        <form id="filterForm" hx-get="/eval/performance" hx-target="#eval-table-container"
+                            hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace"
+                            class="ees-filter-form">
+                            
+                            <!-- 평가 차수 -->
+                            <div class="ees-filter-group" style="flex: 1 1 250px;">
+                                <label class="ees-filter-label">
+                                    <i class="bi bi-calendar-check me-1"></i>평가 차수
+                                </label>
+                                <div class="ees-filter-control-wrap">
+                                    <select name="periodId" class="ees-filter-control form-select">
+                                        <option value="" th:selected="${selectedPeriod == null}">전체 차수 조회</option>
+                                        <option th:each="p : ${periods}" th:value="${p.periodId()}"
+                                            th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
+                                            th:selected="${selectedPeriod?.periodId() == p.periodId()}"></option>
+                                    </select>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- 평가 상태 -->
-                        <div class="ees-filter-group" style="flex: 1 1 150px;">
-                            <label class="ees-filter-label">
-                                <i class="bi bi-info-circle me-1"></i>평가 상태
-                            </label>
-                            <div class="ees-filter-control-wrap">
-                                <select name="filterStatus" class="ees-filter-control form-select">
-                                    <option value="">전체 상태</option>
-                                    <option value="완료" th:selected="${filterStatus == '완료'}">평가 완료</option>
-                                    <option value="대기" th:selected="${filterStatus == '대기'}">평가 대기</option>
-                                </select>
+                            <!-- 부서 필터 -->
+                            <div class="ees-filter-group" style="flex: 1 1 200px;">
+                                <label class="ees-filter-label">
+                                    <i class="bi bi-building me-1"></i>부서 필터
+                                </label>
+                                <div class="ees-filter-control-wrap">
+                                    <div th:replace="~{fragments/dept-select :: deptSelect(
+                                        ${departments}, ${filterDeptId}, 'filterDeptId', '전체 부서', false)}">
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- 성명 / 사번 검색 -->
-                        <div class="ees-filter-group flex-grow-1">
-                            <label class="ees-filter-label">
-                                <i class="bi bi-person me-1"></i>성명 / 사번 검색
-                            </label>
-                            <div class="ees-filter-control-wrap">
-                                <input type="text" name="keyword" class="ees-filter-control form-control"
-                                    placeholder="이름 또는 사번 입력" th:value="${keyword}" autocomplete="off">
+                            <!-- 평가 상태 -->
+                            <div class="ees-filter-group" style="flex: 1 1 150px;">
+                                <label class="ees-filter-label">
+                                    <i class="bi bi-info-circle me-1"></i>평가 상태
+                                </label>
+                                <div class="ees-filter-control-wrap">
+                                    <select name="filterStatus" class="ees-filter-control form-select">
+                                        <option value="">전체 상태</option>
+                                        <option value="완료" th:selected="${filterStatus == '완료'}">평가 완료</option>
+                                        <option value="대기" th:selected="${filterStatus == '대기'}">평가 대기</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- 액션 버튼 -->
-                        <div class="ees-filter-actions">
-                            <label class="ees-filter-label"></label> <!-- 정렬용 빈 라벨 -->
-                            <button type="submit" class="btn-ees-filter" id="btn-search">
-                                <i class="bi bi-search"></i>조회
-                            </button>
-                            <button type="button" class="btn-ees-filter bg-secondary bg-opacity-25" id="btn-reset-search" title="초기화">
-                                <i class="bi bi-arrow-counterclockwise"></i>
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                            <!-- 성명 / 사번 검색 -->
+                            <div class="ees-filter-group flex-grow-1">
+                                <label class="ees-filter-label">
+                                    <i class="bi bi-person me-1"></i>성명 / 사번 검색
+                                </label>
+                                <div class="ees-filter-control-wrap">
+                                    <input type="text" name="keyword" class="ees-filter-control form-control"
+                                        placeholder="이름 또는 사번 입력" th:value="${keyword}" autocomplete="off">
+                                </div>
+                            </div>
 
-                <h5 class="text-white fw-bold mb-3 mt-2"><i class="bi bi-people-fill text-primary me-2"></i>팀원 성과/역량 평가
-                </h5>
-
-                <div th:if="${pageData == null || pageData.tasks().isEmpty()}"
-                    class="ees-card text-center py-4 border-0 shadow-sm rounded-3 mb-4">
-                    <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
-                    <h5 class="fw-bold text-white">조건에 맞는 팀원이 없습니다.</h5>
-                </div>
-
-                <!-- 팀원 테이블 영역 -->
-                <div th:if="${pageData != null && !pageData.tasks().isEmpty()}" class="ees-card mb-5 mt-0">
-                    <div class="result-table-wrap">
-                        <table class="result-table">
-                            <thead>
-                                <tr>
-                                    <th colspan="5" class="th-group th-group-info"
-                                        style="border-right:2px solid rgba(255,255,255,.35)">피평가자 정보</th>
-                                    <th colspan="2" class="th-group th-group-mbo"
-                                        style="border-right:2px solid rgba(255,255,255,.35)">성과평가</th>
-                                    <th colspan="2" class="th-group th-group-comp"
-                                        style="border-right:2px solid rgba(255,255,255,.35)">역량평가</th>
-
-                                    <th colspan="2" class="th-group th-group-action"
-                                        style="text-align: center; width: 240px;">평가 상태/진행</th>
-                                </tr>
-                                <tr>
-                                    <th style="width: 140px;">평가 차수</th>
-                                    <th style="width: 120px;">부서명</th>
-                                    <th style="width: 100px;">직책</th>
-                                    <th style="width: 100px;">사번</th>
-                                    <th style="width: 110px; border-right:2px solid rgba(255,255,255,.35)">성명</th>
-
-                                    <th>자가평가 점수</th>
-                                    <th style="border-right:2px solid rgba(255,255,255,.35)">1차평가 점수</th>
-                                    <th>자가평가 점수</th>
-                                    <th style="border-right:2px solid rgba(255,255,255,.35)">1차평가 점수</th>
-
-                                    <th style="width: 120px;">상태</th>
-                                    <th style="width: 120px;">진행</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="r : ${pageData.tasks()}">
-                                    <td th:text="${r.titleName()}" class="text-center small text-muted">차수명</td>
-                                    <td th:text="${r.deptName()}">-</td>
-                                    <td th:text="${r.positionName()}">직책</td>
-                                    <td th:text="${r.empId()}">-</td>
-                                    <td class="emp-name" th:text="${r.name()}"
-                                        style="border-right:2px solid rgba(255,255,255,.35)">-</td>
-
-
-                                    <!-- MBO 점수 -->
-                                    <td class="score-val"
-                                        th:text="${r.selfPerfScore() != null ? r.selfPerfScore() : '-'}">-</td>
-                                    <td class="score-val"
-                                        th:text="${r.managerPerfScore() != null ? r.managerPerfScore() : '-'}"
-                                        style="border-right:2px solid rgba(255,255,255,.35)">-</td>
-
-                                    <!-- COMP 점수 -->
-                                    <td class="score-val"
-                                        th:text="${r.selfCompScore() != null ? r.selfCompScore() : '-'}">-</td>
-                                    <td class="score-val"
-                                        th:text="${r.managerCompScore() != null ? r.managerCompScore() : '-'}"
-                                        style="border-right:2px solid rgba(255,255,255,.35)">-</td>
-
-
-
-                                    <!-- 상태 -->
-                                    <td>
-                                        <span class="status-badge"
-                                            th:classappend="${r.evalStatus() == '완료' ? 'status-done' : (r.evalStatus() == '진행중' ? 'status-prog' : 'status-wait')}"
-                                            th:text="${r.evalStatus()}">-</span>
-                                    </td>
-
-                                    <!-- 버튼 -->
-                                    <td>
-                                        <a th:if="${r.ctaStatus() == 'LOCKED'}" href="#" class="action-btn"
-                                            style="background-color: #475569; color: #fff;"
-                                            th:attr="hx-get=@{/eval/performance/form(mappingId=${r.mappingId()})}"
-                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
-                                            hx-push-url="true" hx-sync="body:replace">
-                                            <i class="bi bi-search"></i> 조회
-                                        </a>
-                                        <button th:if="${r.ctaStatus() == 'WEIGHT_ERROR'}"
-                                            class="action-btn action-error" disabled title="가중치 오류">
-                                            <i class="bi bi-exclamation-circle"></i> 가중치 오류
-                                        </button>
-                                        <button th:if="${r.ctaStatus() == 'WAITING'}" class="action-btn action-waiting"
-                                            disabled>
-                                            <i class="bi bi-hourglass-split"></i> 대기중
-                                        </button>
-                                        <a th:if="${r.ctaStatus() == 'PRIMARY'}" href="#"
-                                            class="action-btn action-primary"
-                                            th:attr="hx-get=@{/eval/performance/form(mappingId=${r.mappingId()})}"
-                                            hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
-                                            hx-push-url="true" hx-sync="body:replace">
-                                            <i class="bi bi-pencil-square"></i> <span
-                                                th:text="${r.evalStatus() == '완료' ? '수정' : '진행'}"></span>
-                                        </a>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                            <!-- 액션 버튼 -->
+                            <div class="ees-filter-actions">
+                                <label class="ees-filter-label"></label> <!-- 정렬용 빈 라벨 -->
+                                <button type="submit" class="btn-ees-filter" id="btn-search">
+                                    <i class="bi bi-search"></i>조회
+                                </button>
+                                <button type="button" class="btn-ees-filter bg-secondary bg-opacity-25" id="btn-reset-search" title="초기화">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
+                            </div>
+                        </form>
                     </div>
 
-                    <!-- 페이징네이션 -->
-                    <div th:if="${pageData.totalPages() > 1}" class="pagination-container pb-4">
-                        <!-- 이전 페이지 (htmx) -->
-                        <button class="btn btn-sm btn-outline-secondary text-white border-0"
-                            th:classappend="${!pageData.hasPrevious()} ? 'disabled'"
-                            th:attr="hx-get=@{/eval/performance(periodId=${periodId != null ? periodId : ''}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() - 1})}"
-                            hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
-                            hx-push-url="true" hx-sync="this:replace">
-                            <i class="bi bi-chevron-left"></i>
-                        </button>
-
-                        <!-- 페이지 번호 -->
-                        <button th:each="i : ${#numbers.sequence(1, pageData.totalPages())}"
-                            th:class="${i == pageData.currentPage()} ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-secondary text-white border-0'"
-                            th:text="${i}"
-                            th:attr="hx-get=@{/eval/performance(periodId=${periodId != null ? periodId : ''}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${i})}"
-                            hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
-                            hx-push-url="true" hx-sync="this:replace">
-                        </button>
-
-                        <!-- 다음 페이지 -->
-                        <button class="btn btn-sm btn-outline-secondary text-white border-0"
-                            th:classappend="${!pageData.hasNext()} ? 'disabled'"
-                            th:attr="hx-get=@{/eval/performance(periodId=${periodId != null ? periodId : ''}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() + 1})}"
-                            hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
-                            hx-push-url="true" hx-sync="this:replace">
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
+                    <!-- 2. [분기 A] 평가 준비 중 (PLANNED) 상태일 때 노출할 안내 카드 -->
+                    <div th:if="${selectedPeriod != null && selectedPeriod.statusCode() == 'PLANNED'}"
+                        class="ees-card p-5 text-center text-muted mt-3">
+                        <i class="bi bi-clock-history fs-1 mb-3 d-block opacity-25 text-info"></i>
+                        <h5 class="fw-bold text-white mb-2">평가 준비 중</h5>
                     </div>
+
+                    <!-- 3. [분기 B] 평가 진행 중 / 완료 / 전체 조회 상태일 때 노출할 팀원 목록 -->
+                    <div th:if="${selectedPeriod == null || selectedPeriod.statusCode() != 'PLANNED'}">
+                        <h5 class="text-white fw-bold mb-3 mt-2"><i class="bi bi-people-fill text-primary me-2"></i>팀원 성과/역량 평가</h5>
+
+                        <div th:if="${pageData == null || pageData.tasks().isEmpty()}"
+                            class="ees-card text-center py-4 border-0 shadow-sm rounded-3 mb-4">
+                            <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+                            <h5 class="fw-bold text-white">조건에 맞는 팀원이 없습니다.</h5>
+                        </div>
+
+                        <!-- 팀원 테이블 영역 -->
+                        <div th:if="${pageData != null && !pageData.tasks().isEmpty()}" class="ees-card mb-5 mt-0">
+                            <div class="result-table-wrap">
+                                <table class="result-table">
+                                    <thead>
+                                        <tr>
+                                            <th colspan="5" class="th-group th-group-info"
+                                                style="border-right:2px solid rgba(255,255,255,.35)">피평가자 정보</th>
+                                            <th colspan="2" class="th-group th-group-mbo"
+                                                style="border-right:2px solid rgba(255,255,255,.35)">성과평가</th>
+                                            <th colspan="2" class="th-group th-group-comp"
+                                                style="border-right:2px solid rgba(255,255,255,.35)">역량평가</th>
+
+                                            <th colspan="2" class="th-group th-group-action"
+                                                style="text-align: center; width: 240px;">평가 상태/진행</th>
+                                        </tr>
+                                        <tr>
+                                            <th style="width: 140px;">평가 차수</th>
+                                            <th style="width: 120px;">부서명</th>
+                                            <th style="width: 100px;">직책</th>
+                                            <th style="width: 100px;">사번</th>
+                                            <th style="width: 110px; border-right:2px solid rgba(255,255,255,.35)">성명</th>
+
+                                            <th>자가평가 점수</th>
+                                            <th style="border-right:2px solid rgba(255,255,255,.35)">1차평가 점수</th>
+                                            <th>자가평가 점수</th>
+                                            <th style="border-right:2px solid rgba(255,255,255,.35)">1차평가 점수</th>
+
+                                            <th style="width: 120px;">상태</th>
+                                            <th style="width: 120px;">진행</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="r : ${pageData.tasks()}">
+                                            <td th:text="${r.titleName()}" class="text-center small text-muted">차수명</td>
+                                            <td th:text="${r.deptName()}">-</td>
+                                            <td th:text="${r.positionName()}">직책</td>
+                                            <td th:text="${r.empId()}">-</td>
+                                            <td class="emp-name" th:text="${r.name()}"
+                                                style="border-right:2px solid rgba(255,255,255,.35)">-</td>
+
+                                            <!-- MBO 점수 -->
+                                            <td class="score-val"
+                                                th:text="${r.selfPerfScore() != null ? r.selfPerfScore() : '-'}">-</td>
+                                            <td class="score-val"
+                                                th:text="${r.managerPerfScore() != null ? r.managerPerfScore() : '-'}"
+                                                style="border-right:2px solid rgba(255,255,255,.35)">-</td>
+
+                                            <!-- COMP 점수 -->
+                                            <td class="score-val"
+                                                th:text="${r.selfCompScore() != null ? r.selfCompScore() : '-'}">-</td>
+                                            <td class="score-val"
+                                                th:text="${r.managerCompScore() != null ? r.managerCompScore() : '-'}"
+                                                style="border-right:2px solid rgba(255,255,255,.35)">-</td>
+
+                                            <!-- 상태 -->
+                                            <td>
+                                                <span class="status-badge"
+                                                    th:classappend="${r.evalStatus() == '완료' ? 'status-done' : (r.evalStatus() == '진행중' ? 'status-prog' : 'status-wait')}"
+                                                    th:text="${r.evalStatus()}">-</span>
+                                            </td>
+
+                                            <!-- 버튼 -->
+                                            <td>
+                                                <a th:if="${r.ctaStatus() == 'LOCKED'}" href="#" class="action-btn"
+                                                    style="background-color: #475569; color: #fff;"
+                                                    th:attr="hx-get=@{/eval/performance/form(mappingId=${r.mappingId()})}"
+                                                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                                    hx-push-url="true" hx-sync="body:replace">
+                                                    <i class="bi bi-search"></i> 조회
+                                                </a>
+                                                <button th:if="${r.ctaStatus() == 'WEIGHT_ERROR'}"
+                                                    class="action-btn action-error" disabled title="가중치 오류">
+                                                    <i class="bi bi-exclamation-circle"></i> 가중치 오류
+                                                </button>
+                                                <button th:if="${r.ctaStatus() == 'WAITING'}" class="action-btn action-waiting"
+                                                    disabled>
+                                                    <i class="bi bi-hourglass-split"></i> 대기중
+                                                </button>
+                                                <a th:if="${r.ctaStatus() == 'PRIMARY'}" href="#"
+                                                    class="action-btn action-primary"
+                                                    th:attr="hx-get=@{/eval/performance/form(mappingId=${r.mappingId()})}"
+                                                    hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML"
+                                                    hx-push-url="true" hx-sync="body:replace">
+                                                    <i class="bi bi-pencil-square"></i> <span
+                                                        th:text="${r.evalStatus() == '완료' ? '수정' : '진행'}"></span>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- 페이징네이션 -->
+                            <div th:if="${pageData.totalPages() > 1}" class="pagination-container pb-4">
+                                <!-- 이전 페이지 (htmx) -->
+                                <button class="btn btn-sm btn-outline-secondary text-white border-0"
+                                    th:classappend="${!pageData.hasPrevious()} ? 'disabled'"
+                                    th:attr="hx-get=@{/eval/performance(periodId=${periodId != null ? periodId : ''}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() - 1})}"
+                                    hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
+                                    hx-push-url="true" hx-sync="this:replace">
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+
+                                <!-- 페이지 번호 -->
+                                <button th:each="i : ${#numbers.sequence(1, pageData.totalPages())}"
+                                    th:class="${i == pageData.currentPage()} ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-secondary text-white border-0'"
+                                    th:text="${i}"
+                                    th:attr="hx-get=@{/eval/performance(periodId=${periodId != null ? periodId : ''}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${i})}"
+                                    hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
+                                    hx-push-url="true" hx-sync="this:replace">
+                                </button>
+
+                                <!-- 다음 페이지 -->
+                                <button class="btn btn-sm btn-outline-secondary text-white border-0"
+                                    th:classappend="${!pageData.hasNext()} ? 'disabled'"
+                                    th:attr="hx-get=@{/eval/performance(periodId=${periodId != null ? periodId : ''}, filterDeptId=${filterDeptId}, filterStatus=${filterStatus}, keyword=${keyword}, page=${pageData.currentPage() + 1})}"
+                                    hx-target="#eval-table-container" hx-select="#eval-table-container" hx-swap="outerHTML"
+                                    hx-push-url="true" hx-sync="this:replace">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-            </div>
         </div>
     </div>
 </body>
