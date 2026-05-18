@@ -36,6 +36,15 @@ public interface DepartmentService {
     List<DepartmentDTO> getAllDepartments();
 
     /**
+     * 특정 부서 ID 목록(validDeptIds)과 그 조상 부서들만 포함하도록
+     * 계층 구조를 유지하며 필터링된 부서 트리 목록을 반환합니다.
+     *
+     * @param validDeptIds 필터링 기준이 되는 유효 부서 ID 집합
+     * @return 계층형 부서 트리 (불필요한 형제 노드 제거됨)
+     */
+    List<DepartmentDTO> getPrunedDepartmentTree(java.util.Set<Long> validDeptIds);
+
+    /**
      * 활성 상태(is_active='y')인 부서의 수를 DB에서 직접 조회합니다.
      *
      * @return 활성 부서 수

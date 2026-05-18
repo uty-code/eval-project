@@ -46,7 +46,8 @@ public class MultiDimensionalEvaluationController {
     private final EvaluationMapper evaluationMapper;
     private final EmployeeMapper employeeMapper;
     private final EvaluatorMappingMapper evaluatorMappingMapper;
-    private final com.ees.eval.mapper.DepartmentMapper departmentMapper;
+    private final com.ees.eval.service.DepartmentService departmentService;
+    private final com.ees.eval.support.ui.EvalFilterConfigFactory filterConfigFactory;
 
 
 
@@ -57,11 +58,18 @@ public class MultiDimensionalEvaluationController {
     public String list(Model model,
                        @RequestParam(required = false) Long periodId,
                        @RequestParam(required = false) Long filterDeptId,
+                       @RequestParam(required = false) Long deptId, // fallback
                        @RequestParam(required = false) String keyword,
+                       @RequestParam(required = false) String search, // fallback
                        @RequestParam(required = false) String filterStatus,
+                       @RequestParam(required = false) String status, // fallback
                        @RequestParam(defaultValue = "1") int page,
                        @AuthenticationPrincipal UserDetails userDetails,
                        jakarta.servlet.http.HttpServletRequest request) {
+
+        Long resolvedDeptId = filterDeptId != null ? filterDeptId : deptId;
+        String resolvedKeyword = keyword != null ? keyword : search;
+        String resolvedStatus = filterStatus != null ? filterStatus : status;
 
         Long empId = Long.parseLong(userDetails.getUsername());
         model.addAttribute("activeMenu", "multi-dimensional-eval");
@@ -119,58 +127,32 @@ public class MultiDimensionalEvaluationController {
         if (isAdmin) {
             // 어드민: 전체 다면평가 현황 조회 (evaluator_id 필터 없음)
             pageData = mappingService.getAdminMultiDimensionalTasks(
-                    targetPeriodId, filterDeptId, filterStatus, keyword, page, pageSize, isPeriodActive);
+                    targetPeriodId, resolvedDeptId, resolvedStatus, resolvedKeyword, page, pageSize, isPeriodActive);
         } else {
             // 일반 유저: 기존 로직 유지
             pageData = mappingService.getMultiDimensionalTasks(
-                    targetPeriodId, empId, filterDeptId, filterStatus, keyword, page, pageSize, isPeriodActive);
+                    targetPeriodId, empId, resolvedDeptId, resolvedStatus, resolvedKeyword, page, pageSize, isPeriodActive);
         }
         
         model.addAttribute("pageData", pageData);
         
         // 필터 상태 유지
-        model.addAttribute("filterDeptId", filterDeptId);
-        model.addAttribute("keyword", keyword);
-        model.addAttribute("filterStatus", filterStatus);
+        model.addAttribute("filterDeptId", resolvedDeptId);
+        model.addAttribute("keyword", resolvedKeyword);
+        model.addAttribute("filterStatus", resolvedStatus);
 
-        // 6. 필터 드롭다운용 부서 목록 추출
-        if (isAdmin) {
-            // 어드민은 전체 부서 목록을 사용
-            List<com.ees.eval.dto.DepartmentDTO> allDepts = departmentMapper.findAll().stream()
-                    .map(d -> com.ees.eval.dto.DepartmentDTO.builder()
-                            .deptId(d.getDeptId())
-                            .deptName(d.getDeptName())
-                            .build())
-                    .sorted(java.util.Comparator.comparing(com.ees.eval.dto.DepartmentDTO::deptName))
-                    .toList();
-            model.addAttribute("departments", allDepts);
-        } else {
-            List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(targetPeriodId, empId);
-            List<Long> evaluateeIds = myTasks.stream()
-                    .filter(m -> "SUBORDINATE".equals(m.relationTypeCode()))
-                    .map(EvaluatorMappingDTO::evaluateeId)
-                    .distinct()
-                    .toList();
-            
-            if (!evaluateeIds.isEmpty()) {
-                List<com.ees.eval.domain.Employee> evaluatees = employeeMapper.findByIds(evaluateeIds);
-                List<com.ees.eval.dto.DepartmentDTO> filterDepts = evaluatees.stream()
-                        .map(e -> com.ees.eval.dto.DepartmentDTO.builder()
-                                .deptId(e.getDeptId())
-                                .deptName(e.getDeptName())
-                                .build())
-                        .distinct()
-                        .sorted(java.util.Comparator.comparing(com.ees.eval.dto.DepartmentDTO::deptName))
-                        .toList();
-                model.addAttribute("departments", filterDepts);
-            }
-        }
+        // 6. 필터 드롭다운용 부서 목록 추출 (모두 전체 조직 트리를 조회할 수 있도록 변경)
+        java.util.List<com.ees.eval.dto.DepartmentDTO> filterDepts = departmentService.getAllDepartments();
+        model.addAttribute("departments", filterDepts);
 
         if (selectedPeriod != null && "PLANNED".equals(selectedPeriod.statusCode())) {
             // 상단 메시지 제거
         } else if (selectedPeriod == null && pageData.totalCount() == 0) {
             // 상단 메시지 제거
         }
+
+        // 공통 필터 바 구성 DTO 전달
+        model.addAttribute("filterConfig", filterConfigFactory.createMultiDimensionalConfig(periodId, resolvedStatus, resolvedKeyword, resolvedDeptId));
 
         return "eval/multi-dimensional/list";
     }

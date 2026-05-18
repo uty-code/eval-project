@@ -104,7 +104,7 @@ class EmployeeServiceUnitTest {
         // then: 암호화 및 insert, 권한 매핑 호출 여부 검증
         verify(passwordEncoder).encode("plainPassword");
         verify(employeeMapper).insert(any(Employee.class));
-        verify(employeeMapper, times(1)).insertEmployeeRole(eq(100L), eq(1L), anyLong(), any());
+        verify(employeeMapper, times(1)).insertEmployeeRolesBatch(eq(100L), eq(List.of(1L)), eq(1L), any());
     }
 
     /**

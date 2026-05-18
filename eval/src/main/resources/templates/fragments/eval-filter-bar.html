@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+    공통 평가 필터 바 Fragment (Thymeleaf + HTMX)
+    ──────────────────────────────────────────────────────────────────────
+    사용법:
+      <div th:replace="~{fragments/eval-filter-bar :: filterBar(${filterConfig})}"></div>
+    ──────────────────────────────────────────────────────────────────────
+-->
+<div th:fragment="filterBar(config)" class="ees-card mb-4 p-4">
+    <form id="filterForm" 
+          th:action="${config.actionUrl()}" 
+          method="get" 
+          class="ees-filter-form"
+          th:attr="hx-get=${config.actionUrl()},
+                   hx-target=${config.htmxTarget()},
+                   hx-select=${config.htmxSelect()},
+                   hx-swap='outerHTML',
+                   hx-push-url='true',
+                   hx-sync='this:replace'">
+
+        <!-- 숨겨진 파라미터들 (Hidden Parameters) -->
+        <th:block th:if="${config.hiddenParams() != null}">
+            <input type="hidden" 
+                   th:each="p : ${config.hiddenParams()}" 
+                   th:name="${p.name()}" 
+                   th:value="${p.value()}" />
+        </th:block>
+
+        <!-- 1. 평가 차수 필터 -->
+        <div th:if="${config.periodFilter() != null and config.periodFilter().show()}" 
+             class="ees-filter-group" 
+             style="flex: 1 1 250px;">
+            <label for="periodId" class="ees-filter-label">
+                <i class="bi bi-calendar-event me-1"></i>평가 차수
+            </label>
+            <div class="ees-filter-control-wrap">
+                <select name="periodId" id="periodId" class="ees-filter-control form-select">
+                    <option th:if="${config.periodFilter().showAll()}" value="">전체 차수 통합</option>
+                    <option th:each="p : ${config.periodFilter().periods()}" 
+                            th:value="${p.periodId()}"
+                            th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
+                            th:selected="${config.periodFilter().selectedId() != null and config.periodFilter().selectedId() == p.periodId()}">
+                    </option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 2. 부서 필터 -->
+        <div th:if="${config.deptFilter() != null and config.deptFilter().show()}" 
+             class="ees-filter-group" 
+             style="flex: 1 1 200px;">
+            <label for="filterDeptId" class="ees-filter-label">
+                <i class="bi bi-diagram-3 me-1"></i>부서 필터
+            </label>
+            <div class="ees-filter-control-wrap">
+                <div th:replace="~{fragments/dept-select :: deptSelect(
+                    ${config.deptFilter().departments()}, 
+                    ${config.deptFilter().selectedId()}, 
+                    'filterDeptId', 
+                    '전체 부서', 
+                    false)}">
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 평가 상태 필터 -->
+        <div th:if="${config.statusFilter() != null and config.statusFilter().show()}" 
+             class="ees-filter-group" 
+             style="flex: 1 1 150px;">
+            <label for="filterStatus" class="ees-filter-label">
+                <i class="bi bi-check-circle me-1"></i>평가 상태
+            </label>
+            <div class="ees-filter-control-wrap">
+                <select name="filterStatus" id="filterStatus" class="ees-filter-control form-select">
+                    <option value="">전체 상태</option>
+                    <option th:each="opt : ${config.statusFilter().options()}" 
+                            th:value="${opt.value()}" 
+                            th:text="${opt.label()}"
+                            th:selected="${config.statusFilter().selectedValue() != null and config.statusFilter().selectedValue() == opt.value()}">
+                    </option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 4. 검색어 필터 -->
+        <div th:if="${config.keywordFilter() != null and config.keywordFilter().show()}" 
+             class="ees-filter-group" 
+             style="flex: 1 1 250px;">
+            <label for="keyword" class="ees-filter-label">
+                <i class="bi bi-person-search me-1"></i>검색어
+            </label>
+            <div class="ees-filter-control-wrap">
+                <input type="text" 
+                       name="keyword" 
+                       id="keyword" 
+                       class="ees-filter-control form-control"
+                       th:placeholder="${config.keywordFilter().placeholder()}" 
+                       th:value="${config.keywordFilter().keyword()}" 
+                       autocomplete="off" />
+            </div>
+        </div>
+
+        <!-- 액션 버튼 영역 -->
+        <div class="ees-filter-actions">
+            <label class="ees-filter-label"></label> <!-- 상단 정렬용 빈 라벨 -->
+            <button type="submit" class="btn-ees-filter" id="btn-search">
+                <i class="bi bi-search"></i>조회
+            </button>
+            <a th:if="${config.showReset()}" 
+               th:href="${config.actionUrl()}" 
+               class="btn-ees-filter bg-secondary bg-opacity-25" 
+               id="btn-reset-search" 
+               title="초기화">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+</body>
+</html>
