@@ -48,6 +48,9 @@ class EvaluationPeriodServiceImplTest {
     @Mock
     private EvaluatorMappingService mappingService;
 
+    @Mock
+    private com.ees.eval.service.EvaluationGradeRatioService gradeRatioService;
+
     @InjectMocks
     private EvaluationPeriodServiceImpl periodService;
 
@@ -80,6 +83,7 @@ class EvaluationPeriodServiceImplTest {
         ));
         given(typeWeightService.isWeightSumValid(1L, 10L, "STAFF")).willReturn(true);
         given(typeWeightService.isWeightSumValid(1L, 10L, "LEADER")).willReturn(true);
+        given(gradeRatioService.isGradeRatioValid(1L, 10L)).willReturn(true);
 
         // 정합성 검사: ERROR 등급 매핑 이상 발견
         List<MappingAnomalyDTO> anomalies = List.of(
@@ -139,6 +143,7 @@ class EvaluationPeriodServiceImplTest {
         ));
         given(typeWeightService.isWeightSumValid(1L, 10L, "STAFF")).willReturn(true);
         given(typeWeightService.isWeightSumValid(1L, 10L, "LEADER")).willReturn(true);
+        given(gradeRatioService.isGradeRatioValid(1L, 10L)).willReturn(true);
 
         // 정합성 검사: WARNING만 존재 (다면 평가자 0명인 부서장)
         List<MappingAnomalyDTO> anomalies = List.of(
@@ -190,6 +195,7 @@ class EvaluationPeriodServiceImplTest {
         ));
         given(typeWeightService.isWeightSumValid(1L, 10L, "STAFF")).willReturn(true);
         given(typeWeightService.isWeightSumValid(1L, 10L, "LEADER")).willReturn(true);
+        given(gradeRatioService.isGradeRatioValid(1L, 10L)).willReturn(true);
 
         // 정합성 검사: 이상 없음
         given(mappingService.checkMappingIntegrity(1L)).willReturn(Collections.emptyList());
