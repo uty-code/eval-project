@@ -57,19 +57,31 @@ public class MyEvaluationFacadeServiceImpl implements MyEvaluationFacadeService 
 
         // 2. 기본 선택 차수 결정 (기본 조회 값을 진행 중인 차수로 변경)
         EvaluationPeriodDTO selectedPeriod = null;
-        if (periodId != null && periodId > 0) {
+        Long activePeriodId = null;
+        if (periodId != null && periodId == 0L) {
+            selectedPeriod = EvaluationPeriodDTO.builder()
+                .periodId(0L)
+                .periodYear(java.time.LocalDate.now().getYear())
+                .periodName("전체 차수 통합")
+                .statusCode(EvaluationPeriodStatus.COMPLETED.getCode())
+                .startDate(java.time.LocalDate.now())
+                .endDate(java.time.LocalDate.now())
+                .build();
+            activePeriodId = null;
+        } else if (periodId != null && periodId > 0) {
             selectedPeriod = periodService.getPeriodById(periodId);
+            activePeriodId = selectedPeriod.periodId();
         } else {
             selectedPeriod = periodService.resolveSelectedPeriod(null, sortedPeriods);
+            activePeriodId = (selectedPeriod != null) ? selectedPeriod.periodId() : null;
         }
         
-        Long activePeriodId = (selectedPeriod != null) ? selectedPeriod.periodId() : null;
         data.put("selectedPeriod", selectedPeriod);
 
         // 3. 자가평가 태스크 페이징 조회
         var pageData = mappingService.getMyEvaluationDashboardTasks(empId, activePeriodId, status, keyword, page, pageSize);
         data.put("pageData", pageData);
-        data.put("selectedPeriodId", activePeriodId);
+        data.put("selectedPeriodId", (periodId != null && periodId == 0L) ? Long.valueOf(0L) : activePeriodId);
         data.put("filterStatus", status);
         data.put("keyword", keyword);
 
@@ -206,19 +218,31 @@ public class MyEvaluationFacadeServiceImpl implements MyEvaluationFacadeService 
 
         // 2. 선택 차수 결정
         EvaluationPeriodDTO selectedPeriod = null;
-        if (periodId != null && periodId > 0) {
+        Long activePeriodId = null;
+        if (periodId != null && periodId == 0L) {
+            selectedPeriod = EvaluationPeriodDTO.builder()
+                .periodId(0L)
+                .periodYear(java.time.LocalDate.now().getYear())
+                .periodName("전체 차수 통합")
+                .statusCode(EvaluationPeriodStatus.COMPLETED.getCode())
+                .startDate(java.time.LocalDate.now())
+                .endDate(java.time.LocalDate.now())
+                .build();
+            activePeriodId = null;
+        } else if (periodId != null && periodId > 0) {
             selectedPeriod = periodService.getPeriodById(periodId);
+            activePeriodId = selectedPeriod.periodId();
         } else {
             selectedPeriod = periodService.resolveSelectedPeriod(null, sortedPeriods);
+            activePeriodId = (selectedPeriod != null) ? selectedPeriod.periodId() : null;
         }
 
-        Long activePeriodId = (selectedPeriod != null) ? selectedPeriod.periodId() : null;
         data.put("selectedPeriod", selectedPeriod);
 
         // 3. 어드민 전체 조회 (evaluator_id 필터 없음)
         var pageData = mappingService.getAdminMyEvaluationDashboardTasks(activePeriodId, status, keyword, filterDeptId, page, pageSize);
         data.put("pageData", pageData);
-        data.put("selectedPeriodId", activePeriodId);
+        data.put("selectedPeriodId", (periodId != null && periodId == 0L) ? Long.valueOf(0L) : activePeriodId);
         data.put("filterStatus", status);
         data.put("keyword", keyword);
         data.put("filterDeptId", filterDeptId);

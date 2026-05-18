@@ -13,6 +13,7 @@ import com.ees.eval.mapper.EvaluatorMappingMapper;
 import com.ees.eval.mapper.FinalGradeMapper;
 import com.ees.eval.service.EvaluationElementService;
 import com.ees.eval.service.EvaluationResultService;
+import com.ees.eval.service.EvaluationPeriodService;
 import com.ees.eval.service.ScoreCalculationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,13 +47,17 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
     private final EmployeeMapper employeeMapper;
     private final DepartmentMapper departmentMapper;
     private final EvaluationElementService elementService;
+    private final EvaluationPeriodService periodService;
     private final ScoreCalculationService scoreCalculationService;
 
     @Override
     @Transactional(readOnly = true)
     public List<EvaluationResultDTO> getResults(Long periodId, Long deptId, String search) {
-        // 1. 해당 차수의 모든 매핑을 한 번에 조회 (N+1 방지)
-        List<EvaluatorMapping> allMappings = mappingMapper.findAllByPeriodId(periodId);
+        // periodId가 0(전체)인 경우 null로 판단하여 전체 차수 통합 조회 처리
+        Long targetPeriodId = (periodId != null && periodId == 0L) ? null : periodId;
+
+        // 1. 해당 차수(혹은 전체 차수)의 모든 매핑을 한 번에 조회 (N+1 방지)
+        List<EvaluatorMapping> allMappings = mappingMapper.findAllByPeriodId(targetPeriodId);
         if (allMappings.isEmpty()) {
             return Collections.emptyList();
         }
@@ -102,7 +107,7 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
         }
 
         // 10. 결과 DTO 조립 및 필터링/정렬
-        return assembleAndProcessResults(periodId, evaluateeIds, employeeMap, allMappings, null, null, null, null);
+        return assembleAndProcessResults(targetPeriodId, evaluateeIds, employeeMap, allMappings, null, null, null, null);
     }
 
     @Override
@@ -139,71 +144,106 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
             employeeMap = employeeMapper.findByIds(evaluateeIds).stream()
                     .collect(Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
         }
-        if (gradeMap == null) {
-            gradeMap = finalGradeMapper.findByPeriodId(periodId).stream()
-                    .collect(Collectors.toMap(FinalGrade::getEmpId, g -> g, (a, b) -> a));
-        }
+
+        // 전체 차수 통합 조회를 위해 periodId가 0 또는 null인 경우 null 처리
+        Long targetPeriodId = (periodId != null && periodId == 0L) ? null : periodId;
+
+        // 다차수 안전한 FinalGrade 수집 맵 생성 (periodId + "_" + empId 복합 키)
+        Map<String, FinalGrade> customGradeMap = finalGradeMapper.findByPeriodId(targetPeriodId).stream()
+                .collect(Collectors.toMap(
+                        g -> g.getPeriodId() + "_" + g.getEmpId(),
+                        g -> g,
+                        (a, b) -> a
+                ));
+
         if (allLeaderIds == null) {
             allLeaderIds = new HashSet<>(departmentMapper.findAllLeaderIds());
         }
-        if (commonElements == null || elementsByDept == null) {
-            List<Long> deptIds = evaluateeIds.stream()
-                    .map(employeeMap::get).filter(Objects::nonNull)
-                    .map(Employee::getDeptId).filter(Objects::nonNull).distinct().collect(Collectors.toList());
-            List<EvaluationElementDTO> allElements = elementService.getElementsByPeriodIdAndDeptIds(periodId, deptIds);
-            commonElements = new ArrayList<>();
-            elementsByDept = new HashMap<>();
-            for (EvaluationElementDTO element : allElements) {
-                if (element.deptId() == null) commonElements.add(element);
-                else elementsByDept.computeIfAbsent(element.deptId(), k -> new ArrayList<>()).add(element);
-            }
-        }
 
-        // 매핑 분류 및 평가 데이터 조회
-        Map<Long, EvaluatorMapping> execByEmp = filterMappingByType(allMappings, "EXECUTIVE");
-        Map<Long, EvaluatorMapping> mgrByEmp = filterMappingByType(allMappings, "MANAGER");
-        Map<Long, EvaluatorMapping> selfByEmp = filterMappingByType(allMappings, "SELF");
-        Map<Long, List<EvaluatorMapping>> subByEmp = allMappings.stream()
-                .filter(m -> "SUBORDINATE".equals(m.getRelationTypeCode()))
-                .collect(Collectors.groupingBy(EvaluatorMapping::getEvaluateeId));
+        // 차수별/부서별 평가 요소를 안전하게 수집하기 위한 동적 맵 구축
+        List<Long> deptIds = evaluateeIds.stream()
+                .map(employeeMap::get).filter(Objects::nonNull)
+                .map(Employee::getDeptId).filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        
+        List<EvaluationElementDTO> allElements = elementService.getElementsByPeriodIdAndDeptIds(targetPeriodId, deptIds);
+        
+        // elementsMap의 키: "periodId_deptId" 또는 "periodId_COMMON"
+        Map<String, List<EvaluationElementDTO>> elementsMap = allElements.stream()
+                .collect(Collectors.groupingBy(e -> e.periodId() + "_" + (e.deptId() != null ? e.deptId() : "COMMON")));
+
+        // 차수 메타데이터 캐싱 (periodId -> EvaluationPeriodDTO)
+        Map<Long, com.ees.eval.dto.EvaluationPeriodDTO> periodMetadataMap = periodService.getAllPeriods().stream()
+                .collect(Collectors.toMap(com.ees.eval.dto.EvaluationPeriodDTO::periodId, p -> p, (a, b) -> a));
+
+        // 매핑 분류 (다차수 통합을 위해 복합 키 "periodId_evaluateeId" 기반 맵 사용)
+        Map<String, EvaluatorMapping> execByEmp = filterMappingByPeriodAndType(allMappings, "EXECUTIVE");
+        Map<String, EvaluatorMapping> mgrByEmp = filterMappingByPeriodAndType(allMappings, "MANAGER");
+        Map<String, EvaluatorMapping> selfByEmp = filterMappingByPeriodAndType(allMappings, "SELF");
+        Map<String, List<EvaluatorMapping>> subByEmp = allMappings.stream()
+                .filter(m -> "SUBORDINATE".equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted()))
+                .collect(Collectors.groupingBy(m -> m.getPeriodId() + "_" + m.getEvaluateeId()));
 
         List<Long> allMappingIds = allMappings.stream().map(EvaluatorMapping::getMappingId).collect(Collectors.toList());
         Map<Long, List<Evaluation>> evalGroupMap = !allMappingIds.isEmpty()
                 ? evaluationMapper.findByMappingIds(allMappingIds).stream().collect(Collectors.groupingBy(Evaluation::getMappingId))
                 : Collections.emptyMap();
 
+        // 피평가자 ID + 차수 ID의 고유한 키 조합 추출 (중복 제거)
+        List<String> evalPeriodKeys = allMappings.stream()
+                .filter(m -> "n".equals(m.getIsDeleted()) && evaluateeIds.contains(m.getEvaluateeId()))
+                .map(m -> m.getEvaluateeId() + "_" + m.getPeriodId())
+                .distinct()
+                .collect(Collectors.toList());
+
         List<EvaluationResultDTO> results = new ArrayList<>();
-        for (Long empId : evaluateeIds) {
+        for (String key : evalPeriodKeys) {
+            String[] parts = key.split("_");
+            Long empId = Long.parseLong(parts[0]);
+            Long currPeriodId = Long.parseLong(parts[1]);
+
             Employee emp = employeeMap.get(empId);
             if (emp == null) continue;
 
             boolean isLeader = allLeaderIds.contains(empId);
-            List<EvaluationElementDTO> elements = (emp.getDeptId() != null && elementsByDept.containsKey(emp.getDeptId()))
-                    ? elementsByDept.get(emp.getDeptId()) : commonElements;
-            if (elements == null || elements.isEmpty()) elements = commonElements;
+            
+            // 해당 차수 & 해당 부서(또는 공통)에 해당하는 평가 항목 추출
+            String deptKey = currPeriodId + "_" + (emp.getDeptId() != null ? emp.getDeptId() : "COMMON");
+            List<EvaluationElementDTO> elements = elementsMap.get(deptKey);
+            if (elements == null || elements.isEmpty()) {
+                elements = elementsMap.get(currPeriodId + "_COMMON");
+            }
+            if (elements == null) {
+                elements = Collections.emptyList();
+            }
+
+            String mapKey = currPeriodId + "_" + empId;
 
             // 점수 산출
-            BigDecimal mboSelf = calcTypeScore(selfByEmp.get(empId), evalGroupMap, elements, "PERFORMANCE");
-            BigDecimal mbo1st = calcTypeScore(mgrByEmp.get(empId), evalGroupMap, elements, "PERFORMANCE");
-            BigDecimal mbo2nd = calcTypeScore(execByEmp.get(empId), evalGroupMap, elements, "PERFORMANCE");
-            BigDecimal compSelf = calcTypeScore(selfByEmp.get(empId), evalGroupMap, elements, "COMPETENCY");
-            BigDecimal comp1st = calcTypeScore(mgrByEmp.get(empId), evalGroupMap, elements, "COMPETENCY");
-            BigDecimal comp2nd = calcTypeScore(execByEmp.get(empId), evalGroupMap, elements, "COMPETENCY");
-            BigDecimal multiSelf = calcTypeScore(selfByEmp.get(empId), evalGroupMap, elements, "MULTI_DIMENSIONAL");
-            BigDecimal multi1st = calcSubordinateAverage(subByEmp.get(empId), evalGroupMap, elements);
-            BigDecimal multi2nd = calcTypeScore(execByEmp.get(empId), evalGroupMap, elements, "MULTI_DIMENSIONAL");
+            BigDecimal mboSelf = calcTypeScore(selfByEmp.get(mapKey), evalGroupMap, elements, "PERFORMANCE");
+            BigDecimal mbo1st = calcTypeScore(mgrByEmp.get(mapKey), evalGroupMap, elements, "PERFORMANCE");
+            BigDecimal mbo2nd = calcTypeScore(execByEmp.get(mapKey), evalGroupMap, elements, "PERFORMANCE");
+            BigDecimal compSelf = calcTypeScore(selfByEmp.get(mapKey), evalGroupMap, elements, "COMPETENCY");
+            BigDecimal comp1st = calcTypeScore(mgrByEmp.get(mapKey), evalGroupMap, elements, "COMPETENCY");
+            BigDecimal comp2nd = calcTypeScore(execByEmp.get(mapKey), evalGroupMap, elements, "COMPETENCY");
+            BigDecimal multiSelf = calcTypeScore(selfByEmp.get(mapKey), evalGroupMap, elements, "MULTI_DIMENSIONAL");
+            BigDecimal multi1st = calcSubordinateAverage(subByEmp.get(mapKey), evalGroupMap, elements);
+            BigDecimal multi2nd = calcTypeScore(execByEmp.get(mapKey), evalGroupMap, elements, "MULTI_DIMENSIONAL");
 
             // 상태 판단
-            String mboStatus = determineStatus(mgrByEmp.get(empId), execByEmp.get(empId), evalGroupMap, elements, "PERFORMANCE");
-            String compStatus = determineStatus(mgrByEmp.get(empId), execByEmp.get(empId), evalGroupMap, elements, "COMPETENCY");
-            String multiStatus = determineMultiStatus(subByEmp.get(empId), execByEmp.get(empId), evalGroupMap, elements);
+            String mboStatus = determineStatus(mgrByEmp.get(mapKey), execByEmp.get(mapKey), evalGroupMap, elements, "PERFORMANCE");
+            String compStatus = determineStatus(mgrByEmp.get(mapKey), execByEmp.get(mapKey), evalGroupMap, elements, "COMPETENCY");
+            String multiStatus = determineMultiStatus(subByEmp.get(mapKey), execByEmp.get(mapKey), evalGroupMap, elements);
 
-            FinalGrade fg = gradeMap.get(empId);
+            FinalGrade fg = customGradeMap.get(mapKey);
             BigDecimal totalScore = (fg != null && fg.getTotalScore() != null) ? new BigDecimal(fg.getTotalScore()) : null;
             String gradeCode = (fg != null) ? fg.getFinalGradeCode() : null;
 
             boolean isFullyDone = isLeader ? "2차평가완료".equals(multiStatus)
                     : (("2차평가완료".equals(mboStatus) || "미배정".equals(mboStatus)) && ("2차평가완료".equals(compStatus) || "미배정".equals(compStatus)));
+
+            com.ees.eval.dto.EvaluationPeriodDTO periodDto = periodMetadataMap.get(currPeriodId);
+            String pName = periodDto != null ? periodDto.periodName() : "";
+            Integer pYear = periodDto != null ? periodDto.periodYear() : 0;
 
             results.add(EvaluationResultDTO.builder()
                     .empId(empId).empName(emp.getName()).deptName(emp.getDeptName()).positionName(emp.getPositionName())
@@ -212,6 +252,7 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
                     .compSelfScore(compSelf).comp1stScore(comp1st).comp2ndScore(comp2nd).compFinalScore(comp2nd).compStatus(compStatus)
                     .multiSelfScore(multiSelf).multi1stScore(multi1st).multi2ndScore(multi2nd).multiFinalScore(multi2nd).multiStatus(multiStatus)
                     .totalScore(totalScore).gradeCode(gradeCode).isConfirmed(isFullyDone)
+                    .periodId(currPeriodId).periodName(pName).periodYear(pYear)
                     .build());
         }
 
@@ -239,7 +280,16 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
     // ========================================================================
 
     /**
-     * 특정 관계 유형의 매핑을 피평가자 기준으로 추출합니다.
+     * 특정 관계 유형의 매핑을 차수 + 피평가자 기준으로 추출합니다.
+     */
+    private Map<String, EvaluatorMapping> filterMappingByPeriodAndType(List<EvaluatorMapping> mappings, String type) {
+        return mappings.stream()
+                .filter(m -> type.equals(m.getRelationTypeCode()) && "n".equals(m.getIsDeleted()))
+                .collect(Collectors.toMap(m -> m.getPeriodId() + "_" + m.getEvaluateeId(), m -> m, (a, b) -> a));
+    }
+
+    /**
+     * 기존 단일 차수용 필터 메서드 (호환성 유지용)
      */
     private Map<Long, EvaluatorMapping> filterMappingByType(List<EvaluatorMapping> mappings, String type) {
         return mappings.stream()

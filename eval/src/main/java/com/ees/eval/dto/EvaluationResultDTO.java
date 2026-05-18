@@ -65,6 +65,10 @@ public record EvaluationResultDTO(
         // 종합
         BigDecimal totalScore,
         String gradeCode,
-        boolean isConfirmed
+        boolean isConfirmed,
+        // 차수 정보
+        Long periodId,
+        String periodName,
+        Integer periodYear
 ) {
 }
