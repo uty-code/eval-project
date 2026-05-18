@@ -156,4 +156,43 @@ class MultiDimensionalEvaluationControllerTest {
                 .andExpect(redirectedUrl("/eval/multi-dimensional?periodId=10"))
                 .andExpect(flash().attribute("errorMessage", "평가 기간이 종료되어 제출할 수 없습니다."));
     }
+
+    @Test
+    @DisplayName("should_IN_PROGRESS차수가맨위에오고나머지는연도최신순정렬_when_전체차수조회시")
+    void should_sortPeriodsWithInProgressFirstAndNewestYearDescending() throws Exception {
+        // given
+        Long empId = 1001L;
+
+        EvaluationPeriodDTO p1 = EvaluationPeriodDTO.builder().periodId(1L).statusCode("COMPLETED").periodYear(2025).periodName("2025 COMP").build();
+        EvaluationPeriodDTO p2 = EvaluationPeriodDTO.builder().periodId(2L).statusCode("IN_PROGRESS").periodYear(2026).periodName("2026 INPR").build();
+        EvaluationPeriodDTO p3 = EvaluationPeriodDTO.builder().periodId(3L).statusCode("PLANNED").periodYear(2027).periodName("2027 PLAN").build();
+
+        List<EvaluationPeriodDTO> rawPeriods = List.of(p1, p2, p3);
+
+        given(periodService.getAllPeriods()).willReturn(rawPeriods);
+        given(periodService.isPeriodActive(anyLong())).willReturn(false);
+
+        MultiDimensionalEvalPageDTO mockPageData = new MultiDimensionalEvalPageDTO(
+                Collections.emptyList(), 1, 1, 0, 10
+        );
+        given(mappingService.getMultiDimensionalTasks(any(), eq(empId), any(), any(), any(), anyInt(), anyInt(), anyBoolean()))
+                .willReturn(mockPageData);
+        given(mappingService.getMyEvaluationTasks(any(), eq(empId))).willReturn(Collections.emptyList());
+
+        // when & then
+        mockMvc.perform(get("/eval/multi-dimensional")
+                        .param("periodId", "2"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("periods"))
+                .andExpect(result -> {
+                    List<EvaluationPeriodDTO> sorted = (List<EvaluationPeriodDTO>) result.getModelAndView().getModel().get("periods");
+                    // 정렬 기대 순서:
+                    // 1. IN_PROGRESS 상태인 p2 (2026) -> 맨 앞
+                    // 2. 그 외 연도 내림차순: p3 (2027) -> p1 (2025)
+                    // 최종 순서: p2, p3, p1
+                    org.junit.jupiter.api.Assertions.assertEquals(2L, sorted.get(0).periodId());
+                    org.junit.jupiter.api.Assertions.assertEquals(3L, sorted.get(1).periodId());
+                    org.junit.jupiter.api.Assertions.assertEquals(1L, sorted.get(2).periodId());
+                });
+    }
 }
