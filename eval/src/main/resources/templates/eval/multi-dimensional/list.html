@@ -197,82 +197,84 @@
         <!-- ━━━━ 다면평가 리스트 영역 (HTMX 갱신 영역) ━━━━ -->
         <div id="eval-table-container">
 
-            <div th:if="${selectedPeriod != null && selectedPeriod.statusCode() == 'PLANNED'}" class="ees-card p-5 text-center text-muted">
-                <i class="bi bi-clock-history fs-1 mb-3 d-block opacity-25 text-info"></i>
-                <h5 class="fw-bold text-white mb-2">다면평가 준비 중</h5>
-                <p class="mb-0">평가가 시작되면 대상 리스트가 활성화됩니다.</p>
+            <!-- [필터 섹션] 최상단으로 인출하여 항상 노출 및 HTMX 교체 내부에 배치 -->
+            <div class="ees-card mb-4 p-4">
+                <form id="filterForm" class="ees-filter-form" hx-get="/eval/multi-dimensional" hx-target="#eval-table-container"
+                    hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace">
+                    
+                    <!-- 평가 차수 -->
+                    <div class="ees-filter-group" style="flex: 1 1 250px;">
+                        <label for="periodId" class="ees-filter-label">
+                            <i class="bi bi-calendar-event me-1"></i>평가 차수
+                        </label>
+                        <div class="ees-filter-control-wrap">
+                            <select name="periodId" id="periodId" class="ees-filter-control form-select">
+                                <option value="">전체 차수 통합</option>
+                                <option th:each="p : ${periods}" th:value="${p.periodId()}"
+                                        th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
+                                        th:selected="${selectedPeriod?.periodId() == p.periodId()}"></option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 부서 필터 -->
+                    <div class="ees-filter-group" style="flex: 1 1 180px;">
+                        <label for="filterDeptId" class="ees-filter-label">
+                            <i class="bi bi-diagram-3 me-1"></i>부서 필터
+                        </label>
+                        <div class="ees-filter-control-wrap">
+                            <div th:replace="~{fragments/dept-select :: deptSelect(
+                                ${departments}, ${filterDeptId}, 'filterDeptId', '전체 부서', false)}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 평가 상태 -->
+                    <div class="ees-filter-group" style="flex: 1 1 150px;">
+                        <label for="filterStatus" class="ees-filter-label">
+                            <i class="bi bi-check-circle me-1"></i>평가 상태
+                        </label>
+                        <div class="ees-filter-control-wrap">
+                            <select name="filterStatus" id="filterStatus" class="ees-filter-control form-select">
+                                <option value="">전체 상태</option>
+                                <option value="SUBMITTED" th:selected="${filterStatus == 'SUBMITTED'}">평가 완료</option>
+                                <option value="WAITING" th:selected="${filterStatus == 'WAITING'}">평가 대기</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 성명/사번 검색 -->
+                    <div class="ees-filter-group" style="flex: 1 1 250px;">
+                        <label for="keyword" class="ees-filter-label">
+                            <i class="bi bi-person-search me-1"></i>성명 / 사번 검색
+                        </label>
+                        <div class="ees-filter-control-wrap">
+                            <input type="text" name="keyword" id="keyword" class="ees-filter-control form-control"
+                                placeholder="이름 또는 사번 입력" th:value="${keyword}" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <!-- 액션 버튼 -->
+                    <div class="ees-filter-actions">
+                        <label class="ees-filter-label"></label> <!-- 정렬용 빈 라벨 -->
+                        <button type="submit" class="btn-ees-filter" id="btn-search">
+                            <i class="bi bi-search"></i>조회
+                        </button>
+                        <a th:href="@{/eval/multi-dimensional}" class="btn-ees-filter bg-secondary bg-opacity-25" id="btn-reset-search" title="초기화">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
+                    </div>
+                </form>
             </div>
 
+            <!-- 1. 평가가 시작되지 않은 계획(PLANNED) 차수 선택 시 노출할 카드 배너 -->
+            <div th:if="${selectedPeriod != null && selectedPeriod.statusCode() == 'PLANNED'}" class="ees-card p-5 text-center text-muted mb-4">
+                <i class="bi bi-clock-history fs-1 mb-3 d-block opacity-25 text-info"></i>
+                <h5 class="fw-bold text-white mb-2">평가 준비 중</h5>
+            </div>
+
+            <!-- 2. 평가가 시작되었거나 진행 중인 경우 대상자 목록 및 페이지네이션 -->
             <div th:if="${selectedPeriod == null || selectedPeriod.statusCode() != 'PLANNED'}">
-                <!-- 필터 섹션 (Filter Bar Design System 적용) -->
-                <div class="ees-card mb-4 p-4">
-                    <form id="filterForm" class="ees-filter-form" hx-get="/eval/multi-dimensional" hx-target="#eval-table-container"
-                        hx-select="#eval-table-container" hx-swap="outerHTML" hx-push-url="true" hx-sync="this:replace">
-                        
-                        <!-- 평가 차수 -->
-                        <div class="ees-filter-group" style="flex: 1 1 250px;">
-                            <label for="periodId" class="ees-filter-label">
-                                <i class="bi bi-calendar-event me-1"></i>평가 차수
-                            </label>
-                            <div class="ees-filter-control-wrap">
-                                <select name="periodId" id="periodId" class="ees-filter-control form-select">
-                                    <option value="">전체 차수 통합</option>
-                                    <option th:each="p : ${periods}" th:value="${p.periodId()}"
-                                            th:text="${'[' + p.periodYear() + '] ' + p.periodName()}"
-                                            th:selected="${selectedPeriod?.periodId() == p.periodId()}"></option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- 부서 필터 -->
-                        <div class="ees-filter-group" style="flex: 1 1 180px;">
-                            <label for="filterDeptId" class="ees-filter-label">
-                                <i class="bi bi-diagram-3 me-1"></i>부서 필터
-                            </label>
-                            <div class="ees-filter-control-wrap">
-                                <div th:replace="~{fragments/dept-select :: deptSelect(
-                                    ${departments}, ${filterDeptId}, 'filterDeptId', '전체 부서', false)}">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 평가 상태 -->
-                        <div class="ees-filter-group" style="flex: 1 1 150px;">
-                            <label for="filterStatus" class="ees-filter-label">
-                                <i class="bi bi-check-circle me-1"></i>평가 상태
-                            </label>
-                            <div class="ees-filter-control-wrap">
-                                <select name="filterStatus" id="filterStatus" class="ees-filter-control form-select">
-                                    <option value="">전체 상태</option>
-                                    <option value="SUBMITTED" th:selected="${filterStatus == 'SUBMITTED'}">평가 완료</option>
-                                    <option value="WAITING" th:selected="${filterStatus == 'WAITING'}">평가 대기</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- 성명/사번 검색 -->
-                        <div class="ees-filter-group" style="flex: 1 1 250px;">
-                            <label for="keyword" class="ees-filter-label">
-                                <i class="bi bi-person-search me-1"></i>성명 / 사번 검색
-                            </label>
-                            <div class="ees-filter-control-wrap">
-                                <input type="text" name="keyword" id="keyword" class="ees-filter-control form-control"
-                                    placeholder="이름 또는 사번 입력" th:value="${keyword}" autocomplete="off">
-                            </div>
-                        </div>
-
-                        <!-- 액션 버튼 -->
-                        <div class="ees-filter-actions">
-                            <label class="ees-filter-label"></label> <!-- 정렬용 빈 라벨 -->
-                            <button type="submit" class="btn-ees-filter" id="btn-search">
-                                <i class="bi bi-search"></i>조회
-                            </button>
-                            <a th:href="@{/eval/multi-dimensional}" class="btn-ees-filter bg-secondary bg-opacity-25" id="btn-reset-search" title="초기화">
-                                <i class="bi bi-arrow-counterclockwise"></i>
-                            </a>
-                        </div>
-                    </form>
-                </div>
 
                 <div th:if="${pageData == null || pageData.tasks().isEmpty()}"
                     class="ees-card text-center py-5 border-0 shadow-sm rounded-3 mb-4">

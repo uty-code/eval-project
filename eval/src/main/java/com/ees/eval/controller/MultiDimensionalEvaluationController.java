@@ -64,17 +64,30 @@ public class MultiDimensionalEvaluationController {
 
         Long empId = Long.parseLong(userDetails.getUsername());
         model.addAttribute("activeMenu", "multi-dimensional-eval");
+        // 부서 목록 조기 방어 바인딩 (NPE 원천 차단)
+        model.addAttribute("departments", java.util.Collections.emptyList());
 
-        // 1. 전체 차수 목록 로드 (필터용)
+        // 1. 전체 차수 목록 로드 및 정렬 정책 적용 (IN_PROGRESS 우선, 그 외 최신순)
         List<EvaluationPeriodDTO> allPeriods = periodService.getAllPeriods();
-        model.addAttribute("periods", allPeriods);
+        List<EvaluationPeriodDTO> sortedPeriods = new java.util.ArrayList<>(allPeriods);
+        sortedPeriods.sort((p1, p2) -> {
+            boolean p1Active = "IN_PROGRESS".equals(p1.statusCode());
+            boolean p2Active = "IN_PROGRESS".equals(p2.statusCode());
+            if (p1Active && !p2Active) return -1;
+            if (!p1Active && p2Active) return 1;
+            // 둘 다 같은 상태거나 둘 다 활성이 아니면 연도/ID 내림차순
+            int yearCompare = p2.periodYear().compareTo(p1.periodYear());
+            if (yearCompare != 0) return yearCompare;
+            return p2.periodId().compareTo(p1.periodId());
+        });
+        model.addAttribute("periods", sortedPeriods);
 
         // 2. 파라미터 존재 여부 확인 (최초 진입 vs 명시적 전체 선택 구분)
         boolean hasPeriodParam = request.getParameterMap().containsKey("periodId");
         
-        // 3. 최초 진입 시 리다이렉트 처리
+        // 3. 최초 진입 시 리다이렉트 처리 (정렬된 순서에 따라 처리)
         if (!hasPeriodParam) {
-            EvaluationPeriodDTO defaultPeriod = periodService.resolveSelectedPeriod(null, allPeriods);
+            EvaluationPeriodDTO defaultPeriod = periodService.resolveSelectedPeriod(null, sortedPeriods);
             if (defaultPeriod != null) {
                 return "redirect:/eval/multi-dimensional?periodId=" + defaultPeriod.periodId();
             }
