@@ -23,9 +23,9 @@ COPY --from=build /app/target/eval-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
 
-# [운영 고도화] Docker Engine 수준의 정밀 헬스체크 가동 (healthy/unhealthy 실시간 마킹)
+# [운영 고도화] Docker Engine 수준의 정밀 헬스체크 가동 및 액츄에이터 우회 경로(/internal-monitor/health) 완벽 일치화
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD curl -f http://localhost:8080/actuator/health || exit 1
+  CMD curl -f http://localhost:8080/internal-monitor/health || exit 1
 
-# Java 21 Preview 기능 활성화 및 애플리케이션 실행
-ENTRYPOINT ["java", "--enable-preview", "-jar", "app.jar"]
+# [운영 고도화] sh -c를 활용하여 Docker Compose의 JAVA_OPTS 힙 제한 환경변수가 정상 유입 및 인지되도록 보장
+ENTRYPOINT ["sh", "-c", "java --enable-preview $JAVA_OPTS -jar app.jar"]
