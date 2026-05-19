@@ -13,13 +13,20 @@ pipeline {
             }
         }
 
-        stage('Docker Build') {
+        stage('Docker Build & Extract') {
             steps {
                 dir('eval') {
-                    // 멀티 스테이지 Dockerfile을 통해 메이븐 빌드와 이미지 패키징을 동시 수행
+                    // 멀티 스테이지 Dockerfile을 통해 고속 무균 컴파일 수행
                     sh """
                         docker build -t ${IMAGE_NAME}:${TAG} .
                         docker tag ${IMAGE_NAME}:${TAG} ${IMAGE_NAME}:latest
+                        
+                        # 빌드 완료된 이미지 내부에서 자바 결과물(JAR)을 젠킨스 워크스페이스로 추출
+                        docker rm -f temp-eval-build || true
+                        docker create --name temp-eval-build ${IMAGE_NAME}:latest
+                        mkdir -p target
+                        docker cp temp-eval-build:/app/app.jar target/eval-0.0.1-SNAPSHOT.jar
+                        docker rm temp-eval-build
                     """
                 }
             }
@@ -32,7 +39,7 @@ pipeline {
                     sshPublisherDesc(configName: 'ees-ubuntu-server', 
                         transfers: [
                           sshTransfer(
-                            sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh',
+                            sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh, eval/Dockerfile.prod, eval/target/eval-0.0.1-SNAPSHOT.jar',
                             removePrefix: 'eval',
                             remoteDirectory: 'ees-app',
                             execCommand: '''
@@ -49,8 +56,8 @@ pipeline {
                               docker rm ees-app-backup || true
                               docker rename ees-eval-app ees-app-backup || true
                               
-                              # 새 컨테이너 생성 및 기동
-                              docker compose -f docker-compose.prod.yml up -d --force-recreate
+                              # 새 컨테이너 생성 및 현지 초고속 빌드 기동 (--build 플래그 추가)
+                              docker compose -f docker-compose.prod.yml up -d --build --force-recreate
                               
                               # 스크립트 실행 권한 부여
                               chmod +x ./deploy_verify.sh ./rollback.sh

@@ -1,0 +1,12 @@
+# Production Runtime Stage
+FROM eclipse-temurin:21-jdk-jammy
+WORKDIR /app
+
+# 전송받은 빌드된 JAR 파일을 이미지 내부로 복사
+COPY target/eval-0.0.1-SNAPSHOT.jar app.jar
+
+# Spring Boot 기본 포트 설정
+EXPOSE 8080
+
+# Java 21 Preview 기능 활성화 및 애플리케이션 실행
+ENTRYPOINT ["java", "--enable-preview", "-jar", "app.jar"]
