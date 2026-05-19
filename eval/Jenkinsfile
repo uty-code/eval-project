@@ -111,10 +111,10 @@ pipeline {
             echo '❌ 배포 실패! 이전 쌩쌩한 안전 버전으로 무결성 이미지 롤백 완료!'
         }
         always {
-            // [정리 고도화] 로컬 캐시 이미지 정리, 도커 허브 로그아웃 및 젠킨스 전용 Dangling 이미지 완전 소거
+            // [정리 고도화] 로컬 캐시 이미지 정리, 도커 허브 로그아웃 및 타 프로젝트 이미지를 보호하는 안전 필터 기반 Prune 실행
             sh 'docker logout || true'
             sh "docker rmi ${REGISTRY_USER}/${IMAGE_NAME}:${TAG} || true"
-            sh 'docker image prune -f || true'
+            sh 'docker image prune -f --filter "until=24h" || true'
             cleanWs()
         }
     }
