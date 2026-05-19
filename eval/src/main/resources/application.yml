@@ -71,10 +71,10 @@ spring:
     init:
       mode: never  # 테이블 생성이 완료되었으므로 안전을 위해 never로 원복
   datasource:
-    # Azure CLI로 확인한 정보 반영
-    url: jdbc:sqlserver://ees-server-hk.database.windows.net:1433;databaseName=ees-db-hk;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
-    username: dbmaster
-    # 비밀번호는 보안상 Azure Web App의 환경변수(DB_PASSWORD)에서 가져옵니다.
+    # 환경변수 주입이 없을 경우 기본값으로 Azure DB 주소를 매핑하여 완벽한 하이브리드 호환성 보장
+    url: ${DB_URL:jdbc:sqlserver://ees-server-hk.database.windows.net:1433;databaseName=ees-db-hk;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;}
+    username: ${DB_USERNAME:dbmaster}
+    # 비밀번호는 환경변수에서 로드합니다.
     password: ${DB_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 

@@ -2,13 +2,8 @@ pipeline {
     agent any
 
     environment {
-        ACR_NAME = 'eesregistry' 
-        ACR_URL = "${ACR_NAME}.azurecr.io"
         IMAGE_NAME = 'ees-eval-app'
-        RESOURCE_GROUP = 'EES-ResourceGroup'
-        APP_NAME = 'ees-eval-hk' 
         TAG = "${env.BUILD_NUMBER}"
-        AZURE_CRED_ID = 'ees-azure-creds' 
     }
 
     stages {
@@ -18,62 +13,67 @@ pipeline {
             }
         }
 
-        // 메이븐 빌드는 Dockerfile 내의 멀티 스테이지 빌드에서 수행하므로 젠킨스에서는 생략합니다.
-
-        stage('Docker Build & Push') {
+        stage('Docker Build') {
             steps {
-                withCredentials([azureServicePrincipal(env.AZURE_CRED_ID)]) {
-                    // 1. Azure 및 ACR 로그인 (sh 안에서 실행)
+                dir('eval') {
+                    // 멀티 스테이지 Dockerfile을 통해 메이븐 빌드와 이미지 패키징을 동시 수행
                     sh """
-                        az login --service-principal -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET -t \$AZURE_TENANT_ID
-                        az acr login --name ${ACR_NAME}
+                        docker build -t ${IMAGE_NAME}:${TAG} .
+                        docker tag ${IMAGE_NAME}:${TAG} ${IMAGE_NAME}:latest
                     """
-                    
-                    // 2. 도커 빌드 및 푸시 (dir은 sh 밖으로 꺼내야 합니다!)
-                    dir('eval') {
-                        sh """
-                            docker build -t ${ACR_URL}/${IMAGE_NAME}:${TAG} .
-                            docker push ${ACR_URL}/${IMAGE_NAME}:${TAG}
-                            
-                            docker tag ${ACR_URL}/${IMAGE_NAME}:${TAG} ${ACR_URL}/${IMAGE_NAME}:latest
-                            docker push ${ACR_URL}/${IMAGE_NAME}:latest
-                        """
-                    }
                 }
             }
         }
 
-        stage('Deploy to Azure') {
+        stage('Deploy via SSH to Ubuntu') {
             steps {
-                withCredentials([azureServicePrincipal(env.AZURE_CRED_ID)]) {
-                    sh """
-                        az login --service-principal -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET -t \$AZURE_TENANT_ID
-                        
-                        # 웹 앱의 컨테이너 이미지 업데이트
-                        az webapp config container set --name ${APP_NAME} \
-                            --resource-group ${RESOURCE_GROUP} \
-                            --container-image-name ${ACR_URL}/${IMAGE_NAME}:${TAG}
-                            
-                        # 환경 변수 설정 (운영 프로파일 활성화)
-                        az webapp config appsettings set --name ${APP_NAME} \
-                            --resource-group ${RESOURCE_GROUP} \
-                            --settings SPRING_PROFILES_ACTIVE=prod
-                            
-                        # 확실한 반영을 위해 웹 앱 강제 재시작
-                        az webapp restart --name ${APP_NAME} --resource-group ${RESOURCE_GROUP}
-                    """
-                }
+                // Jenkins Credentials에 등록된 ees-ubuntu-server 접속 설정을 통해 배포 전송 및 명령 실행
+                sshPublisher(publishers: [
+                    sshPublisherDesc(configName: 'ees-ubuntu-server', 
+                        transfers: [
+                          sshTransfer(
+                            sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh',
+                            removePrefix: 'eval',
+                            remoteDirectory: 'ees-app',
+                            execCommand: '''
+                              cd ~/ees-app
+                              
+                              # 처음 배포 시 .env 파일이 없으면 템플릿 복사
+                              if [ ! -f .env ]; then
+                                cp .env.example .env
+                                echo "⚠️ [WARNING] .env 파일이 새로 생성되었습니다. 실제 DB 연결 설정을 채워주십시오."
+                              fi
+                              
+                              # 기존 실행 중인 컨테이너 백업 (이전 이미지 보존용)
+                              docker stop ees-app-backup || true
+                              docker rm ees-app-backup || true
+                              docker rename ees-eval-app ees-app-backup || true
+                              
+                              # 새 컨테이너 생성 및 기동
+                              docker compose -f docker-compose.prod.yml up -d --force-recreate
+                              
+                              # 스크립트 실행 권한 부여
+                              chmod +x ./deploy_verify.sh ./rollback.sh
+                              
+                              # 배포 헬스체크 검증 수행 및 실패 시 즉각 원클릭 자동 롤백 연동
+                              ./deploy_verify.sh || (./rollback.sh && exit 1)
+                            '''
+                          )
+                        ]
+                    )
+                ])
             }
         }
     }
 
     post {
         success {
-            echo '🚀 배포가 성공적으로 완료되었습니다!'
+            echo '🚀 KT Cloud Ubuntu 서버 배포 및 검증이 완료되었습니다!'
+        }
+        failure {
+            echo '❌ 배포 실패! 안정적인 기존 버전으로 자동 롤백을 수행하였습니다.'
         }
         always {
-            // 로컬에 생성된 이미지 삭제 (용량 확보)
-            sh "docker rmi ${ACR_URL}/${IMAGE_NAME}:${TAG} || true"
             cleanWs()
         }
     }
