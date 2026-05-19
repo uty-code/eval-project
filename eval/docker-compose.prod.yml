@@ -8,9 +8,14 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
       - DB_URL=jdbc:sqlserver://${DB_HOST}:${DB_PORT};databaseName=${DB_NAME};encrypt=true;trustServerCertificate=true;
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
+      # [안정성 격상] 1G 컨테이너 메모리 제한 하에서 JVM이 OS에 OOM 당하지 않도록 힙 메모리 크기를 철저히 규제
+      - JAVA_OPTS=-Xms512m -Xmx768m
     restart: unless-stopped
     logging:
       driver: "json-file"
