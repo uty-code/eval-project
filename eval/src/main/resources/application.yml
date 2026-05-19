@@ -55,7 +55,7 @@ spring:
   datasource:
     url: jdbc:sqlserver://211.232.94.161:1533;databaseName=SKUEDU;encrypt=true;trustServerCertificate=true;
     username: SKUEDU01
-    password: init000!
+    password: ${DEV_DB_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   docker:
     compose:
