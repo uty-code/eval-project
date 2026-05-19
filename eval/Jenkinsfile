@@ -48,10 +48,14 @@ pipeline {
                                 removePrefix: 'eval',
                                 remoteDirectory: 'ees-app',
                                 execCommand: """
+                                  # 쉘 명령어 에코 출력을 차단하여 젠킨스 콘솔 로그에 자격증명이 노출되는 것을 방지합니다.
+                                  set +x
+                                  set -e
+                                  
                                   cd ~/ees-app
                                   
-                                  # 우분투 서버에서 도커 허브 로그인 수행 (젠킨스 빌드 타임에 실제 크레덴셜 값을 안전하게 주입)
-                                  docker login -u ${REG_USER} -p ${REG_PASS}
+                                  # 우분투 서버에서 도커 허브 로그인 수행 (ps 노출 방지를 위해 --password-stdin 권장 표준 적용)
+                                  echo "${REG_PASS}" | docker login -u "${REG_USER}" --password-stdin
                                   
                                   # 처음 배포 시 .env 파일이 없으면 템플릿 복사
                                   if [ ! -f .env ]; then
