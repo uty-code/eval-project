@@ -2,24 +2,32 @@ server:
   forward-headers-strategy: framework
   error:
     path: /error-page
+    # [보안 고도화] 에러 발생 시 스택트레이스와 내부 예외 메세지의 무단 노출을 전면 차단하여 시스템 설계 은폐
+    include-stacktrace: never
+    include-message: never
   compression:
     enabled: true
     mime-types: text/html,text/css,text/javascript,application/javascript,application/json
     min-response-size: 1024
   # [무중단 안정성] 배포 시점에 트래픽 유실 및 커넥션 갑작스런 단절 예방용 우아한 종료 지원
   shutdown: graceful
-  # [보안 고도화] 세션 Hijacking 및 XSS 공격에 의한 세션 토큰 강탈 방지를 위해 쿠키 Secure/HttpOnly 필수 강제
+  # [보안 고도화] 세션 Hijacking, XSS 공격 방지를 위해 Secure/HttpOnly를 강제하고 CSRF 방어를 위해 SameSite=Lax 적용
   servlet:
     session:
       cookie:
         secure: true
         http-only: true
-  # [관측성 고도화] 인프라 공격 추적, 병목 구간 실시간 응답 지연 분석을 위한 톰캣 내부 액세스 로그 가동
+        same-site: lax
+  # [보안 고도화] WAS 기종(Tomcat) 버전 정보 노출을 억제하여 해커의 취약점 타겟팅을 원천 무력화
+  server-header: " "
+  # [관측성 고도화] 볼륨 마운트 용이성을 위한 절대경로 지정 및 하드 디스크 고갈 방지를 위한 30일 로테이션 가동
   tomcat:
     accesslog:
       enabled: true
-      directory: logs
+      directory: /app/logs
       pattern: '%h %l %u %t "%r" %s %b %D'
+      rotate: true
+      max-days: 30
 
 # [보안 고도화] 스캐너 탐색 노이즈 제거를 위한 Base-path 변경 및 상세 구조 은폐
 management:
@@ -121,8 +129,8 @@ spring:
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
-      # [관측성 고도화] 비즈니스 트랜잭션 과정 중 커넥션 누수(Leak) 발생 시 즉시 감지하여 디버깅 추적 보장
-      leak-detection-threshold: 20000
+      # [관측성 고도화] 긴 MyBatis 다면평가 집계를 고려해 30초 한계값 튠업으로 커넥션 누수(Leak) 감지
+      leak-detection-threshold: 30000
   # 운영 환경은 Thymeleaf 캐시 활성화하여 CPU/메모리 부하 및 응답 응집도 성능 보장
   thymeleaf:
     cache: true
