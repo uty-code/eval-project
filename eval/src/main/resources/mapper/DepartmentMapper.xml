@@ -59,8 +59,12 @@
         <where>
             d.is_deleted = 'n'
             <if test="searchKeyword != null and searchKeyword != ''">
-                and (d.dept_name like concat('%', #{searchKeyword}, '%')
-                  or cast(d.dept_id as varchar) like concat('%', #{searchKeyword}, '%'))
+                and (
+                    d.dept_name like concat('%', #{searchKeyword}, '%')
+                    <if test="searchKeyword.matches('^[0-9]+$')">
+                        or d.dept_id = CAST(#{searchKeyword} AS BIGINT)
+                    </if>
+                )
             </if>
             <if test="searchStatus != null and searchStatus != ''">
                 and d.is_active = #{searchStatus}

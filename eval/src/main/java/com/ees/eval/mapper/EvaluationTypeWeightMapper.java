@@ -12,6 +12,8 @@ public interface EvaluationTypeWeightMapper {
     
     List<EvaluationTypeWeight> findByPeriodId(@Param("periodId") Long periodId, @Param("deptId") Long deptId, @Param("targetRoleCode") String targetRoleCode);
     
+    List<EvaluationTypeWeight> findAllByPeriodId(@Param("periodId") Long periodId);
+    
     Optional<EvaluationTypeWeight> findById(Long weightId);
     
     int insert(EvaluationTypeWeight weight);

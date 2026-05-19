@@ -34,6 +34,12 @@
           </choose>
     </select>
 
+    <select id="findAllByPeriodId" resultMap="TypeWeightMap">
+        SELECT * FROM evaluation_type_weights_51
+        WHERE period_id = #{periodId}
+          AND is_deleted = 'n'
+    </select>
+
     <select id="findById" resultMap="TypeWeightMap">
         SELECT * FROM evaluation_type_weights_51
         WHERE weight_id = #{weightId} AND is_deleted = 'n'

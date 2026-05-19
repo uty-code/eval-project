@@ -104,9 +104,30 @@ public class EmployeeServiceImpl implements EmployeeService {
         Map<Long, String> positionMap = positionMapper.findAll().stream()
                 .collect(Collectors.toMap(Position::getPositionId, Position::getPositionName));
 
-        return employeeMapper.findAll().stream()
+        List<Employee> allEmployees = employeeMapper.findAll();
+        
+        if (allEmployees.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // MSSQL 2100 파라미터 방어: 전체 사원의 권한 목록을 1000개 단위로 나누어 조회
+        List<Long> empIds = allEmployees.stream().map(Employee::getEmpId).collect(Collectors.toList());
+        List<Map<String, Object>> roleMaps = new java.util.ArrayList<>();
+        int chunkSize = 1000;
+        for (int i = 0; i < empIds.size(); i += chunkSize) {
+            List<Long> chunk = empIds.subList(i, Math.min(i + chunkSize, empIds.size()));
+            roleMaps.addAll(employeeMapper.findRoleNamesByEmpIds(chunk));
+        }
+
+        // EmpId를 키로, RoleName의 리스트를 값으로 가지는 Map 생성
+        Map<Long, List<String>> empRolesMap = roleMaps.stream()
+                .collect(Collectors.groupingBy(
+                        row -> ((Number) row.get("EMP_ID")).longValue(),
+                        Collectors.mapping(row -> (String) row.get("ROLE_NAME"), Collectors.toList())));
+
+        return allEmployees.stream()
                 .map(emp -> {
-                    List<String> roleNames = employeeMapper.findRoleNamesByEmpId(emp.getEmpId());
+                    List<String> roleNames = empRolesMap.getOrDefault(emp.getEmpId(), Collections.emptyList());
                     String deptName = deptMap.get(emp.getDeptId());
                     String positionName = positionMap.get(emp.getPositionId());
                     return convertToDto(emp, roleNames, deptName, positionName);
@@ -407,18 +428,18 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional(readOnly = true)
     public List<EmployeeDTO> getPendingEmployees() {
-        // 부서/직급 전체 목록을 미리 Map으로 캐싱 (N+1 방지)
-        Map<Long, String> deptMap = departmentMapper.findAll().stream()
-                .collect(Collectors.toMap(Department::getDeptId, Department::getDeptName));
-        Map<Long, String> positionMap = positionMapper.findAll().stream()
-                .collect(Collectors.toMap(Position::getPositionId, Position::getPositionName));
-
-        // 승인 대기 중인 사원 목록 조회
+        // 승인 대기 중인 사원 목록 선조회 (대기자가 없으면 불필요한 전체 부서/직급 조회를 방지 - Over-fetching 방어)
         List<Employee> pendingEmployees = employeeMapper.findPendingEmployees();
 
         if (pendingEmployees.isEmpty()) {
             return Collections.emptyList();
         }
+
+        // 부서/직급 전체 목록을 미리 Map으로 캐싱 (N+1 방지)
+        Map<Long, String> deptMap = departmentMapper.findAll().stream()
+                .collect(Collectors.toMap(Department::getDeptId, Department::getDeptName));
+        Map<Long, String> positionMap = positionMapper.findAll().stream()
+                .collect(Collectors.toMap(Position::getPositionId, Position::getPositionName));
 
         // N+1 최적화: 대기 중인 사원들의 권한 목록을 IN 쿼리로 한 번에 조회하여 그룹화
         List<Long> empIds = pendingEmployees.stream().map(Employee::getEmpId).collect(Collectors.toList());

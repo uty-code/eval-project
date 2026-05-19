@@ -103,6 +103,14 @@ public interface EmployeeMapper {
     List<Employee> findByDeptId(Long deptId);
 
     /**
+     * 다수의 부서에 소속된 활성 사원 목록을 한 번에 조회합니다. (N+1 최적화용)
+     *
+     * @param deptIds 대상 부서 식별자 목록
+     * @return 해당 부서들에 소속된 사원 리스트
+     */
+    List<Employee> findByDeptIds(@Param("deptIds") List<Long> deptIds);
+
+    /**
      * 특정 사원이 보유한 권한명(role_name) 목록을 employee_roles + roles JOIN으로 조회합니다.
      *
      * @param empId 대상 사원의 식별자

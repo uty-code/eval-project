@@ -56,6 +56,7 @@ public class FinalGradeController {
     private final FinalGradeMapper finalGradeMapper;
     private final com.ees.eval.service.ScoreCalculationService scoreCalculationService;
     private final com.ees.eval.support.ui.EvalFilterConfigFactory filterConfigFactory;
+    private final com.ees.eval.service.EvaluationSubmitFacadeService evaluationSubmitFacadeService;
 
 
 
@@ -402,70 +403,20 @@ public class FinalGradeController {
             }
         }
 
-        // 평가 데이터 Upsert 처리
+        // Facade를 통한 단일 트랜잭션 평가 저장 및 종합 점수/상대평가 확정 위임
         try {
-            evaluationService.upsertEvaluations(mappingId, params, empId);
+            evaluationSubmitFacadeService.submitAndProcess(
+                    mappingId, params, empId, 
+                    submitMapping.periodId(), submitMapping.evaluateeId(), submitDeptId, 
+                    submitMapping.relationTypeCode(), true
+            );
         } catch (NumberFormatException e) {
             redirectAttributes.addFlashAttribute("errorMessage", "잘못된 점수 형식입니다.");
             return "redirect:/eval/final-grade/form?mappingId=" + mappingId;
-        }
-
-        // 모든 항목 저장 완료 후 → 종합 점수 계산 및 final_grades_51에 확정 저장
-        try {
-            Integer totalScore = scoreCalculationService.calculateTotalScore(
-                    submitMapping.periodId(), submitMapping.evaluateeId());
-            if (totalScore != null) {
-                finalGradeMapper.findByPeriodIdAndEmpId(
-                        submitMapping.periodId(), submitMapping.evaluateeId())
-                    .ifPresentOrElse(
-                        existing -> {
-                            existing.setTotalScore(totalScore);
-                            existing.setUpdatedAt(java.time.LocalDateTime.now());
-                            existing.setUpdatedBy(empId);
-                            finalGradeMapper.update(existing);
-                        },
-                        () -> {
-                            FinalGrade fg = FinalGrade.builder()
-                                    .periodId(submitMapping.periodId())
-                                    .empId(submitMapping.evaluateeId())
-                                    .totalScore(totalScore)
-                                    .finalGradeCode(null) // 실시간 재계산에서 부여됨
-                                    .isDeleted("n")
-                                    .version(0)
-                                    .createdAt(java.time.LocalDateTime.now())
-                                    .createdBy(empId)
-                                    .build();
-                            finalGradeMapper.insert(fg);
-                        }
-                    );
-                log.info("[FinalGrade] 종합 점수 저장 완료 - empId={}, score={}",
-                        submitMapping.evaluateeId(), totalScore);
-                        
-                // 해당 부서 전체의 상대평가 랭킹 및 등급 실시간 재계산
-                if (submitDeptId != null) {
-                    boolean isLeaderVal = departmentMapper.countDepartmentsByLeaderId(submitMapping.evaluateeId()) > 0;
-                    if (isLeaderVal) {
-                        // 피평가자가 부서장(팀장)인 경우: 소속 부서의 상위 부서(본부) ID를 조회하여 본부 팀장 상대평가 수행
-                        departmentMapper.findById(submitDeptId).ifPresent(dept -> {
-                            if (dept.getParentDeptId() != null) {
-                                log.info("[FinalGrade] 본부 내 팀장 상대평가 시작 - parentDeptId={}", dept.getParentDeptId());
-                                scoreCalculationService.calculateRelativeGradesForLeadersInHQ(submitMapping.periodId(), dept.getParentDeptId());
-                                log.info("[FinalGrade] 본부 내 팀장 상대평가 완료");
-                            } else {
-                                log.warn("[FinalGrade] 팀장이지만 상위 부서(본부)가 없어 본부 내 팀장 상대평가 건너뜀 - deptId={}", submitDeptId);
-                            }
-                        });
-                    } else {
-                        // 피평가자가 일반 사원인 경우: 기존처럼 해당 부서 내의 일반 사원 상대평가 수행 (부서장은 자동 제외됨)
-                        scoreCalculationService.calculateRelativeGradesForDepartment(
-                                submitMapping.periodId(), submitDeptId);
-                        log.info("[FinalGrade] 부서 단위 상대평가 실시간 랭킹 산정 완료 - deptId={}", submitDeptId);
-                    }
-                }
-            }
         } catch (Exception e) {
-            log.error("[FinalGrade] 종합 점수 계산 중 오류 - evaluateeId={}",
-                    submitMapping.evaluateeId(), e);
+            log.error("[FinalGrade] 평가 제출 및 확정 중 트랜잭션 오류 발생: mappingId={}, error={}", mappingId, e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("errorMessage", "최종 평가 반영 중 오류가 발생했습니다: " + e.getMessage());
+            return "redirect:/eval/final-grade/form?mappingId=" + mappingId;
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "평가가 성공적으로 제출되었습니다.");

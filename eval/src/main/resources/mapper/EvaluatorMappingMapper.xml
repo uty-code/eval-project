@@ -3,27 +3,48 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ees.eval.mapper.EvaluatorMappingMapper">
 
-    <!-- 매핑 ID 기반 단건 조회 -->
-    <select id="findById" resultType="com.ees.eval.domain.EvaluatorMapping">
-        select
-            m.mapping_id        as MAPPING_ID,
-            m.period_id         as PERIOD_ID,
-            m.evaluatee_id      as EVALUATEE_ID,
-            m.evaluator_id      as EVALUATOR_ID,
-            m.relation_type_code as RELATION_TYPE_CODE,
-            e1.name             as EVALUATEE_NAME,
-            e2.name             as EVALUATOR_NAME,
-            m.is_deleted        as IS_DELETED,
-            m.version           as VERSION,
-            m.created_at        as CREATED_AT,
-            m.created_by        as CREATED_BY,
-            m.updated_at        as UPDATED_AT,
-            m.updated_by        as UPDATED_BY,
-            p.position_name     as TITLE_NAME
+    <!-- ========================================== -->
+    <!-- [DRY] 공통 반환 컬럼 및 조인 조각 모음 -->
+    <!-- ========================================== -->
+    <sql id="coreColumns">
+        m.mapping_id         as MAPPING_ID,
+        m.period_id          as PERIOD_ID,
+        m.evaluatee_id       as EVALUATEE_ID,
+        m.evaluator_id       as EVALUATOR_ID,
+        m.relation_type_code as RELATION_TYPE_CODE,
+        e1.name              as EVALUATEE_NAME,
+        e2.name              as EVALUATOR_NAME,
+        m.is_deleted         as IS_DELETED,
+        m.version            as VERSION,
+        m.created_at         as CREATED_AT,
+        m.created_by         as CREATED_BY,
+        m.updated_at         as UPDATED_AT,
+        m.updated_by         as UPDATED_BY
+    </sql>
+
+    <!-- 직원 2명(피평가자, 평가자)에 대한 기본 이너 조인 -->
+    <sql id="coreJoinsBasic">
         from evaluator_mappings_51 m
         inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
         inner join employees_51 e2 on m.evaluator_id = e2.emp_id
+    </sql>
+
+    <!-- 부서 및 직급 정보 레프트 조인 -->
+    <sql id="deptAndPositionJoins">
+        left join departments_51 d on e1.dept_id = d.dept_id and d.is_deleted = 'n'
         left join positions_51 p on e1.position_id = p.position_id and p.is_deleted = 'n'
+    </sql>
+
+    <!-- ========================================== -->
+    <!-- 매핑 기본 조회 쿼리 -->
+    <!-- ========================================== -->
+    <!-- 매핑 ID 기반 단건 조회 -->
+    <select id="findById" resultType="com.ees.eval.domain.EvaluatorMapping">
+        select
+            <include refid="coreColumns" />,
+            p.position_name      as TITLE_NAME
+        <include refid="coreJoinsBasic" />
+        <include refid="deptAndPositionJoins" />
         where m.mapping_id = #{mappingId}
           and m.is_deleted = 'n'
     </select>
@@ -31,26 +52,11 @@
     <!-- 차수별 매핑 목록 조회 (부서 필터링 지원) -->
     <select id="findByPeriodIdAndDeptId" resultType="com.ees.eval.domain.EvaluatorMapping">
         select
-            m.mapping_id        as MAPPING_ID,
-            m.period_id         as PERIOD_ID,
-            m.evaluatee_id      as EVALUATEE_ID,
-            m.evaluator_id      as EVALUATOR_ID,
-            m.relation_type_code as RELATION_TYPE_CODE,
-            e1.name             as EVALUATEE_NAME,
-            e2.name             as EVALUATOR_NAME,
-            d.dept_name         as DEPT_NAME,
-            m.is_deleted        as IS_DELETED,
-            m.version           as VERSION,
-            m.created_at        as CREATED_AT,
-            m.created_by        as CREATED_BY,
-            m.updated_at        as UPDATED_AT,
-            m.updated_by        as UPDATED_BY,
-            p.position_name     as TITLE_NAME
-        from evaluator_mappings_51 m
-        inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
-        inner join employees_51 e2 on m.evaluator_id = e2.emp_id
-        left join departments_51 d on e1.dept_id = d.dept_id and d.is_deleted = 'n'
-        left join positions_51 p on e1.position_id = p.position_id and p.is_deleted = 'n'
+            <include refid="coreColumns" />,
+            d.dept_name          as DEPT_NAME,
+            p.position_name      as TITLE_NAME
+        <include refid="coreJoinsBasic" />
+        <include refid="deptAndPositionJoins" />
         where m.period_id = #{periodId}
           and m.is_deleted = 'n'
           <if test="deptId != null">
@@ -59,8 +65,10 @@
           </if>
           <if test="empName != null and empName != ''">
           and (
-              e1.name like '%' + #{empName} + '%' or 
-              cast(e1.emp_id as varchar) like '%' + #{empName} + '%'
+              e1.name like '%' + #{empName} + '%'
+              <if test="empName.matches('^[0-9]+$')">
+                  or e1.emp_id = CAST(#{empName} AS BIGINT)
+              </if>
           )
           </if>
         order by m.evaluatee_id asc, m.relation_type_code asc
@@ -69,29 +77,14 @@
     <!-- 내가 평가해야 할 목록 (evaluator_id = 나) -->
     <select id="findByEvaluatorId" resultType="com.ees.eval.domain.EvaluatorMapping">
         select
-            m.mapping_id        as MAPPING_ID,
-            m.period_id         as PERIOD_ID,
-            m.evaluatee_id      as EVALUATEE_ID,
-            m.evaluator_id      as EVALUATOR_ID,
-            m.relation_type_code as RELATION_TYPE_CODE,
-            e1.name             as EVALUATEE_NAME,
-            e2.name             as EVALUATOR_NAME,
+            <include refid="coreColumns" />,
             ep.period_name       as PERIOD_NAME,
-            m.is_deleted        as IS_DELETED,
-            m.version           as VERSION,
-            m.created_at        as CREATED_AT,
-            m.created_by        as CREATED_BY,
-            m.updated_at        as UPDATED_AT,
-            m.updated_by        as UPDATED_BY,
-            d.dept_name         as DEPT_NAME,
-            pos.position_name     as TITLE_NAME,
+            d.dept_name          as DEPT_NAME,
+            p.position_name      as TITLE_NAME,
             ep.period_year       as PERIOD_YEAR
-        from evaluator_mappings_51 m
-        inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
-        inner join employees_51 e2 on m.evaluator_id = e2.emp_id
+        <include refid="coreJoinsBasic" />
         inner join evaluation_periods_51 ep on m.period_id = ep.period_id
-        left join departments_51 d on e1.dept_id = d.dept_id and d.is_deleted = 'n'
-        left join positions_51 pos on e1.position_id = pos.position_id and pos.is_deleted = 'n'
+        <include refid="deptAndPositionJoins" />
         <where>
             <if test="periodId != null">
                 and m.period_id = #{periodId}
@@ -109,26 +102,11 @@
     <!-- 나를 평가하는 사람 목록 (evaluatee_id = 나) -->
     <select id="findByEvaluateeId" resultType="com.ees.eval.domain.EvaluatorMapping">
         select
-            m.mapping_id        as MAPPING_ID,
-            m.period_id         as PERIOD_ID,
-            m.evaluatee_id      as EVALUATEE_ID,
-            m.evaluator_id      as EVALUATOR_ID,
-            m.relation_type_code as RELATION_TYPE_CODE,
-            e1.name             as EVALUATEE_NAME,
-            e2.name             as EVALUATOR_NAME,
-            m.is_deleted        as IS_DELETED,
-            m.version           as VERSION,
-            m.created_at        as CREATED_AT,
-            m.created_by        as CREATED_BY,
-            m.updated_at        as UPDATED_AT,
-            m.updated_by        as UPDATED_BY,
-            d.dept_name         as DEPT_NAME,
-            p.position_name     as TITLE_NAME
-        from evaluator_mappings_51 m
-        inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
-        inner join employees_51 e2 on m.evaluator_id = e2.emp_id
-        left join departments_51 d on e1.dept_id = d.dept_id and d.is_deleted = 'n'
-        left join positions_51 p on e1.position_id = p.position_id and p.is_deleted = 'n'
+            <include refid="coreColumns" />,
+            d.dept_name          as DEPT_NAME,
+            p.position_name      as TITLE_NAME
+        <include refid="coreJoinsBasic" />
+        <include refid="deptAndPositionJoins" />
         where m.period_id = #{periodId}
           and m.evaluatee_id = #{evaluateeId}
           and m.is_deleted = 'n'
@@ -138,8 +116,7 @@
 
     <!-- 동일 관계 중복 존재 여부 확인 (차수+피평가자+평가자+관계유형) -->
     <select id="countDuplicate" resultType="int">
-        select
-            count(*) as CNT
+        select count(*) as CNT
         from evaluator_mappings_51
         where period_id = #{periodId}
           and evaluatee_id = #{evaluateeId}
@@ -181,7 +158,7 @@
           and is_deleted = 'n'
     </update>
 
-    <!-- 특정 차수의 모든 SELF 매핑 삭제 (정책 변경으로 인한 클린업용) -->
+    <!-- 특정 차수의 모든 SELF 매핑 삭제 -->
     <delete id="deleteSelfMappingsByPeriod">
         update evaluator_mappings_51
         set is_deleted = 'y',
@@ -208,22 +185,8 @@
     <!-- 다수의 피평가자 매핑 조회 (벌크) -->
     <select id="findByEvaluateeIds" resultType="com.ees.eval.domain.EvaluatorMapping">
         select
-            m.mapping_id        as MAPPING_ID,
-            m.period_id         as PERIOD_ID,
-            m.evaluatee_id      as EVALUATEE_ID,
-            m.evaluator_id      as EVALUATOR_ID,
-            m.relation_type_code as RELATION_TYPE_CODE,
-            e1.name             as EVALUATEE_NAME,
-            e2.name             as EVALUATOR_NAME,
-            m.is_deleted        as IS_DELETED,
-            m.version           as VERSION,
-            m.created_at        as CREATED_AT,
-            m.created_by        as CREATED_BY,
-            m.updated_at        as UPDATED_AT,
-            m.updated_by        as UPDATED_BY
-        from evaluator_mappings_51 m
-        inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
-        inner join employees_51 e2 on m.evaluator_id = e2.emp_id
+            <include refid="coreColumns" />
+        <include refid="coreJoinsBasic" />
         <where>
             <if test="periodId != null">
                 and m.period_id = #{periodId}
@@ -252,32 +215,17 @@
         </if>
     </select>
 
-    <!-- 관리자 전체 열람용: 특정 관계유형의 모든 매핑 조회 (evaluator_id 필터 없음) -->
+    <!-- 관리자 전체 열람용 -->
     <select id="findAllByPeriodIdAndRelationType" resultType="com.ees.eval.domain.EvaluatorMapping">
         select
-            m.mapping_id        as MAPPING_ID,
-            m.period_id         as PERIOD_ID,
-            m.evaluatee_id      as EVALUATEE_ID,
-            m.evaluator_id      as EVALUATOR_ID,
-            m.relation_type_code as RELATION_TYPE_CODE,
-            e1.name             as EVALUATEE_NAME,
-            e2.name             as EVALUATOR_NAME,
+            <include refid="coreColumns" />,
             ep.period_name       as PERIOD_NAME,
-            m.is_deleted        as IS_DELETED,
-            m.version           as VERSION,
-            m.created_at        as CREATED_AT,
-            m.created_by        as CREATED_BY,
-            m.updated_at        as UPDATED_AT,
-            m.updated_by        as UPDATED_BY,
-            d.dept_name         as DEPT_NAME,
-            pos.position_name     as TITLE_NAME,
+            d.dept_name          as DEPT_NAME,
+            p.position_name      as TITLE_NAME,
             ep.period_year       as PERIOD_YEAR
-        from evaluator_mappings_51 m
-        inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
-        inner join employees_51 e2 on m.evaluator_id = e2.emp_id
+        <include refid="coreJoinsBasic" />
         inner join evaluation_periods_51 ep on m.period_id = ep.period_id
-        left join departments_51 d on e1.dept_id = d.dept_id and d.is_deleted = 'n'
-        left join positions_51 pos on e1.position_id = pos.position_id and pos.is_deleted = 'n'
+        <include refid="deptAndPositionJoins" />
         <where>
             <if test="periodId != null">
                 and m.period_id = #{periodId}
@@ -303,5 +251,150 @@
         )
         </foreach>
     </insert>
+
+    <!-- ========================================== -->
+    <!-- [OOM 방지] 이상 탐지(Anomaly) Push-Down 쿼리 5종 -->
+    <!-- ========================================== -->
+
+    <!-- 1. 퇴사한 평가자가 매핑된 케이스 (INFO) -->
+    <select id="selectRetiredEvaluatorAnomalies" resultType="com.ees.eval.dto.MappingAnomalyDTO">
+        select distinct
+            e1.emp_id as evaluateeId,
+            e1.name as evaluateeName,
+            coalesce(d.dept_name, '알 수 없음') as deptName,
+            'RETIRED_EVALUATOR' as anomalyType,
+            '매핑된 ' + m.relation_type_code + ' 평가자(' + e2.name + ')가 퇴사 상태입니다.' as description,
+            'INFO' as severity
+        from evaluator_mappings_51 m
+        inner join employees_51 e1 on m.evaluatee_id = e1.emp_id
+        inner join employees_51 e2 on m.evaluator_id = e2.emp_id
+        left join departments_51 d on e1.dept_id = d.dept_id
+        where m.period_id = #{periodId}
+          and m.is_deleted = 'n'
+          and e1.status_code = 'EMPLOYED'
+          and e2.status_code != 'EMPLOYED'
+    </select>
+
+    <!-- 2. 본인 평가(SELF) 누락 케이스 (ERROR) : 임원, 관리자 제외 -->
+    <select id="selectMissingSelfAnomalies" resultType="com.ees.eval.dto.MappingAnomalyDTO">
+        select
+            e.emp_id as evaluateeId,
+            e.name as evaluateeName,
+            coalesce(d.dept_name, '알 수 없음') as deptName,
+            'MISSING_SELF' as anomalyType,
+            '본인 평가 매핑이 누락되었습니다.' as description,
+            'ERROR' as severity
+        from employees_51 e
+        left join departments_51 d on e.dept_id = d.dept_id
+        where e.status_code = 'EMPLOYED'
+          and not exists (
+              select 1 from employee_roles_51 er 
+              inner join roles_51 r on er.role_id = r.role_id 
+              where er.emp_id = e.emp_id and r.role_code in ('ROLE_EXECUTIVE', 'ROLE_ADMIN')
+          )
+          and not exists (
+              select 1 from evaluator_mappings_51 m
+              where m.evaluatee_id = e.emp_id
+                and m.relation_type_code = 'SELF'
+                and m.period_id = #{periodId}
+                and m.is_deleted = 'n'
+          )
+    </select>
+
+    <!-- 3. 1차 부서장 평가(MANAGER) 누락 케이스 (WARNING / INFO) -->
+    <select id="selectMissingManagerAnomalies" resultType="com.ees.eval.dto.MappingAnomalyDTO">
+        select
+            e.emp_id as evaluateeId,
+            e.name as evaluateeName,
+            coalesce(d.dept_name, '알 수 없음') as deptName,
+            'MISSING_MANAGER' as anomalyType,
+            case 
+                when e.dept_id is null then '부서가 미배정 상태이며, 1차 평가자(부서장) 매핑이 누락되었습니다.'
+                when d.leader_id is null then '부서장 미지정 (임원 평가 대체)'
+                when leader_emp.status_code != 'EMPLOYED' then '부서장 퇴사 (임원 평가 대체)'
+                else '1차 평가자(부서장) 매핑이 누락되었습니다.'
+            end as description,
+            case 
+                when e.dept_id is null then 'INFO'
+                when d.leader_id is null then 'INFO'
+                when leader_emp.status_code != 'EMPLOYED' then 'INFO'
+                else 'WARNING'
+            end as severity
+        from employees_51 e
+        left join departments_51 d on e.dept_id = d.dept_id
+        left join employees_51 leader_emp on d.leader_id = leader_emp.emp_id
+        where e.status_code = 'EMPLOYED'
+          and not exists (
+              select 1 from employee_roles_51 er 
+              inner join roles_51 r on er.role_id = r.role_id 
+              where er.emp_id = e.emp_id and r.role_code in ('ROLE_EXECUTIVE', 'ROLE_ADMIN')
+          )
+          and (
+              e.dept_id is null 
+              or d.leader_id is null 
+              or e.emp_id != d.leader_id 
+              or leader_emp.status_code != 'EMPLOYED'
+          )
+          and not exists (
+              select 1 from evaluator_mappings_51 m
+              where m.evaluatee_id = e.emp_id
+                and m.relation_type_code = 'MANAGER'
+                and m.period_id = #{periodId}
+                and m.is_deleted = 'n'
+          )
+    </select>
+
+    <!-- 4. 부서원의 다면 평가(SUBORDINATE) 누락 케이스 (WARNING) : 부서장인 경우 대상 -->
+    <select id="selectMissingSubordinateAnomalies" resultType="com.ees.eval.dto.MappingAnomalyDTO">
+        select
+            e.emp_id as evaluateeId,
+            e.name as evaluateeName,
+            coalesce(d.dept_name, '알 수 없음') as deptName,
+            'MISSING_SUBORDINATE' as anomalyType,
+            '다면 평가자(부서원) 매핑이 0명입니다.' as description,
+            'WARNING' as severity
+        from employees_51 e
+        inner join departments_51 d on e.dept_id = d.dept_id
+        where e.status_code = 'EMPLOYED'
+          and e.emp_id = d.leader_id
+          and not exists (
+              select 1 from employee_roles_51 er 
+              inner join roles_51 r on er.role_id = r.role_id 
+              where er.emp_id = e.emp_id and r.role_code in ('ROLE_EXECUTIVE', 'ROLE_ADMIN')
+          )
+          and not exists (
+              select 1 from evaluator_mappings_51 m
+              where m.evaluatee_id = e.emp_id
+                and m.relation_type_code = 'SUBORDINATE'
+                and m.period_id = #{periodId}
+                and m.is_deleted = 'n'
+          )
+    </select>
+
+    <!-- 5. 임원 평가(EXECUTIVE) 누락 케이스 (ERROR) : 임원, 관리자 제외 -->
+    <select id="selectMissingExecutiveAnomalies" resultType="com.ees.eval.dto.MappingAnomalyDTO">
+        select
+            e.emp_id as evaluateeId,
+            e.name as evaluateeName,
+            coalesce(d.dept_name, '알 수 없음') as deptName,
+            'MISSING_EXECUTIVE' as anomalyType,
+            '최종 평가자(임원) 매핑이 누락되었습니다.' as description,
+            'ERROR' as severity
+        from employees_51 e
+        left join departments_51 d on e.dept_id = d.dept_id
+        where e.status_code = 'EMPLOYED'
+          and not exists (
+              select 1 from employee_roles_51 er 
+              inner join roles_51 r on er.role_id = r.role_id 
+              where er.emp_id = e.emp_id and r.role_code in ('ROLE_EXECUTIVE', 'ROLE_ADMIN')
+          )
+          and not exists (
+              select 1 from evaluator_mappings_51 m
+              where m.evaluatee_id = e.emp_id
+                and m.relation_type_code = 'EXECUTIVE'
+                and m.period_id = #{periodId}
+                and m.is_deleted = 'n'
+          )
+    </select>
 
 </mapper>

@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import com.ees.eval.dto.MappingAnomalyDTO;
+
 /**
  * evaluator_mappings_51 테이블에 대한 데이터 접근 기능을 정의한 매퍼 인터페이스입니다.
  * 중복 체크, 평가자/피평가자 관점의 조회 쿼리를 포함합니다.
@@ -144,4 +146,29 @@ public interface EvaluatorMappingMapper {
      * @return 삽입된 총 행 수
      */
     int insertBatch(@Param("list") List<EvaluatorMapping> list);
+
+    /**
+     * 퇴사한 평가자가 매핑된 케이스 감지 (INFO)
+     */
+    List<MappingAnomalyDTO> selectRetiredEvaluatorAnomalies(@Param("periodId") Long periodId);
+
+    /**
+     * 본인 평가(SELF) 누락 케이스 감지 (ERROR)
+     */
+    List<MappingAnomalyDTO> selectMissingSelfAnomalies(@Param("periodId") Long periodId);
+
+    /**
+     * 1차 부서장 평가(MANAGER) 누락 케이스 감지 (WARNING/INFO)
+     */
+    List<MappingAnomalyDTO> selectMissingManagerAnomalies(@Param("periodId") Long periodId);
+
+    /**
+     * 부서원의 다면 평가(SUBORDINATE) 누락 케이스 감지 (WARNING)
+     */
+    List<MappingAnomalyDTO> selectMissingSubordinateAnomalies(@Param("periodId") Long periodId);
+
+    /**
+     * 임원 평가(EXECUTIVE) 누락 케이스 감지 (ERROR)
+     */
+    List<MappingAnomalyDTO> selectMissingExecutiveAnomalies(@Param("periodId") Long periodId);
 }

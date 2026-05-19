@@ -27,6 +27,8 @@ public interface FinalGradeMapper {
 
     List<FinalGrade> findByPeriodIdAndDeptId(@Param("periodId") Long periodId, @Param("deptId") Long deptId);
 
+    List<FinalGrade> findByPeriodIdAndDeptIds(@Param("periodId") Long periodId, @Param("deptIds") List<Long> deptIds);
+
     
     void deleteByPeriodId(@Param("periodId") Long periodId);
 }
