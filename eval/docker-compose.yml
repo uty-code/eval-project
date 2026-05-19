@@ -39,7 +39,7 @@ services:
       - NGROK_AUTHTOKEN=3Bh9g49Mkxf99eiJV7E1wuIGCg3_4NiHHxTwyB6GASX2HqBn1
     command:
       - "http"
-      - "host.docker.internal:8080"
+      - "host.docker.internal:9090"
       - "--domain=unostensively-demographical-hanna.ngrok-free.dev"
 
 volumes:
