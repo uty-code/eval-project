@@ -50,8 +50,8 @@ pipeline {
                                 execCommand: """
                                   cd ~/ees-app
                                   
-                                  # 우분투 서버에서 도커 허브 로그인 수행 (Private 이미지 Pull 권한 획득)
-                                  docker login -u \$REG_USER -p \$REG_PASS
+                                  # 우분투 서버에서 도커 허브 로그인 수행 (젠킨스 빌드 타임에 실제 크레덴셜 값을 안전하게 주입)
+                                  docker login -u ${REG_USER} -p ${REG_PASS}
                                   
                                   # 처음 배포 시 .env 파일이 없으면 템플릿 복사
                                   if [ ! -f .env ]; then
