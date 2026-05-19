@@ -2,8 +2,11 @@ pipeline {
     agent any
 
     environment {
+        ACR_NAME = 'eesregistry' 
+        ACR_URL = "${ACR_NAME}.azurecr.io"
         IMAGE_NAME = 'ees-eval-app'
         TAG = "${env.BUILD_NUMBER}"
+        AZURE_CRED_ID = 'ees-azure-creds' 
     }
 
     stages {
@@ -13,62 +16,75 @@ pipeline {
             }
         }
 
-        stage('Docker Build & Extract') {
+        stage('Docker Build & Push') {
             steps {
-                dir('eval') {
-                    // 멀티 스테이지 Dockerfile을 통해 고속 무균 컴파일 수행
+                withCredentials([azureServicePrincipal(env.AZURE_CRED_ID)]) {
+                    // 1. Azure 및 ACR 로그인 (sh 안에서 실행)
                     sh """
-                        docker build -t ${IMAGE_NAME}:${TAG} .
-                        docker tag ${IMAGE_NAME}:${TAG} ${IMAGE_NAME}:latest
-                        
-                        # 빌드 완료된 이미지 내부에서 자바 결과물(JAR)을 젠킨스 워크스페이스로 추출
-                        docker rm -f temp-eval-build || true
-                        docker create --name temp-eval-build ${IMAGE_NAME}:latest
-                        mkdir -p target
-                        docker cp temp-eval-build:/app/app.jar target/eval-0.0.1-SNAPSHOT.jar
-                        docker rm temp-eval-build
+                        az login --service-principal -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET -t \$AZURE_TENANT_ID
+                        az acr login --name ${ACR_NAME}
                     """
+                    
+                    // 2. 도커 빌드 및 ACR 푸시
+                    dir('eval') {
+                        sh """
+                            docker build -t ${ACR_URL}/${IMAGE_NAME}:${TAG} .
+                            docker push ${ACR_URL}/${IMAGE_NAME}:${TAG}
+                            
+                            docker tag ${ACR_URL}/${IMAGE_NAME}:${TAG} ${ACR_URL}/${IMAGE_NAME}:latest
+                            docker push ${ACR_URL}/${IMAGE_NAME}:latest
+                        """
+                    }
                 }
             }
         }
 
         stage('Deploy via SSH to Ubuntu') {
             steps {
-                // Jenkins Credentials에 등록된 ees-ubuntu-server 접속 설정을 통해 배포 전송 및 명령 실행
-                sshPublisher(publishers: [
-                    sshPublisherDesc(configName: 'ees-ubuntu-server', 
-                        transfers: [
-                          sshTransfer(
-                            sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh, eval/Dockerfile.prod, eval/target/eval-0.0.1-SNAPSHOT.jar',
-                            removePrefix: 'eval',
-                            remoteDirectory: 'ees-app',
-                            execCommand: '''
-                              cd ~/ees-app
-                              
-                              # 처음 배포 시 .env 파일이 없으면 템플릿 복사
-                              if [ ! -f .env ]; then
-                                cp .env.example .env
-                                echo "⚠️ [WARNING] .env 파일이 새로 생성되었습니다. 실제 DB 연결 설정을 채워주십시오."
-                              fi
-                              
-                              # 기존 실행 중인 컨테이너 백업 (이전 이미지 보존용)
-                              docker stop ees-app-backup || true
-                              docker rm ees-app-backup || true
-                              docker rename ees-eval-app ees-app-backup || true
-                              
-                              # 새 컨테이너 생성 및 현지 초고속 빌드 기동 (--build 플래그 추가)
-                              docker compose -f docker-compose.prod.yml up -d --build --force-recreate
-                              
-                              # 스크립트 실행 권한 부여
-                              chmod +x ./deploy_verify.sh ./rollback.sh
-                              
-                              # 배포 헬스체크 검증 수행 및 실패 시 즉각 원클릭 자동 롤백 연동
-                              ./deploy_verify.sh || (./rollback.sh && exit 1)
-                            '''
-                          )
-                        ]
-                    )
-                ])
+                withCredentials([azureServicePrincipal(env.AZURE_CRED_ID)]) {
+                    // Jenkins Credentials에 등록된 ees-ubuntu-server 접속 설정을 통해 배포 전송 및 명령 실행
+                    // 쌍따옴표 내에서 $은 \$로 에스케이프 처리하여 쉘의 환경 변수가 원격 우분투로 정상 전달되도록 매핑합니다.
+                    sshPublisher(publishers: [
+                        sshPublisherDesc(configName: 'ees-ubuntu-server', 
+                            transfers: [
+                              sshTransfer(
+                                sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh',
+                                removePrefix: 'eval',
+                                remoteDirectory: 'ees-app',
+                                execCommand: """
+                                  cd ~/ees-app
+                                  
+                                  # 우분투 서버에서 Azure ACR 로그인 수행 (Service Principal 크레덴셜 연동)
+                                  docker login ${ACR_URL} -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET
+                                  
+                                  # 처음 배포 시 .env 파일이 없으면 템플릿 복사
+                                  if [ ! -f .env ]; then
+                                    cp .env.example .env
+                                    echo "⚠️ [WARNING] .env 파일이 새로 생성되었습니다. 실제 DB 연결 설정을 채워주십시오."
+                                  fi
+                                  
+                                  # 기존 실행 중인 컨테이너 백업 (이전 이미지 보존용)
+                                  docker stop ees-app-backup || true
+                                  docker rm ees-app-backup || true
+                                  docker rename ees-eval-app ees-app-backup || true
+                                  
+                                  # 최신 도커 이미지 레지스트리(ACR)로부터 초고속 다운로드
+                                  docker compose -f docker-compose.prod.yml pull
+                                  
+                                  # 새 컨테이너 생성 및 기동
+                                  docker compose -f docker-compose.prod.yml up -d --force-recreate
+                                  
+                                  # 스크립트 실행 권한 부여
+                                  chmod +x ./deploy_verify.sh ./rollback.sh
+                                  
+                                  # 배포 헬스체크 검증 수행 및 실패 시 즉각 원클릭 자동 롤백 연동
+                                  ./deploy_verify.sh || (./rollback.sh && exit 1)
+                                """
+                              )
+                            ]
+                        )
+                    ])
+                }
             }
         }
     }
@@ -81,6 +97,8 @@ pipeline {
             echo '❌ 배포 실패! 안정적인 기존 버전으로 자동 롤백을 수행하였습니다.'
         }
         always {
+            // 로컬에 생성된 이미지 삭제 (용량 확보)
+            sh "docker rmi ${ACR_URL}/${IMAGE_NAME}:${TAG} || true"
             cleanWs()
         }
     }

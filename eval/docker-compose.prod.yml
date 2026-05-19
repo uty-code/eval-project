@@ -2,10 +2,7 @@ version: '3.8'
 
 services:
   ees-eval-app:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
-    image: ees-eval-app:latest
+    image: eesregistry.azurecr.io/ees-eval-app:latest
     container_name: ees-eval-app
     ports:
       - "8080:8080"
