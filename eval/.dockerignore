@@ -1,5 +1,4 @@
 target/
-!.warmup/
 .git/
 .gitignore
 .mvn/
@@ -19,3 +18,5 @@ README.md
 project_plan.md
 task.md
 notion_plan.md
+.env
+.env.example

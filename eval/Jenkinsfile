@@ -1,14 +1,20 @@
 pipeline {
     agent any
 
+    options {
+        // 다중 배포 간 충돌 및 태그 꼬임 방지
+        disableConcurrentBuilds()
+        // 빌드 지연으로 인한 젠킨스 익스큐터 대기 시간 제한 (20분)
+        timeout(time: 20, unit: 'MINUTES')
+    }
+
     environment {
-        ACR_NAME = 'eesregistry' 
-        ACR_URL = "${ACR_NAME}.azurecr.io"
+        REGISTRY_USER = 'siujeong'
         IMAGE_NAME = 'ees-eval-app'
-        RESOURCE_GROUP = 'EES-ResourceGroup'
-        APP_NAME = 'ees-eval-hk' 
         TAG = "${env.BUILD_NUMBER}"
-        AZURE_CRED_ID = 'ees-azure-creds' 
+        REGISTRY_CRED_ID = 'ees-registry-creds' 
+        // 빌드 속도 개선을 위한 Docker BuildKit 활성화
+        DOCKER_BUILDKIT = '1'
     }
 
     stages {
@@ -18,62 +24,102 @@ pipeline {
             }
         }
 
-        // 메이븐 빌드는 Dockerfile 내의 멀티 스테이지 빌드에서 수행하므로 젠킨스에서는 생략합니다.
-
         stage('Docker Build & Push') {
             steps {
-                withCredentials([azureServicePrincipal(env.AZURE_CRED_ID)]) {
-                    // 1. Azure 및 ACR 로그인 (sh 안에서 실행)
-                    sh """
-                        az login --service-principal -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET -t \$AZURE_TENANT_ID
-                        az acr login --name ${ACR_NAME}
-                    """
+                withCredentials([usernamePassword(credentialsId: env.REGISTRY_CRED_ID, usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
+                    // 젠킨스 로그 및 프로세스 메모리 상의 패스워드 유출 방지
+                    sh '''
+                        set +x
+                        set -e
+                        echo "$REG_PASS" | docker login -u "$REG_USER" --password-stdin
+                    '''
                     
-                    // 2. 도커 빌드 및 푸시 (dir은 sh 밖으로 꺼내야 합니다!)
+                    // 불변 빌드 번호(${TAG}) 이미지를 빌드 및 푸시 (latest는 보조 참조용으로만 운용)
+                    // --pull 옵션을 병렬 주입하여 항상 최신 베이스 이미지의 보안 패치를 반영합니다.
                     dir('eval') {
-                        sh """
-                            docker build -t ${ACR_URL}/${IMAGE_NAME}:${TAG} .
-                            docker push ${ACR_URL}/${IMAGE_NAME}:${TAG}
+                        sh '''
+                            set -e
+                            docker build --pull -t "$REGISTRY_USER"/"$IMAGE_NAME":"$TAG" .
+                            docker push "$REGISTRY_USER"/"$IMAGE_NAME":"$TAG"
                             
-                            docker tag ${ACR_URL}/${IMAGE_NAME}:${TAG} ${ACR_URL}/${IMAGE_NAME}:latest
-                            docker push ${ACR_URL}/${IMAGE_NAME}:latest
-                        """
+                            docker tag "$REGISTRY_USER"/"$IMAGE_NAME":"$TAG" "$REGISTRY_USER"/"$IMAGE_NAME":latest
+                            docker push "$REGISTRY_USER"/"$IMAGE_NAME":latest
+                        '''
                     }
                 }
             }
         }
 
-        stage('Deploy to Azure') {
+        stage('Deploy via SSH to Ubuntu') {
             steps {
-                withCredentials([azureServicePrincipal(env.AZURE_CRED_ID)]) {
-                    sh """
-                        az login --service-principal -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET -t \$AZURE_TENANT_ID
-                        
-                        # 웹 앱의 컨테이너 이미지 업데이트
-                        az webapp config container set --name ${APP_NAME} \
-                            --resource-group ${RESOURCE_GROUP} \
-                            --container-image-name ${ACR_URL}/${IMAGE_NAME}:${TAG}
-                            
-                        # 환경 변수 설정 (운영 프로파일 활성화)
-                        az webapp config appsettings set --name ${APP_NAME} \
-                            --resource-group ${RESOURCE_GROUP} \
-                            --settings SPRING_PROFILES_ACTIVE=prod
-                            
-                        # 확실한 반영을 위해 웹 앱 강제 재시작
-                        az webapp restart --name ${APP_NAME} --resource-group ${RESOURCE_GROUP}
-                    """
-                }
+                // 서버에 저장된 Docker 인증 정보를 신뢰하여 로그인 과정 생략
+                sshPublisher(publishers: [
+                    sshPublisherDesc(configName: 'ees-ubuntu-server', 
+                        verbose: true,
+                        transfers: [
+                          sshTransfer(
+                            sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh, eval/nginx/nginx.conf, eval/nginx/nginx-ssl.conf, eval/init-ssl.sh',
+                            removePrefix: 'eval',
+                            remoteDirectory: 'ees-app',
+                            execCommand: '''
+                              set +x
+                              set -e
+                            ''' + "\nTAG='${TAG}'\n" + '''
+                              cd ~/ees-app
+
+                              # Nginx 및 Certbot용 호스트 볼륨 디렉토리 생성
+                              mkdir -p letsencrypt certbot nginx
+                              
+                              # 처음 배포 시 .env 파일 복사
+                              if [ ! -f .env ]; then
+                                cp .env.example .env
+                                echo "⚠️ [WARNING] .env 파일이 생성되었습니다. 연결을 채워주십시오."
+                              fi
+                              
+                              # 이전 가동 중이던 이미지 버전을 .env에서 백업 태그로 보관
+                              OLD_TAG=$(grep -E "^TAG=" .env | cut -d'=' -f2 || echo "latest")
+                              
+                              grep -q "^BACKUP_TAG=" .env \
+                                && sed -i "s/^BACKUP_TAG=.*/BACKUP_TAG=${OLD_TAG}/" .env \
+                                || echo "BACKUP_TAG=${OLD_TAG}" >> .env
+                              
+                              # .env 파일에 새로운 배포 태그 적용
+                              grep -q "^TAG=" .env \
+                                && sed -i "s/^TAG=.*/TAG=${TAG}/" .env \
+                                || echo "TAG=${TAG}" >> .env
+                              
+                              # 새 이미지 정밀 pull (원격 서버의 도커 데몬 자동 캐시 인증 가동)
+                              docker compose --compatibility -f docker-compose.prod.yml pull
+                              
+                              # 불변 이미지를 기반으로 무중단 배포 및 누적 고아 컨테이너 Prune 처리
+                              docker compose --compatibility -f docker-compose.prod.yml up -d --remove-orphans
+                              
+                              chmod +x ./deploy_verify.sh ./rollback.sh ./init-ssl.sh
+                              
+                              # 검증 실패 시 기동 실패한 컨테이너를 중지하고 롤백 수행
+                              timeout 60 ./deploy_verify.sh || (docker compose --compatibility -f docker-compose.prod.yml down || true; ./rollback.sh && exit 1)
+                            '''
+                          )
+                        ]
+                    )
+                ])
             }
         }
     }
 
     post {
         success {
-            echo '🚀 배포가 성공적으로 완료되었습니다!'
+            echo '🚀 EES KT Cloud Ubuntu 서버 배포 및 검증 성공'
+        }
+        failure {
+            echo '❌ 배포 실패! 이전 안정 버전으로 롤백되었습니다.'
         }
         always {
-            // 로컬에 생성된 이미지 삭제 (용량 확보)
-            sh "docker rmi ${ACR_URL}/${IMAGE_NAME}:${TAG} || true"
+            // 사용하지 않는 빌드 이미지 정리 및 로그아웃
+            sh 'docker logout || true'
+            sh "docker rmi ${REGISTRY_USER}/${IMAGE_NAME}:${TAG} || true"
+            sh "docker rmi ${REGISTRY_USER}/${IMAGE_NAME}:latest || true"
+            sh 'docker image prune -f --filter "until=24h" || true'
             cleanWs()
         }
     }

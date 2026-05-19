@@ -2,14 +2,54 @@ server:
   forward-headers-strategy: framework
   error:
     path: /error-page
+    # 에러 발생 시 상세 예외 메시지 노출 제한
+    include-stacktrace: never
+    include-message: never
   compression:
     enabled: true
     mime-types: text/html,text/css,text/javascript,application/javascript,application/json
     min-response-size: 1024
+  # 정상적인 종료(Graceful Shutdown) 설정
+  shutdown: graceful
+  # 세션 쿠키 보안 설정 (Secure, HttpOnly, SameSite 적용)
+  servlet:
+    session:
+      cookie:
+        secure: true
+        http-only: true
+        same-site: lax
+  # Tomcat 버전 노출 방지 헤더 설정
+  server-header: ""
+  # Access Log 저장 디렉토리 및 로테이션 설정
+  tomcat:
+    accesslog:
+      enabled: true
+      directory: /app/logs
+      pattern: '%h %l %u %t "%r" %s %b %D'
+      rotate: true
+      max-days: 30
+      buffered: true
+
+# 모니터링 경로(Base-path) 변경
+management:
+  endpoints:
+    web:
+      base-path: /internal-monitor
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      # Liveness/Readiness 프로브 활성화
+      probes:
+        enabled: true
 
 spring:
+  # active 프로필 설정 필수화 (미지정 시 구동 실패 처리)
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE}
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   threads:
     virtual:
       enabled: true
@@ -25,8 +65,6 @@ spring:
         cachecontrol:
           max-age: 3600
           cache-public: true
-  thymeleaf:
-    cache: false
   sql:
     init:
       mode: never
@@ -39,12 +77,10 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
     default-statement-timeout: 30
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 logging:
   level:
     root: INFO
-    com.ees.eval: DEBUG
 
 ---
 # [dev] 로컬 개발 환경 - 학교 공용 DB
@@ -55,28 +91,50 @@ spring:
   datasource:
     url: jdbc:sqlserver://211.232.94.161:1533;databaseName=SKUEDU;encrypt=true;trustServerCertificate=true;
     username: SKUEDU01
-    password: init000!
+    password: ${DEV_DB_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   docker:
     compose:
       enabled: false
+  thymeleaf:
+    cache: false
+
+# 개발 및 디버그용 SQL 파라미터 로깅
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.ees.eval: DEBUG
 
 ---
-# [prod] Azure 운영 환경 - Azure SQL DB
+# [prod] 운영 환경 - SKU 공용 DB
 spring:
   config:
     activate:
       on-profile: prod
   sql:
     init:
-      mode: never  # 테이블 생성이 완료되었으므로 안전을 위해 never로 원복
+      mode: never
   datasource:
-    # Azure CLI로 확인한 정보 반영
-    url: jdbc:sqlserver://ees-server-hk.database.windows.net:1433;databaseName=ees-db-hk;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
-    username: dbmaster
-    # 비밀번호는 보안상 Azure Web App의 환경변수(DB_PASSWORD)에서 가져옵니다.
+    # 잘못된 DB 연결을 방지하기 위해 기본값 없이 환경변수 주입을 필수화
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    # 운영 데이터베이스 접속을 위한 HikariCP 성능 최적화 설정
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      # MyBatis 집계 실행 속도를 감안한 커넥션 누수 감지 설정 (30초)
+      leak-detection-threshold: 30000
+  # 운영 환경은 Thymeleaf 캐시 활성화하여 CPU/메모리 부하 및 응답 응집도 성능 보장
+  thymeleaf:
+    cache: true
 
 ---
 # [local] 로컬 테스트 환경 - Docker SQL Server
@@ -87,7 +145,8 @@ spring:
   datasource:
     url: jdbc:sqlserver://localhost:1433;databaseName=EES_LOCAL;encrypt=true;trustServerCertificate=true;
     username: sa
-    password: EesLocal@2026!
+    # 로컬 DB 접속 비밀번호 설정 (환경변수 미지정 시 fallback 값 사용)
+    password: ${LOCAL_DB_PASSWORD:EesLocal@2026!}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   sql:
     init:
@@ -98,3 +157,13 @@ spring:
     compose:
       enabled: true
       lifecycle-management: start_only
+  thymeleaf:
+    cache: false
+
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.ees.eval: DEBUG
