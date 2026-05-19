@@ -47,7 +47,7 @@ management:
 spring:
   # active 프로필 설정 필수화 (미지정 시 구동 실패 처리)
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE}
+    active: ${SPRING_PROFILES_ACTIVE:local}
   lifecycle:
     timeout-per-shutdown-phase: 30s
   threads:
