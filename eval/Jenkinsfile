@@ -6,6 +6,8 @@ pipeline {
         IMAGE_NAME = 'ees-eval-app'
         TAG = "${env.BUILD_NUMBER}"
         REGISTRY_CRED_ID = 'ees-registry-creds' 
+        // [성능 향상] Docker BuildKit 활성화로 레이어 캐싱 속도 및 멀티스테이징 성능 극대화
+        DOCKER_BUILDKIT = '1'
     }
 
     stages {
@@ -50,13 +52,10 @@ pipeline {
                             sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh',
                             removePrefix: 'eval',
                             remoteDirectory: 'ees-app',
-                            execCommand: """
+                            execCommand: '''
                               set +x
                               set -e
-                              
-                              # 불변 배포용 고유 빌드 태깅 변수 주입
-                              TAG='${TAG}'
-                              
+                            ''' + "\nTAG='${TAG}'\n" + '''
                               cd ~/ees-app
                               
                               # 처음 배포 시 .env 파일 복사
@@ -65,12 +64,17 @@ pipeline {
                                 echo "⚠️ [WARNING] .env 파일이 생성되었습니다. 연결을 채워주십시오."
                               fi
                               
-                              # [롤백 고도화] 이전 가동 중인 불변 이미지 버전을 .env에서 읽어와 BACKUP_TAG로 고정 기록
-                              OLD_TAG=\$(grep -E "^TAG=" .env | cut -d'=' -f2 || echo "latest")
-                              sed -i "s/^BACKUP_TAG=.*/BACKUP_TAG=\${OLD_TAG}/g" .env || echo "BACKUP_TAG=\${OLD_TAG}" >> .env
+                              # [롤백 고도화] 이전 가동 중인 불변 이미지 버전을 .env에서 읽어와 BACKUP_TAG로 고정 기록 (중복 축적 완전 차단)
+                              OLD_TAG=$(grep -E "^TAG=" .env | cut -d'=' -f2 || echo "latest")
                               
-                              # .env 파일에 새 배포 불변 태그 주입
-                              sed -i "s/^TAG=.*/TAG=\${TAG}/g" .env || echo "TAG=\${TAG}" >> .env
+                              grep -q "^BACKUP_TAG=" .env \
+                                && sed -i "s/^BACKUP_TAG=.*/BACKUP_TAG=${OLD_TAG}/" .env \
+                                || echo "BACKUP_TAG=${OLD_TAG}" >> .env
+                              
+                              # .env 파일에 새 배포 불변 태그 주입 (중복 축적 완전 차단)
+                              grep -q "^TAG=" .env \
+                                && sed -i "s/^TAG=.*/TAG=${TAG}/" .env \
+                                || echo "TAG=${TAG}" >> .env
                               
                               # 새 이미지 정밀 pull (원격 서버의 도커 데몬 자동 캐시 인증 가동)
                               docker compose -f docker-compose.prod.yml pull
@@ -82,7 +86,7 @@ pipeline {
                               
                               # [배포 안정성] 검증 시 젠킨스가 무한 루프에 빠지지 않도록 60초 타임아웃 및 꼬임 없는 이미지 기반 롤백 연동
                               timeout 60 ./deploy_verify.sh || (./rollback.sh && exit 1)
-                            """
+                            '''
                           )
                         ]
                     )
