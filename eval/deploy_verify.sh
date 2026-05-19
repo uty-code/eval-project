@@ -4,36 +4,65 @@
 # ==========================================================================
 set -e
 
-echo "🔍 [검증 1단계] 'ees-eval-app' 도커 컨테이너 구동 상태 조회..."
-docker ps --filter "name=ees-eval-app"
-
-# 컨테이너가 정상적으로 실행 중인지 프로세스 수 확인
-CONTAINER_STATUS=$(docker ps -q --filter "name=ees-eval-app" --filter "status=running" | wc -l)
-
-if [ "$CONTAINER_STATUS" -eq 0 ]; then
+echo "🔍 [검증 1단계] 도커 컨테이너 동작 상태 정밀 진단..."
+# ees-eval-app 컨테이너 실행 여부 체크
+APP_STATUS=$(docker ps -q --filter "name=ees-eval-app" --filter "status=running" | wc -l)
+if [ "$APP_STATUS" -eq 0 ]; then
   echo "❌ [ERROR] ees-eval-app 컨테이너가 정상적으로 구동되고 있지 않습니다!"
   exit 1
 fi
 
-echo "🔍 [검증 2단계] Nginx 리버스 프록시(HTTPS 443) 경유 헬스체크 응답성 테스트..."
-# Nginx의 HTTPS(443) 보안 포트와 리버스 프록시 동작을 유저의 관점 그대로 교차 검증 (-k 로컬 인증서 경고 무시)
-for i in {1..10}
-do
-  HTTP_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" https://localhost/internal-monitor/health || true)
-  if [ "$HTTP_STATUS" -eq 200 ]; then
-    echo "✅ [SUCCESS] https://localhost/internal-monitor/health 응답성 확인 완료 (HTTP Code: $HTTP_STATUS)"
-    break
-  fi
-  echo "⏳ 애플리케이션 초기화 대기 중... (${i}/10)"
-  sleep 3
-done
+# ees-nginx 컨테이너 실행 여부 체크
+NGINX_STATUS=$(docker ps -q --filter "name=ees-nginx" --filter "status=running" | wc -l)
+if [ "$NGINX_STATUS" -eq 0 ]; then
+  echo "❌ [ERROR] ees-nginx 컨테이너가 작동 중이 아닙니다!"
+  exit 1
+fi
+echo "✅ [SUCCESS] 도커 컨테이너 기동 확인 완료."
 
-if [ "$HTTP_STATUS" -ne 200 ]; then
-  echo "❌ [ERROR] Nginx 리버스 프록시 경유 헬스체크에 실패했습니다!"
-  echo "📊 최근 컨테이너 로그 출력:"
-  docker logs --tail 30 ees-eval-app
-  docker logs --tail 10 ees-nginx
+echo "🔍 [검증 2단계] Nginx HTTP(80) -> HTTPS(443) 강제 리다이렉션 보안 설정 검증..."
+HTTP_REDIRECT_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/)
+if [ "$HTTP_REDIRECT_CODE" -eq 301 ] || [ "$HTTP_REDIRECT_CODE" -eq 302 ]; then
+  echo "✅ [SUCCESS] HTTP -> HTTPS 보안 강제 리다이렉트 정상 작동 중 (HTTP Code: $HTTP_REDIRECT_CODE)"
+else
+  echo "❌ [ERROR] Nginx 리다이렉트 보안 검증 실패! (수신된 코드: $HTTP_REDIRECT_CODE, 301/302 기대됨)"
   exit 1
 fi
 
-echo "✅ [COMPLETE] 모든 배포 검증 단계가 성공적으로 완수되었습니다!"
+echo "🔍 [검증 3단계] Nginx HTTPS(443) 보안 터널 경유 스프링 헬스체크 및 실 데이터 정밀 검증..."
+# Nginx와 스프링 부트가 완전히 웜업될 때까지 루프 수행
+SUCCESS_VERIFIED=false
+for i in {1..15}
+do
+  # Host 헤더에 도메인을 정밀 이식하여 Nginx SSL 가상호스트 매칭을 유도하고, JSON 바디를 직접 수신
+  RESPONSE_BODY=$(curl -k -s -H "Host: ees-eval.com" https://localhost/internal-monitor/health || true)
+  
+  # HTTP 상태 코드 획득
+  HTTP_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" -H "Host: ees-eval.com" https://localhost/internal-monitor/health || true)
+  
+  echo "📡 헬스체크 수신 데이터 확인 중... - 응답 코드: $HTTP_STATUS"
+  
+  # 1. HTTP 200 성공 여부 체크
+  # 2. JSON 바디 내부의 실질적인 서비스 정상 가동 상태("status":"UP") 여부 동시 정밀 파싱
+  if [ "$HTTP_STATUS" -eq 200 ] && echo "$RESPONSE_BODY" | grep -q '"status":"UP"'; then
+    echo "✅ [SUCCESS] Nginx HTTPS 관문 통과 및 내부 헬스체크 최종 검증 성공!"
+    echo "📊 수신 데이터: $RESPONSE_BODY"
+    SUCCESS_VERIFIED=true
+    break
+  fi
+  
+  echo "⏳ 스프링 부트 기동 및 데이터베이스 커넥션 웜업 대기 중... (${i}/15)"
+  sleep 3
+done
+
+if [ "$SUCCESS_VERIFIED" = false ]; then
+  echo "❌ [ERROR] Nginx HTTPS 경유 최종 헬스체크 및 JSON 데이터 검증에 실패했습니다!"
+  echo "📊 수신된 최종 응답 바디: $RESPONSE_BODY"
+  echo "📊 최근 컨테이너 로그 출력:"
+  docker logs --tail 30 ees-eval-app
+  docker logs --tail 15 ees-nginx
+  exit 1
+fi
+
+echo "🎉 [COMPLETE] Nginx 보안 레이어 및 스프링 백엔드가 완벽하게 결합되어 가동 중임을 공식 검증 완료했습니다!"
+
