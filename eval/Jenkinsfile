@@ -2,11 +2,10 @@ pipeline {
     agent any
 
     environment {
-        ACR_NAME = 'eesregistry' 
-        ACR_URL = "${ACR_NAME}.azurecr.io"
+        REGISTRY_USER = 'siujeong'
         IMAGE_NAME = 'ees-eval-app'
         TAG = "${env.BUILD_NUMBER}"
-        AZURE_CRED_ID = 'ees-azure-creds' 
+        REGISTRY_CRED_ID = 'ees-registry-creds' 
     }
 
     stages {
@@ -18,21 +17,18 @@ pipeline {
 
         stage('Docker Build & Push') {
             steps {
-                withCredentials([azureServicePrincipal(env.AZURE_CRED_ID)]) {
-                    // 1. Azure 및 ACR 로그인 (sh 안에서 실행)
-                    sh """
-                        az login --service-principal -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET -t \$AZURE_TENANT_ID
-                        az acr login --name ${ACR_NAME}
-                    """
+                withCredentials([usernamePassword(credentialsId: env.REGISTRY_CRED_ID, usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
+                    // 1. 도커 허브 로그인
+                    sh "docker login -u ${REG_USER} -p ${REG_PASS}"
                     
-                    // 2. 도커 빌드 및 ACR 푸시
+                    // 2. 도커 빌드 및 레지스트리 푸시
                     dir('eval') {
                         sh """
-                            docker build -t ${ACR_URL}/${IMAGE_NAME}:${TAG} .
-                            docker push ${ACR_URL}/${IMAGE_NAME}:${TAG}
+                            docker build -t ${REGISTRY_USER}/${IMAGE_NAME}:${TAG} .
+                            docker push ${REGISTRY_USER}/${IMAGE_NAME}:${TAG}
                             
-                            docker tag ${ACR_URL}/${IMAGE_NAME}:${TAG} ${ACR_URL}/${IMAGE_NAME}:latest
-                            docker push ${ACR_URL}/${IMAGE_NAME}:latest
+                            docker tag ${REGISTRY_USER}/${IMAGE_NAME}:${TAG} ${REGISTRY_USER}/${IMAGE_NAME}:latest
+                            docker push ${REGISTRY_USER}/${IMAGE_NAME}:latest
                         """
                     }
                 }
@@ -41,7 +37,7 @@ pipeline {
 
         stage('Deploy via SSH to Ubuntu') {
             steps {
-                withCredentials([azureServicePrincipal(env.AZURE_CRED_ID)]) {
+                withCredentials([usernamePassword(credentialsId: env.REGISTRY_CRED_ID, usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
                     // Jenkins Credentials에 등록된 ees-ubuntu-server 접속 설정을 통해 배포 전송 및 명령 실행
                     // 쌍따옴표 내에서 $은 \$로 에스케이프 처리하여 쉘의 환경 변수가 원격 우분투로 정상 전달되도록 매핑합니다.
                     sshPublisher(publishers: [
@@ -54,8 +50,8 @@ pipeline {
                                 execCommand: """
                                   cd ~/ees-app
                                   
-                                  # 우분투 서버에서 Azure ACR 로그인 수행 (Service Principal 크레덴셜 연동)
-                                  docker login ${ACR_URL} -u \$AZURE_CLIENT_ID -p \$AZURE_CLIENT_SECRET
+                                  # 우분투 서버에서 도커 허브 로그인 수행 (Private 이미지 Pull 권한 획득)
+                                  docker login -u \$REG_USER -p \$REG_PASS
                                   
                                   # 처음 배포 시 .env 파일이 없으면 템플릿 복사
                                   if [ ! -f .env ]; then
@@ -68,7 +64,7 @@ pipeline {
                                   docker rm ees-app-backup || true
                                   docker rename ees-eval-app ees-app-backup || true
                                   
-                                  # 최신 도커 이미지 레지스트리(ACR)로부터 초고속 다운로드
+                                  # 최신 도커 이미지 레지스트리(Docker Hub)로부터 초고속 다운로드
                                   docker compose -f docker-compose.prod.yml pull
                                   
                                   # 새 컨테이너 생성 및 기동
@@ -98,7 +94,7 @@ pipeline {
         }
         always {
             // 로컬에 생성된 이미지 삭제 (용량 확보)
-            sh "docker rmi ${ACR_URL}/${IMAGE_NAME}:${TAG} || true"
+            sh "docker rmi ${REGISTRY_USER}/${IMAGE_NAME}:${TAG} || true"
             cleanWs()
         }
     }
