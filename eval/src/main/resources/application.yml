@@ -7,6 +7,13 @@ server:
     mime-types: text/html,text/css,text/javascript,application/javascript,application/json
     min-response-size: 1024
 
+# [보안 고도화] 운영 환경 액츄에이터 노출을 헬스체크(health) 하나로 철저 제한 (민감 데이터 유출 완전 봉쇄)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
 spring:
   profiles:
     active: dev
