@@ -1,10 +1,10 @@
 #!/bin/bash
 # ==========================================================================
-# EES 배포 자동화: 배포 장애 상황 대비 신속한 이전 버전(백업) 원클릭 복구 스크립트
+# EES 배포 자동화: 배포 실패 시 백업 버전으로 복구하는 스크립트
 # ==========================================================================
 set -e
 
-echo "⚠️ [ROLLBACK START] 즉각적인 서비스 복구를 위한 이전 이미지 기반 복원 실행..."
+echo "⚠️ [ROLLBACK START] 이전 이미지 기반 복구 시작..."
 
 # 1. .env 파일에서 복구 대상인 이전 정상 태그(BACKUP_TAG) 정보 추출
 if [ -f .env ]; then
@@ -20,17 +20,17 @@ if [ -z "$BACKUP_TAG" ]; then
 fi
 
 echo "🔄 [1단계] 현재 기동에 실패한 컨테이너 파기..."
-docker compose -f docker-compose.prod.yml down || true
+docker compose --compatibility -f docker-compose.prod.yml down || true
 
 echo "🔄 [2단계] .env 파일의 활성 TAG를 이전 정상 작동 TAG($BACKUP_TAG)로 덮어쓰기 복원..."
 # OS 이식성을 고려해 안전하게 임시파일 교체 방식으로 sed 수행
 sed "s/^TAG=.*/TAG=${BACKUP_TAG}/g" .env > .env.tmp && mv .env.tmp .env
 
-echo "🔄 [3단계] 복구 버전($BACKUP_TAG) 이미지로 컨테이너 무결성 재기동..."
-docker compose -f docker-compose.prod.yml up -d
+echo "🔄 [3단계] 복구 버전($BACKUP_TAG) 이미지로 컨테이너 재기동..."
+docker compose --compatibility -f docker-compose.prod.yml up -d
 
 echo "🔍 [4단계] 롤백 복원된 컨테이너 상태 최종 검증..."
-# deploy_verify.sh의 검증 로직 호출 (롤백 역시 철저히 헬스체크 검증 수행)
+# deploy_verify.sh의 검증 로직 호출 (롤백 후 상태 헬스체크 수행)
 ./deploy_verify.sh
 
-echo "✅ [ROLLBACK COMPLETE] 이전 안정화 버전($BACKUP_TAG)으로의 무결성 롤백 복구가 완벽히 성공했습니다!"
+echo "✅ [ROLLBACK COMPLETE] 이전 안정화 버전($BACKUP_TAG)으로 복구가 완료되었습니다."

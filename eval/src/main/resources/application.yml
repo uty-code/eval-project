@@ -2,25 +2,25 @@ server:
   forward-headers-strategy: framework
   error:
     path: /error-page
-    # [보안 고도화] 에러 발생 시 스택트레이스와 내부 예외 메세지의 무단 노출을 전면 차단하여 시스템 설계 은폐
+    # 에러 발생 시 상세 예외 메시지 노출 제한
     include-stacktrace: never
     include-message: never
   compression:
     enabled: true
     mime-types: text/html,text/css,text/javascript,application/javascript,application/json
     min-response-size: 1024
-  # [무중단 안정성] 배포 시점에 트래픽 유실 및 커넥션 갑작스런 단절 예방용 우아한 종료 지원
+  # 정상적인 종료(Graceful Shutdown) 설정
   shutdown: graceful
-  # [보안 고도화] 세션 Hijacking, XSS 공격 방지를 위해 Secure/HttpOnly를 강제하고 CSRF 방어를 위해 SameSite=Lax 적용
+  # 세션 쿠키 보안 설정 (Secure, HttpOnly, SameSite 적용)
   servlet:
     session:
       cookie:
         secure: true
         http-only: true
         same-site: lax
-  # [보안 고도화] WAS 기종(Tomcat) 버전 정보 노출을 빈 헤더로 억제하여 해커의 취약점 타겟팅 무력화 (Nginx에서 완전 소거 예정)
+  # Tomcat 버전 노출 방지 헤더 설정
   server-header: ""
-  # [관측성 고도화] 볼륨 마운트 절대경로, 30일 회전 정책 및 고트래픽 시 디스크 병목 방지를 위한 비동기 버퍼 로깅 가동
+  # Access Log 저장 디렉토리 및 로테이션 설정
   tomcat:
     accesslog:
       enabled: true
@@ -30,7 +30,7 @@ server:
       max-days: 30
       buffered: true
 
-# [보안 고도화] 스캐너 탐색 노이즈 제거를 위한 Base-path 변경 및 상세 구조 은폐
+# 모니터링 경로(Base-path) 변경
 management:
   endpoints:
     web:
@@ -40,12 +40,12 @@ management:
   endpoint:
     health:
       show-details: never
-      # [인프라 모니터링] 향후 로드밸런서(Nginx) 업스트림 무중단 전환 감시용 liveness/readiness 프로브 활성화
+      # Liveness/Readiness 프로브 활성화
       probes:
         enabled: true
 
 spring:
-  # [보안 혁신] 기본 fallback인 dev를 강제 철폐하고, 주입되지 않았을 때 명시적인 구동 실패를 유도하여 학교 DB 훼손 방지
+  # active 프로필 설정 필수화 (미지정 시 구동 실패 처리)
   profiles:
     active: ${SPRING_PROFILES_ACTIVE}
   lifecycle:
@@ -109,7 +109,7 @@ logging:
     com.ees.eval: DEBUG
 
 ---
-# [prod] Azure 운영 환경 - Azure SQL DB
+# [prod] 운영 환경 - SKU 공용 DB
 spring:
   config:
     activate:
@@ -118,19 +118,19 @@ spring:
     init:
       mode: never
   datasource:
-    # 환경변수 주입이 없을 경우 기본값으로 Azure DB 주소를 매핑하여 완벽한 하이브리드 호환성 보장
-    url: ${DB_URL:jdbc:sqlserver://ees-server-hk.database.windows.net:1433;databaseName=ees-db-hk;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;}
-    username: ${DB_USERNAME:dbmaster}
+    # 잘못된 DB 연결을 방지하기 위해 기본값 없이 환경변수 주입을 필수화
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-    # [성능 극상] MSSQL 실무 운영 환경의 커넥션 가용성을 책임지는 HikariCP 최적 튠업
+    # 운영 데이터베이스 접속을 위한 HikariCP 성능 최적화 설정
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
-      # [관측성 고도화] 긴 MyBatis 다면평가 집계를 고려해 30초 한계값 튠업으로 커넥션 누수(Leak) 감지
+      # MyBatis 집계 실행 속도를 감안한 커넥션 누수 감지 설정 (30초)
       leak-detection-threshold: 30000
   # 운영 환경은 Thymeleaf 캐시 활성화하여 CPU/메모리 부하 및 응답 응집도 성능 보장
   thymeleaf:
@@ -145,7 +145,7 @@ spring:
   datasource:
     url: jdbc:sqlserver://localhost:1433;databaseName=EES_LOCAL;encrypt=true;trustServerCertificate=true;
     username: sa
-    # [보안 혁신] GitHub 스캐너 오판 차단용 환경 변수화 및 안전 장치
+    # 로컬 DB 접속 비밀번호 설정 (환경변수 미지정 시 fallback 값 사용)
     password: ${LOCAL_DB_PASSWORD:EesLocal@2026!}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   sql:

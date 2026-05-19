@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     options {
-        // [동시성 차단] 다중 배포 간에 발생할 수 있는 레이스 컨디션 및 롤백/태그 꼬임 원천 제거
+        // 다중 배포 간 충돌 및 태그 꼬임 방지
         disableConcurrentBuilds()
-        // [행 방지] 도커 푸시나 SSH 커넥션 중단으로 인한 젠킨스 익스큐터 무한 락 영구 예방
+        // 빌드 지연으로 인한 젠킨스 익스큐터 대기 시간 제한 (20분)
         timeout(time: 20, unit: 'MINUTES')
     }
 
@@ -13,7 +13,7 @@ pipeline {
         IMAGE_NAME = 'ees-eval-app'
         TAG = "${env.BUILD_NUMBER}"
         REGISTRY_CRED_ID = 'ees-registry-creds' 
-        // [성능 향상] Docker BuildKit 활성화로 레이어 캐싱 속도 및 멀티스테이징 성능 극대화
+        // 빌드 속도 개선을 위한 Docker BuildKit 활성화
         DOCKER_BUILDKIT = '1'
     }
 
@@ -27,7 +27,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 withCredentials([usernamePassword(credentialsId: env.REGISTRY_CRED_ID, usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
-                    // [보안 고도화] 홑따옴표 쉘 차단으로 젠킨스 에코 누출 및 ps 메모리 패스워드 유출 완벽 방어
+                    // 젠킨스 로그 및 프로세스 메모리 상의 패스워드 유출 방지
                     sh '''
                         set +x
                         set -e
@@ -52,7 +52,7 @@ pipeline {
 
         stage('Deploy via SSH to Ubuntu') {
             steps {
-                // [보안 혁신] 우분투 운영 서버의 Docker 인증 캐시(~/.docker/config.json)를 신뢰함으로써, 원격 비밀번호 전송 및 원격 도커 로그인 과정을 통째로 원천 생략하여 유출 확률 0% 달성
+                // 서버에 저장된 Docker 인증 정보를 신뢰하여 로그인 과정 생략
                 sshPublisher(publishers: [
                     sshPublisherDesc(configName: 'ees-ubuntu-server', 
                         transfers: [
@@ -72,28 +72,28 @@ pipeline {
                                 echo "⚠️ [WARNING] .env 파일이 생성되었습니다. 연결을 채워주십시오."
                               fi
                               
-                              # [롤백 고도화] 이전 가동 중인 불변 이미지 버전을 .env에서 읽어와 BACKUP_TAG로 고정 기록 (중복 축적 완전 차단)
+                              # 이전 가동 중이던 이미지 버전을 .env에서 백업 태그로 보관
                               OLD_TAG=$(grep -E "^TAG=" .env | cut -d'=' -f2 || echo "latest")
                               
                               grep -q "^BACKUP_TAG=" .env \
                                 && sed -i "s/^BACKUP_TAG=.*/BACKUP_TAG=${OLD_TAG}/" .env \
                                 || echo "BACKUP_TAG=${OLD_TAG}" >> .env
                               
-                              # .env 파일에 새 배포 불변 태그 주입 (중복 축적 완전 차단)
+                              # .env 파일에 새로운 배포 태그 적용
                               grep -q "^TAG=" .env \
                                 && sed -i "s/^TAG=.*/TAG=${TAG}/" .env \
                                 || echo "TAG=${TAG}" >> .env
                               
                               # 새 이미지 정밀 pull (원격 서버의 도커 데몬 자동 캐시 인증 가동)
-                              docker compose -f docker-compose.prod.yml pull
+                              docker compose --compatibility -f docker-compose.prod.yml pull
                               
                               # 불변 이미지를 기반으로 무중단 배포 및 누적 고아 컨테이너 Prune 처리
-                              docker compose -f docker-compose.prod.yml up -d --remove-orphans
+                              docker compose --compatibility -f docker-compose.prod.yml up -d --remove-orphans
                               
                               chmod +x ./deploy_verify.sh ./rollback.sh
                               
-                              # [배포 안정성] 검증 실패 시 기존 불안정하게 생성된 실패 컨테이너를 완전 다운시키고 롤백하여 Dangling 상태를 원천 차단
-                              timeout 60 ./deploy_verify.sh || (docker compose -f docker-compose.prod.yml down || true; ./rollback.sh && exit 1)
+                              # 검증 실패 시 기동 실패한 컨테이너를 중지하고 롤백 수행
+                              timeout 60 ./deploy_verify.sh || (docker compose --compatibility -f docker-compose.prod.yml down || true; ./rollback.sh && exit 1)
                             '''
                           )
                         ]
@@ -105,15 +105,16 @@ pipeline {
 
     post {
         success {
-            echo '🚀 EES KT Cloud Ubuntu 서버 무결성 배포 및 최종 검증 성공!'
+            echo '🚀 EES KT Cloud Ubuntu 서버 배포 및 검증 성공'
         }
         failure {
-            echo '❌ 배포 실패! 이전 쌩쌩한 안전 버전으로 무결성 이미지 롤백 완료!'
+            echo '❌ 배포 실패! 이전 안정 버전으로 롤백되었습니다.'
         }
         always {
-            // [정리 고도화] 로컬 캐시 이미지 정리, 도커 허브 로그아웃 및 타 프로젝트 이미지를 보호하는 안전 필터 기반 Prune 실행
+            // 사용하지 않는 빌드 이미지 정리 및 로그아웃
             sh 'docker logout || true'
             sh "docker rmi ${REGISTRY_USER}/${IMAGE_NAME}:${TAG} || true"
+            sh "docker rmi ${REGISTRY_USER}/${IMAGE_NAME}:latest || true"
             sh 'docker image prune -f --filter "until=24h" || true'
             cleanWs()
         }

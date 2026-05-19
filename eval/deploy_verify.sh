@@ -19,9 +19,9 @@ echo "🔍 [검증 2단계] 포트 8080 연결 대기 및 응답성 테스트...
 # 스프링 부트 톰캣 서버가 완전히 뜰 때까지 최대 30초 대기하며 검사
 for i in {1..10}
 do
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ || true)
+  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/internal-monitor/health || true)
   if [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 302 ]; then
-    echo "✅ [SUCCESS] http://localhost:8080/ 응답성 확인 완료 (HTTP Code: $HTTP_STATUS)"
+    echo "✅ [SUCCESS] http://localhost:8080/internal-monitor/health 응답성 확인 완료 (HTTP Code: $HTTP_STATUS)"
     break
   fi
   echo "⏳ 애플리케이션 초기화 대기 중... (${i}/10)"
