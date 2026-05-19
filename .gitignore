@@ -74,3 +74,7 @@ README.md
 # 6. Benchmarks
 eval/benchmarks/
 **/benchmarks/
+# Local Scripts with Secrets
+Start-EesJenkinsVM.ps1
+Stop-EesJenkinsVM.ps1
+eval/ees_monitor.sh
