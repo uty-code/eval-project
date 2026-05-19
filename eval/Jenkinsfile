@@ -68,7 +68,7 @@ pipeline {
                               cd ~/ees-app
 
                               # Nginx 및 Certbot용 호스트 볼륨 디렉토리 생성
-                              mkdir -p /etc/letsencrypt /var/www/certbot nginx
+                              mkdir -p letsencrypt certbot nginx
                               
                               # 처음 배포 시 .env 파일 복사
                               if [ ! -f .env ]; then
