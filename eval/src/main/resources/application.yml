@@ -6,17 +6,25 @@ server:
     enabled: true
     mime-types: text/html,text/css,text/javascript,application/javascript,application/json
     min-response-size: 1024
+  # [무중단 안정성] 배포 시점에 트래픽 유실 및 커넥션 갑작스런 단절 예방용 우아한 종료 지원
+  shutdown: graceful
 
-# [보안 고도화] 운영 환경 액츄에이터 노출을 헬스체크(health) 하나로 철저 제한 (민감 데이터 유출 완전 봉쇄)
+# [보안 고도화] 액츄에이터 노출을 헬스체크 하나로 철저 봉쇄 및 상세 정보 노출 차단
 management:
   endpoints:
     web:
       exposure:
         include: health
+  endpoint:
+    health:
+      show-details: never
 
 spring:
+  # [보안 혁신] 기본 fallback인 dev를 강제 철폐하고, 주입되지 않았을 때 명시적인 구동 실패를 유도하여 학교 DB 훼손 방지
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE}
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   threads:
     virtual:
       enabled: true
@@ -32,8 +40,6 @@ spring:
         cachecontrol:
           max-age: 3600
           cache-public: true
-  thymeleaf:
-    cache: false
   sql:
     init:
       mode: never
@@ -46,12 +52,10 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
     default-statement-timeout: 30
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 logging:
   level:
     root: INFO
-    com.ees.eval: DEBUG
 
 ---
 # [dev] 로컬 개발 환경 - 학교 공용 DB
@@ -67,6 +71,18 @@ spring:
   docker:
     compose:
       enabled: false
+  # Thymeleaf 캐시 비활성화로 신속한 프론트 반영 유도
+  thymeleaf:
+    cache: false
+
+# 개발 및 디버그용 SQL 파라미터 로깅
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.ees.eval: DEBUG
 
 ---
 # [prod] Azure 운영 환경 - Azure SQL DB
@@ -76,14 +92,23 @@ spring:
       on-profile: prod
   sql:
     init:
-      mode: never  # 테이블 생성이 완료되었으므로 안전을 위해 never로 원복
+      mode: never
   datasource:
     # 환경변수 주입이 없을 경우 기본값으로 Azure DB 주소를 매핑하여 완벽한 하이브리드 호환성 보장
     url: ${DB_URL:jdbc:sqlserver://ees-server-hk.database.windows.net:1433;databaseName=ees-db-hk;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;}
     username: ${DB_USERNAME:dbmaster}
-    # 비밀번호는 환경변수에서 로드합니다.
     password: ${DB_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    # [성능 극상] MSSQL 실무 운영 환경의 커넥션 가용성을 책임지는 HikariCP 최적 튠업
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  # 운영 환경은 Thymeleaf 캐시 활성화하여 CPU/메모리 부하 및 응답 응집도 성능 보장
+  thymeleaf:
+    cache: true
 
 ---
 # [local] 로컬 테스트 환경 - Docker SQL Server
@@ -105,3 +130,13 @@ spring:
     compose:
       enabled: true
       lifecycle-management: start_only
+  thymeleaf:
+    cache: false
+
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.ees.eval: DEBUG
