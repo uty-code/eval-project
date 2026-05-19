@@ -94,6 +94,9 @@ pipeline {
                               # 불변 이미지를 기반으로 무중단 배포 및 누적 고아 컨테이너 Prune 처리
                               docker compose --compatibility -f docker-compose.prod.yml up -d --remove-orphans
                               
+                              # Nginx 볼륨 마운트 설정(nginx.conf) 갱신을 위해 컨테이너 재시작
+                              docker restart ees-nginx || true
+                              
                               chmod +x ./deploy_verify.sh ./rollback.sh ./init-ssl.sh
                               
                               # 검증 실패 시 기동 실패한 컨테이너를 중지하고 롤백 수행
