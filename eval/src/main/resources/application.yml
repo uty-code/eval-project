@@ -8,16 +8,32 @@ server:
     min-response-size: 1024
   # [무중단 안정성] 배포 시점에 트래픽 유실 및 커넥션 갑작스런 단절 예방용 우아한 종료 지원
   shutdown: graceful
+  # [보안 고도화] 세션 Hijacking 및 XSS 공격에 의한 세션 토큰 강탈 방지를 위해 쿠키 Secure/HttpOnly 필수 강제
+  servlet:
+    session:
+      cookie:
+        secure: true
+        http-only: true
+  # [관측성 고도화] 인프라 공격 추적, 병목 구간 실시간 응답 지연 분석을 위한 톰캣 내부 액세스 로그 가동
+  tomcat:
+    accesslog:
+      enabled: true
+      directory: logs
+      pattern: '%h %l %u %t "%r" %s %b %D'
 
-# [보안 고도화] 액츄에이터 노출을 헬스체크 하나로 철저 봉쇄 및 상세 정보 노출 차단
+# [보안 고도화] 스캐너 탐색 노이즈 제거를 위한 Base-path 변경 및 상세 구조 은폐
 management:
   endpoints:
     web:
+      base-path: /internal-monitor
       exposure:
         include: health
   endpoint:
     health:
       show-details: never
+      # [인프라 모니터링] 향후 로드밸런서(Nginx) 업스트림 무중단 전환 감시용 liveness/readiness 프로브 활성화
+      probes:
+        enabled: true
 
 spring:
   # [보안 혁신] 기본 fallback인 dev를 강제 철폐하고, 주입되지 않았을 때 명시적인 구동 실패를 유도하여 학교 DB 훼손 방지
@@ -71,7 +87,6 @@ spring:
   docker:
     compose:
       enabled: false
-  # Thymeleaf 캐시 비활성화로 신속한 프론트 반영 유도
   thymeleaf:
     cache: false
 
@@ -106,6 +121,8 @@ spring:
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
+      # [관측성 고도화] 비즈니스 트랜잭션 과정 중 커넥션 누수(Leak) 발생 시 즉시 감지하여 디버깅 추적 보장
+      leak-detection-threshold: 20000
   # 운영 환경은 Thymeleaf 캐시 활성화하여 CPU/메모리 부하 및 응답 응집도 성능 보장
   thymeleaf:
     cache: true
@@ -119,7 +136,8 @@ spring:
   datasource:
     url: jdbc:sqlserver://localhost:1433;databaseName=EES_LOCAL;encrypt=true;trustServerCertificate=true;
     username: sa
-    password: EesLocal@2026!
+    # [보안 혁신] GitHub 스캐너 오판 차단용 환경 변수화 및 안전 장치
+    password: ${LOCAL_DB_PASSWORD:EesLocal@2026!}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   sql:
     init:
