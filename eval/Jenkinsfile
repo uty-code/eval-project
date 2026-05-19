@@ -55,6 +55,7 @@ pipeline {
                 // 서버에 저장된 Docker 인증 정보를 신뢰하여 로그인 과정 생략
                 sshPublisher(publishers: [
                     sshPublisherDesc(configName: 'ees-ubuntu-server', 
+                        verbose: true,
                         transfers: [
                           sshTransfer(
                             sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh',
