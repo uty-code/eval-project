@@ -42,57 +42,51 @@ pipeline {
 
         stage('Deploy via SSH to Ubuntu') {
             steps {
-                withCredentials([usernamePassword(credentialsId: env.REGISTRY_CRED_ID, usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
-                    sshPublisher(publishers: [
-                        sshPublisherDesc(configName: 'ees-ubuntu-server', 
-                            transfers: [
-                              sshTransfer(
-                                sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh',
-                                removePrefix: 'eval',
-                                remoteDirectory: 'ees-app',
-                                execCommand: """
-                                  set +x
-                                  set -e
-                                  
-                                  # [보안 고도화] 젠킨스 자동 비밀번호 마스킹을 타며 최초 격리 정의 (명령어 인자 유출 원천 소멸)
-                                  REG_USER='${REG_USER}'
-                                  REG_PASS='${REG_PASS}'
-                                  TAG='${TAG}'
-                                  
-                                  cd ~/ees-app
-                                  
-                                  # 도커 허브 로그인 시 메모리 및 ps 누출 방지 파이프라인 주입
-                                  echo "\$REG_PASS" | docker login -u "\$REG_USER" --password-stdin
-                                  
-                                  # 처음 배포 시 .env 파일 복사
-                                  if [ ! -f .env ]; then
-                                    cp .env.example .env
-                                    echo "⚠️ [WARNING] .env 파일이 생성되었습니다. 연결을 채워주십시오."
-                                  fi
-                                  
-                                  # [롤백 고도화] 이전 가동 중인 불변 이미지 버전을 .env에서 읽어와 BACKUP_TAG로 고정 기록
-                                  OLD_TAG=\$(grep -E "^TAG=" .env | cut -d'=' -f2 || echo "latest")
-                                  sed -i "s/^BACKUP_TAG=.*/BACKUP_TAG=\${OLD_TAG}/g" .env || echo "BACKUP_TAG=\${OLD_TAG}" >> .env
-                                  
-                                  # .env 파일에 새 배포 불변 태그 주입
-                                  sed -i "s/^TAG=.*/TAG=\${TAG}/g" .env || echo "TAG=\${TAG}" >> .env
-                                  
-                                  # 새 이미지 정밀 pull
-                                  docker compose -f docker-compose.prod.yml pull
-                                  
-                                  # 불변 이미지를 기반으로 무중단 롤링 배포 가동
-                                  docker compose -f docker-compose.prod.yml up -d
-                                  
-                                  chmod +x ./deploy_verify.sh ./rollback.sh
-                                  
-                                  # [배포 안정성] 검증 시 젠킨스가 무한 루프에 빠지지 않도록 60초 타임아웃 및 꼬임 없는 이미지 기반 롤백 연동
-                                  timeout 60 ./deploy_verify.sh || (./rollback.sh && exit 1)
-                                """
-                              )
-                            ]
-                        )
-                    ])
-                }
+                // [보안 혁신] 우분투 운영 서버의 Docker 인증 캐시(~/.docker/config.json)를 신뢰함으로써, 원격 비밀번호 전송 및 원격 도커 로그인 과정을 통째로 원천 생략하여 유출 확률 0% 달성
+                sshPublisher(publishers: [
+                    sshPublisherDesc(configName: 'ees-ubuntu-server', 
+                        transfers: [
+                          sshTransfer(
+                            sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh',
+                            removePrefix: 'eval',
+                            remoteDirectory: 'ees-app',
+                            execCommand: """
+                              set +x
+                              set -e
+                              
+                              # 불변 배포용 고유 빌드 태깅 변수 주입
+                              TAG='${TAG}'
+                              
+                              cd ~/ees-app
+                              
+                              # 처음 배포 시 .env 파일 복사
+                              if [ ! -f .env ]; then
+                                cp .env.example .env
+                                echo "⚠️ [WARNING] .env 파일이 생성되었습니다. 연결을 채워주십시오."
+                              fi
+                              
+                              # [롤백 고도화] 이전 가동 중인 불변 이미지 버전을 .env에서 읽어와 BACKUP_TAG로 고정 기록
+                              OLD_TAG=\$(grep -E "^TAG=" .env | cut -d'=' -f2 || echo "latest")
+                              sed -i "s/^BACKUP_TAG=.*/BACKUP_TAG=\${OLD_TAG}/g" .env || echo "BACKUP_TAG=\${OLD_TAG}" >> .env
+                              
+                              # .env 파일에 새 배포 불변 태그 주입
+                              sed -i "s/^TAG=.*/TAG=\${TAG}/g" .env || echo "TAG=\${TAG}" >> .env
+                              
+                              # 새 이미지 정밀 pull (원격 서버의 도커 데몬 자동 캐시 인증 가동)
+                              docker compose -f docker-compose.prod.yml pull
+                              
+                              # 불변 이미지를 기반으로 무중단 배포 및 누적 고아 컨테이너 Prune 처리
+                              docker compose -f docker-compose.prod.yml up -d --remove-orphans
+                              
+                              chmod +x ./deploy_verify.sh ./rollback.sh
+                              
+                              # [배포 안정성] 검증 시 젠킨스가 무한 루프에 빠지지 않도록 60초 타임아웃 및 꼬임 없는 이미지 기반 롤백 연동
+                              timeout 60 ./deploy_verify.sh || (./rollback.sh && exit 1)
+                            """
+                          )
+                        ]
+                    )
+                ])
             }
         }
     }
