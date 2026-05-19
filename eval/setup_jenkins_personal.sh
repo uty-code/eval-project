@@ -28,7 +28,7 @@ version: '3.8'
 
 services:
   jenkins:
-    image: jenkins/jenkins:lts-jdk17
+    image: jenkins/jenkins:lts-jdk21
     container_name: jenkins
     restart: unless-stopped
     user: root
