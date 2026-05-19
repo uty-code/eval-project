@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   ees-eval-app:
-    image: siujeong/ees-eval-app:latest
+    image: siujeong/ees-eval-app:${TAG}
     container_name: ees-eval-app
     ports:
       - "8080:8080"

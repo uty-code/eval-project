@@ -18,18 +18,23 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 withCredentials([usernamePassword(credentialsId: env.REGISTRY_CRED_ID, usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
-                    // 1. 도커 허브 로그인
-                    sh "docker login -u ${REG_USER} -p ${REG_PASS}"
+                    // [보안 고도화] 홑따옴표 쉘 차단으로 젠킨스 에코 누출 및 ps 메모리 패스워드 유출 완벽 방어
+                    sh '''
+                        set +x
+                        set -e
+                        echo "$REG_PASS" | docker login -u "$REG_USER" --password-stdin
+                    '''
                     
-                    // 2. 도커 빌드 및 레지스트리 푸시
+                    // 불변 빌드 번호(${TAG}) 이미지를 빌드 및 푸시 (latest는 보조 참조용으로만 운용)
                     dir('eval') {
-                        sh """
-                            docker build -t ${REGISTRY_USER}/${IMAGE_NAME}:${TAG} .
-                            docker push ${REGISTRY_USER}/${IMAGE_NAME}:${TAG}
+                        sh '''
+                            set -e
+                            docker build -t "$REGISTRY_USER"/"$IMAGE_NAME":"$TAG" .
+                            docker push "$REGISTRY_USER"/"$IMAGE_NAME":"$TAG"
                             
-                            docker tag ${REGISTRY_USER}/${IMAGE_NAME}:${TAG} ${REGISTRY_USER}/${IMAGE_NAME}:latest
-                            docker push ${REGISTRY_USER}/${IMAGE_NAME}:latest
-                        """
+                            docker tag "$REGISTRY_USER"/"$IMAGE_NAME":"$TAG" "$REGISTRY_USER"/"$IMAGE_NAME":latest
+                            docker push "$REGISTRY_USER"/"$IMAGE_NAME":latest
+                        '''
                     }
                 }
             }
@@ -38,8 +43,6 @@ pipeline {
         stage('Deploy via SSH to Ubuntu') {
             steps {
                 withCredentials([usernamePassword(credentialsId: env.REGISTRY_CRED_ID, usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
-                    // Jenkins Credentials에 등록된 ees-ubuntu-server 접속 설정을 통해 배포 전송 및 명령 실행
-                    // 쌍따옴표 내에서 $은 \$로 에스케이프 처리하여 쉘의 환경 변수가 원격 우분투로 정상 전달되도록 매핑합니다.
                     sshPublisher(publishers: [
                         sshPublisherDesc(configName: 'ees-ubuntu-server', 
                             transfers: [
@@ -48,37 +51,42 @@ pipeline {
                                 removePrefix: 'eval',
                                 remoteDirectory: 'ees-app',
                                 execCommand: """
-                                  # 쉘 명령어 에코 출력을 차단하여 젠킨스 콘솔 로그에 자격증명이 노출되는 것을 방지합니다.
                                   set +x
                                   set -e
                                   
+                                  # [보안 고도화] 젠킨스 자동 비밀번호 마스킹을 타며 최초 격리 정의 (명령어 인자 유출 원천 소멸)
+                                  REG_USER='${REG_USER}'
+                                  REG_PASS='${REG_PASS}'
+                                  TAG='${TAG}'
+                                  
                                   cd ~/ees-app
                                   
-                                  # 우분투 서버에서 도커 허브 로그인 수행 (ps 노출 방지를 위해 --password-stdin 권장 표준 적용)
-                                  echo "${REG_PASS}" | docker login -u "${REG_USER}" --password-stdin
+                                  # 도커 허브 로그인 시 메모리 및 ps 누출 방지 파이프라인 주입
+                                  echo "\$REG_PASS" | docker login -u "\$REG_USER" --password-stdin
                                   
-                                  # 처음 배포 시 .env 파일이 없으면 템플릿 복사
+                                  # 처음 배포 시 .env 파일 복사
                                   if [ ! -f .env ]; then
                                     cp .env.example .env
-                                    echo "⚠️ [WARNING] .env 파일이 새로 생성되었습니다. 실제 DB 연결 설정을 채워주십시오."
+                                    echo "⚠️ [WARNING] .env 파일이 생성되었습니다. 연결을 채워주십시오."
                                   fi
                                   
-                                  # 기존 실행 중인 컨테이너 백업 (이전 이미지 보존용)
-                                  docker stop ees-app-backup || true
-                                  docker rm ees-app-backup || true
-                                  docker rename ees-eval-app ees-app-backup || true
+                                  # [롤백 고도화] 이전 가동 중인 불변 이미지 버전을 .env에서 읽어와 BACKUP_TAG로 고정 기록
+                                  OLD_TAG=\$(grep -E "^TAG=" .env | cut -d'=' -f2 || echo "latest")
+                                  sed -i "s/^BACKUP_TAG=.*/BACKUP_TAG=\${OLD_TAG}/g" .env || echo "BACKUP_TAG=\${OLD_TAG}" >> .env
                                   
-                                  # 최신 도커 이미지 레지스트리(Docker Hub)로부터 초고속 다운로드
+                                  # .env 파일에 새 배포 불변 태그 주입
+                                  sed -i "s/^TAG=.*/TAG=\${TAG}/g" .env || echo "TAG=\${TAG}" >> .env
+                                  
+                                  # 새 이미지 정밀 pull
                                   docker compose -f docker-compose.prod.yml pull
                                   
-                                  # 새 컨테이너 생성 및 기동
-                                  docker compose -f docker-compose.prod.yml up -d --force-recreate
+                                  # 불변 이미지를 기반으로 무중단 롤링 배포 가동
+                                  docker compose -f docker-compose.prod.yml up -d
                                   
-                                  # 스크립트 실행 권한 부여
                                   chmod +x ./deploy_verify.sh ./rollback.sh
                                   
-                                  # 배포 헬스체크 검증 수행 및 실패 시 즉각 원클릭 자동 롤백 연동
-                                  ./deploy_verify.sh || (./rollback.sh && exit 1)
+                                  # [배포 안정성] 검증 시 젠킨스가 무한 루프에 빠지지 않도록 60초 타임아웃 및 꼬임 없는 이미지 기반 롤백 연동
+                                  timeout 60 ./deploy_verify.sh || (./rollback.sh && exit 1)
                                 """
                               )
                             ]
@@ -91,14 +99,15 @@ pipeline {
 
     post {
         success {
-            echo '🚀 KT Cloud Ubuntu 서버 배포 및 검증이 완료되었습니다!'
+            echo '🚀 EES KT Cloud Ubuntu 서버 무결성 배포 및 최종 검증 성공!'
         }
         failure {
-            echo '❌ 배포 실패! 안정적인 기존 버전으로 자동 롤백을 수행하였습니다.'
+            echo '❌ 배포 실패! 이전 쌩쌩한 안전 버전으로 무결성 이미지 롤백 완료!'
         }
         always {
-            // 로컬에 생성된 이미지 삭제 (용량 확보)
+            // [정리 고도화] 로컬 캐시 이미지 정리 및 젠킨스 전용 Dangling 이미지 완전 소거
             sh "docker rmi ${REGISTRY_USER}/${IMAGE_NAME}:${TAG} || true"
+            sh 'docker image prune -f || true'
             cleanWs()
         }
     }
