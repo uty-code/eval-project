@@ -4,8 +4,8 @@ services:
   ees-eval-app:
     image: siujeong/ees-eval-app:${TAG}
     container_name: ees-eval-app
-    ports:
-      - "8080:8080"
+    # [보안] 외부 8080 포트 직접 접속 완전 차단
+    # ports 매핑 없음 - Nginx 경유로만 접근 가능
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       # [DB 연결] SKU 공용 DB 직접 연결 - .env의 DB_URL 단일 변수로 관리
@@ -23,11 +23,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    # Standalone docker compose 환경 메모리 제한 (compatibility 모드 지원)
-    deploy:
-      resources:
-        limits:
-          memory: 1G
+    # Standalone docker compose 환경 메모리 제한
+    mem_limit: 1g
     # 헬스체크 엔드포인트 설정 (application.yml 모니터링 경로와 동일)
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/internal-monitor/health"]
@@ -35,3 +32,39 @@ services:
       timeout: 5s
       retries: 5
       start_period: 60s
+    networks:
+      - ees-network
+
+  # Nginx 리버스 프록시 (외부 80/443 → 내부 8080 프록시)
+  ees-nginx:
+    image: nginx:alpine
+    container_name: ees-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    restart: unless-stopped
+    depends_on:
+      ees-eval-app:
+        condition: service_healthy
+    networks:
+      - ees-network
+
+  # Certbot SSL 자동 갱신 데몬 (12시간마다 갱신 시도)
+  ees-certbot:
+    image: certbot/certbot:latest
+    container_name: ees-certbot
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+    networks:
+      - ees-network
+
+networks:
+  ees-network:
+    driver: bridge

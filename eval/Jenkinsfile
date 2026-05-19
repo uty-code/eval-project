@@ -58,14 +58,17 @@ pipeline {
                         verbose: true,
                         transfers: [
                           sshTransfer(
-                            sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh',
+                            sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh, eval/nginx/nginx.conf, eval/nginx/nginx-ssl.conf, eval/init-ssl.sh',
                             removePrefix: 'eval',
                             remoteDirectory: 'ees-app',
                             execCommand: '''
-                              set -x
+                              set +x
                               set -e
                             ''' + "\nTAG='${TAG}'\n" + '''
                               cd ~/ees-app
+
+                              # Nginx 및 Certbot용 호스트 볼륨 디렉토리 생성
+                              mkdir -p /etc/letsencrypt /var/www/certbot nginx
                               
                               # 처음 배포 시 .env 파일 복사
                               if [ ! -f .env ]; then
