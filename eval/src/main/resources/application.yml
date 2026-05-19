@@ -47,7 +47,7 @@ management:
 spring:
   # active 프로필 설정 필수화 (미지정 시 구동 실패 처리)
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:local}
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   lifecycle:
     timeout-per-shutdown-phase: 30s
   threads:
@@ -91,7 +91,7 @@ spring:
   datasource:
     url: jdbc:sqlserver://211.232.94.161:1533;databaseName=SKUEDU;encrypt=true;trustServerCertificate=true;
     username: SKUEDU01
-    password: ${DEV_DB_PASSWORD}
+    password: ${DEV_DB_PASSWORD:init000!}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   docker:
     compose:

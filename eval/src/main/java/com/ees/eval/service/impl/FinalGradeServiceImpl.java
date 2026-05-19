@@ -78,29 +78,46 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                 .distinct()
                 .collect(Collectors.toList());
         
-        List<Employee> targetEmployees = employeeMapper.findByIds(targetEvaluateeIds);
+        // MSSQL 2100 파라미터 방어: 타겟 사원 정보 조회 시 Chunking 적용
+        List<Employee> targetEmployees = new java.util.ArrayList<>();
+        int chunkSize = 1000;
+        for (int i = 0; i < targetEvaluateeIds.size(); i += chunkSize) {
+            targetEmployees.addAll(employeeMapper.findByIds(targetEvaluateeIds.subList(i, Math.min(i + chunkSize, targetEvaluateeIds.size()))));
+        }
         List<Long> targetDeptIds = targetEmployees.stream()
                 .map(Employee::getDeptId)
                 .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toList());
 
-        // 해당 부서에 속한 전체 인원을 모수로 산정하기 위해 ID 수집
+        // 해당 부서들에 속한 전체 인원을 모수로 산정하기 위해 ID 수집 (N+1 최적화 - 단일 쿼리)
         List<Long> evaluateeIds = new ArrayList<>();
-        for (Long deptId : targetDeptIds) {
-            evaluateeIds.addAll(employeeMapper.findByDeptId(deptId).stream()
-                    .map(Employee::getEmpId)
-                    .collect(Collectors.toList()));
+        if (!targetDeptIds.isEmpty()) {
+            // MSSQL 2100 파라미터 방어: 부서 ID 기반 사원 조회 시 Chunking 적용
+            for (int i = 0; i < targetDeptIds.size(); i += chunkSize) {
+                evaluateeIds.addAll(employeeMapper.findByDeptIds(targetDeptIds.subList(i, Math.min(i + chunkSize, targetDeptIds.size()))).stream()
+                        .map(Employee::getEmpId)
+                        .collect(Collectors.toList()));
+            }
         }
         // 원래 타겟도 확실히 포함
         evaluateeIds.addAll(targetEvaluateeIds);
         evaluateeIds = evaluateeIds.stream().distinct().collect(Collectors.toList());
 
-        Map<Long, Employee> employeeMap = employeeMapper.findByIds(evaluateeIds).stream()
+        // MSSQL 2100 파라미터 방어: 전체 모수 사원 조회 시 Chunking 적용
+        List<Employee> allEmployees = new java.util.ArrayList<>();
+        for (int i = 0; i < evaluateeIds.size(); i += chunkSize) {
+            allEmployees.addAll(employeeMapper.findByIds(evaluateeIds.subList(i, Math.min(i + chunkSize, evaluateeIds.size()))));
+        }
+        Map<Long, Employee> employeeMap = allEmployees.stream()
                 .collect(Collectors.toMap(Employee::getEmpId, e -> e));
 
         // 2. 전체 모수의 모든 매핑 정보 벌크 조회
-        List<EvaluatorMapping> allMappingsForEvaluatees = mappingMapper.findByEvaluateeIds(periodId, evaluateeIds);
+        // MSSQL 2100 파라미터 방어: 매핑 조회 시 Chunking 적용
+        List<EvaluatorMapping> allMappingsForEvaluatees = new java.util.ArrayList<>();
+        for (int i = 0; i < evaluateeIds.size(); i += chunkSize) {
+            allMappingsForEvaluatees.addAll(mappingMapper.findByEvaluateeIds(periodId, evaluateeIds.subList(i, Math.min(i + chunkSize, evaluateeIds.size()))));
+        }
 
         Map<Long, Long> selfMappingIdMap = allMappingsForEvaluatees.stream()
                 .filter(m -> RelationType.SELF.getCode().equals(m.getRelationTypeCode()))
@@ -124,7 +141,11 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                 .map(EvaluatorMapping::getMappingId)
                 .collect(Collectors.toList());
 
-        List<Evaluation> allEvals = evaluationMapper.findByMappingIds(allRelatedMappingIds);
+        // MSSQL 2100 파라미터 방어: 평가 데이터 조회 시 Chunking 적용
+        List<Evaluation> allEvals = new java.util.ArrayList<>();
+        for (int i = 0; i < allRelatedMappingIds.size(); i += chunkSize) {
+            allEvals.addAll(evaluationMapper.findByMappingIds(allRelatedMappingIds.subList(i, Math.min(i + chunkSize, allRelatedMappingIds.size()))));
+        }
         Map<Long, List<Evaluation>> evalGroupMap = allEvals.stream()
                 .collect(Collectors.groupingBy(Evaluation::getMappingId));
 

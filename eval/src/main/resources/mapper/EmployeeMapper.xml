@@ -156,7 +156,12 @@
         left join positions_51   p on e.position_id = p.position_id and p.is_deleted = 'n'
         <where>
             <if test="searchName != null and searchName != ''">
-                and (e.name like '%' + #{searchName} + '%' or cast(e.emp_id as varchar(50)) like '%' + #{searchName} + '%')
+                and (
+                    e.name like '%' + #{searchName} + '%'
+                    <if test="searchName.matches('^[0-9]+$')">
+                        or e.emp_id = CAST(#{searchName} AS BIGINT)
+                    </if>
+                )
             </if>
             <if test="searchDeptId != null">
                 and e.dept_id = #{searchDeptId}
@@ -186,7 +191,12 @@
         from employees_51 e
         <where>
             <if test="searchName != null and searchName != ''">
-                and (e.name like '%' + #{searchName} + '%' or cast(e.emp_id as varchar(50)) like '%' + #{searchName} + '%')
+                and (
+                    e.name like '%' + #{searchName} + '%'
+                    <if test="searchName.matches('^[0-9]+$')">
+                        or e.emp_id = CAST(#{searchName} AS BIGINT)
+                    </if>
+                )
             </if>
             <if test="searchDeptId != null">
                 and e.dept_id = #{searchDeptId}
@@ -228,6 +238,34 @@
             e.updated_by   as UPDATED_BY
         from employees_51 e
         where e.dept_id = #{deptId}
+          and e.is_deleted = 'n'
+        order by e.emp_id asc
+    </select>
+
+    <!-- [성능 최적화] 다수의 부서에 소속된 활성 사원 목록 한 번에 조회 -->
+    <select id="findByDeptIds" resultType="com.ees.eval.domain.Employee">
+        select
+            e.emp_id       as EMP_ID,
+            e.dept_id      as DEPT_ID,
+            e.position_id  as POSITION_ID,
+            e.password     as PASSWORD,
+            e.name         as NAME,
+            e.email        as EMAIL,
+            e.phone        as PHONE,
+            e.status_code  as STATUS_CODE,
+            e.hire_date    as HIRE_DATE,
+            e.retire_date  as RETIRE_DATE,
+            e.is_deleted   as IS_DELETED,
+            e.version      as VERSION,
+            e.created_at   as CREATED_AT,
+            e.created_by   as CREATED_BY,
+            e.updated_at   as UPDATED_AT,
+            e.updated_by   as UPDATED_BY
+        from employees_51 e
+        where e.dept_id in
+        <foreach item="id" collection="deptIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
           and e.is_deleted = 'n'
         order by e.emp_id asc
     </select>

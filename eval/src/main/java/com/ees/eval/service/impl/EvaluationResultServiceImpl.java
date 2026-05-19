@@ -77,8 +77,13 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
             return Collections.emptyList();
         }
 
-        // 3. 사원 정보 벌크 조회 (1회 쿼리)
-        Map<Long, Employee> employeeMap = employeeMapper.findByIds(evaluateeIds).stream()
+        // 3. 사원 정보 벌크 조회 (1회 쿼리, MSSQL 2100 제한 Chunking)
+        List<Employee> allEmployees = new java.util.ArrayList<>();
+        int chunkSize = 1000;
+        for (int i = 0; i < evaluateeIds.size(); i += chunkSize) {
+            allEmployees.addAll(employeeMapper.findByIds(evaluateeIds.subList(i, Math.min(i + chunkSize, evaluateeIds.size()))));
+        }
+        Map<Long, Employee> employeeMap = allEmployees.stream()
                 .collect(Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
 
         // 4. 필터 적용 (부서 + 검색어)
@@ -141,7 +146,12 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
 
         // --- 부족한 데이터 보충 (단건 조회 시 등을 위해) ---
         if (employeeMap == null) {
-            employeeMap = employeeMapper.findByIds(evaluateeIds).stream()
+            List<Employee> allEmployees = new java.util.ArrayList<>();
+            int chunkSize = 1000;
+            for (int i = 0; i < evaluateeIds.size(); i += chunkSize) {
+                allEmployees.addAll(employeeMapper.findByIds(evaluateeIds.subList(i, Math.min(i + chunkSize, evaluateeIds.size()))));
+            }
+            employeeMap = allEmployees.stream()
                     .collect(Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
         }
 
@@ -184,8 +194,15 @@ public class EvaluationResultServiceImpl implements EvaluationResultService {
                 .collect(Collectors.groupingBy(m -> m.getPeriodId() + "_" + m.getEvaluateeId()));
 
         List<Long> allMappingIds = allMappings.stream().map(EvaluatorMapping::getMappingId).collect(Collectors.toList());
-        Map<Long, List<Evaluation>> evalGroupMap = !allMappingIds.isEmpty()
-                ? evaluationMapper.findByMappingIds(allMappingIds).stream().collect(Collectors.groupingBy(Evaluation::getMappingId))
+        List<Evaluation> fetchedEvals = new java.util.ArrayList<>();
+        if (!allMappingIds.isEmpty()) {
+            int chunkSize = 1000;
+            for (int i = 0; i < allMappingIds.size(); i += chunkSize) {
+                fetchedEvals.addAll(evaluationMapper.findByMappingIds(allMappingIds.subList(i, Math.min(i + chunkSize, allMappingIds.size()))));
+            }
+        }
+        Map<Long, List<Evaluation>> evalGroupMap = !fetchedEvals.isEmpty()
+                ? fetchedEvals.stream().collect(Collectors.groupingBy(Evaluation::getMappingId))
                 : Collections.emptyMap();
 
         // 피평가자 ID + 차수 ID의 고유한 키 조합 추출 (중복 제거)

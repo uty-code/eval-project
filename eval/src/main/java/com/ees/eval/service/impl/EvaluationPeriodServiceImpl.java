@@ -41,6 +41,9 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
     private final EvaluatorMappingService mappingService;
     private final com.ees.eval.mapper.EvaluationMapper evaluationMapper;
     private final com.ees.eval.mapper.FinalGradeMapper finalGradeMapper;
+    private final com.ees.eval.mapper.EvaluationTypeWeightMapper typeWeightMapper;
+    private final com.ees.eval.mapper.EvaluationElementMapper elementMapper;
+    private final com.ees.eval.mapper.EvaluationGradeRatioMapper gradeRatioMapper;
 
     /** 상태 코드 상수 정의 */
     private static final String STATUS_PLANNED = "PLANNED";
@@ -213,6 +216,16 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
     private void validateAllWeightsConfigured(Long periodId) {
         List<String> invalidScopes = new ArrayList<>();
 
+        // N+1 폭탄 방어: 전체 가중치 및 평가요소 벌크 조회 후 In-Memory 검증
+        List<com.ees.eval.domain.EvaluationTypeWeight> allWeights = typeWeightMapper.findAllByPeriodId(periodId);
+        List<com.ees.eval.domain.EvaluationElement> allElements = elementMapper.findAllByPeriodId(periodId);
+
+        // 부서별 가중치/요소 맵 구성 (전사 공통은 -1L로 저장)
+        java.util.Map<Long, List<com.ees.eval.domain.EvaluationTypeWeight>> weightMap = allWeights.stream()
+                .collect(Collectors.groupingBy(w -> w.getDeptId() != null ? w.getDeptId() : -1L));
+        java.util.Map<Long, List<com.ees.eval.domain.EvaluationElement>> elementMap = allElements.stream()
+                .collect(Collectors.groupingBy(e -> e.getDeptId() != null ? e.getDeptId() : -1L));
+
         // 모든 부서별 가중치 검증 (부서 자체 설정이 100%여야 함)
         List<DepartmentDTO> allDepts = departmentService.getSimpleAllDepartments();
         for (DepartmentDTO dept : allDepts) {
@@ -221,8 +234,9 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
                 continue;
             }
 
-            boolean isStaffValid = typeWeightService.isWeightSumValid(periodId, dept.deptId(), "STAFF");
-            boolean isLeaderValid = typeWeightService.isWeightSumValid(periodId, dept.deptId(), "LEADER");
+            Long deptId = dept.deptId();
+            boolean isStaffValid = isWeightValidInMemory(deptId, "STAFF", weightMap, elementMap);
+            boolean isLeaderValid = isWeightValidInMemory(deptId, "LEADER", weightMap, elementMap);
             
             if (!isStaffValid || !isLeaderValid) {
                 // 부서의 가중치가 100%가 아니면 (미설정 포함) 에러 목록에 추가
@@ -248,6 +262,11 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
     private void validateAllGradeRatiosConfigured(Long periodId) {
         List<String> invalidScopes = new ArrayList<>();
 
+        // N+1 폭탄 방어: 전체 등급 비율 벌크 조회 후 In-Memory 검증
+        List<com.ees.eval.dto.EvaluationGradeRatioDTO> allRatios = gradeRatioMapper.findByPeriodId(periodId);
+        java.util.Map<Long, com.ees.eval.dto.EvaluationGradeRatioDTO> ratioMap = allRatios.stream()
+                .collect(Collectors.toMap(r -> r.deptId() != null ? r.deptId() : -1L, r -> r, (a, b) -> a));
+
         // 모든 부서별 등급 비율 검증
         List<DepartmentDTO> allDepts = departmentService.getSimpleAllDepartments();
         for (DepartmentDTO dept : allDepts) {
@@ -256,7 +275,20 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
                 continue;
             }
 
-            boolean isRatioValid = gradeRatioService.isGradeRatioValid(periodId, dept.deptId());
+            boolean isRatioValid = false;
+            com.ees.eval.dto.EvaluationGradeRatioDTO ratio = ratioMap.get(dept.deptId());
+            if (ratio == null) {
+                ratio = ratioMap.get(-1L); // 공통 설정 Fallback
+            }
+            if (ratio != null) {
+                int total = 0;
+                total += ratio.gradeSRatio() != null ? ratio.gradeSRatio() : 0;
+                total += ratio.gradeARatio() != null ? ratio.gradeARatio() : 0;
+                total += ratio.gradeBRatio() != null ? ratio.gradeBRatio() : 0;
+                total += ratio.gradeCRatio() != null ? ratio.gradeCRatio() : 0;
+                total += ratio.gradeDRatio() != null ? ratio.gradeDRatio() : 0;
+                isRatioValid = total == 100;
+            }
             
             if (!isRatioValid) {
                 invalidScopes.add(dept.deptName());
@@ -269,6 +301,49 @@ public class EvaluationPeriodServiceImpl implements EvaluationPeriodService {
                             String.join(", ", invalidScopes) + "]. " +
                             "해당 부서의 평가요소 관리에서 상대평가 등급별 비율 합계가 100%가 되도록 설정해 주세요.");
         }
+    }
+    private boolean isWeightValidInMemory(
+            Long deptId, String roleCode, 
+            java.util.Map<Long, List<com.ees.eval.domain.EvaluationTypeWeight>> weightMap, 
+            java.util.Map<Long, List<com.ees.eval.domain.EvaluationElement>> elementMap) {
+        
+        List<com.ees.eval.domain.EvaluationTypeWeight> rawWeights = weightMap.getOrDefault(deptId, java.util.Collections.emptyList()).stream()
+                .filter(w -> roleCode.equals(w.getTargetRoleCode())).toList();
+        if (rawWeights.isEmpty()) {
+            rawWeights = weightMap.getOrDefault(-1L, java.util.Collections.emptyList()).stream()
+                    .filter(w -> roleCode.equals(w.getTargetRoleCode())).toList();
+        }
+        
+        if (rawWeights.isEmpty()) {
+            if ("STAFF".equals(roleCode) || "LEADER".equals(roleCode)) return true; // 미설정 기본값 처리 대응 (단일 서비스 로직과 동일하게)
+            return false;
+        }
+
+        java.math.BigDecimal total = rawWeights.stream()
+                .map(com.ees.eval.domain.EvaluationTypeWeight::getWeight)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        if (total.compareTo(new java.math.BigDecimal("100.00")) != 0) {
+            return false;
+        }
+
+        List<com.ees.eval.domain.EvaluationElement> elements = elementMap.getOrDefault(deptId, java.util.Collections.emptyList());
+        if (elements.isEmpty()) {
+            elements = elementMap.getOrDefault(-1L, java.util.Collections.emptyList());
+        }
+
+        for (com.ees.eval.domain.EvaluationTypeWeight tw : rawWeights) {
+            String typeCode = tw.getElementTypeCode();
+            java.math.BigDecimal elementSum = elements.stream()
+                    .filter(e -> typeCode.equals(e.getElementTypeCode()))
+                    .map(com.ees.eval.domain.EvaluationElement::getWeight)
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+            
+            boolean hasElements = elements.stream().anyMatch(e -> typeCode.equals(e.getElementTypeCode()));
+            if (!hasElements || elementSum.compareTo(new java.math.BigDecimal("100.00")) != 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

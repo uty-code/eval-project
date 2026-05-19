@@ -509,193 +509,24 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     public List<MappingAnomalyDTO> checkMappingIntegrity(Long periodId) {
         log.info("평가 매핑 정합성 검사 시작 - periodId: {}", periodId);
 
-        List<Employee> allEmployees = employeeMapper.findAll();
-        List<com.ees.eval.domain.Department> allDepts = departmentMapper.findAll();
-        List<EvaluatorMapping> allMappings = mappingMapper.findAllByPeriodId(periodId);
-
-        // 권한 정보 일괄 조회 (N+1 방지)
-        Map<Long, Set<String>> rolesMap = new java.util.HashMap<>();
-        if (!allEmployees.isEmpty()) {
-            List<Long> empIds = allEmployees.stream().map(Employee::getEmpId).toList();
-            List<Map<String, Object>> rawRoles = employeeMapper.findRoleNamesByEmpIds(empIds);
-
-            for (Map<String, Object> row : rawRoles) {
-                Object empIdObj = row.get("EMP_ID");
-                if (empIdObj == null)
-                    empIdObj = row.get("emp_id");
-
-                Object roleNameObj = row.get("ROLE_NAME");
-                if (roleNameObj == null)
-                    roleNameObj = row.get("role_name");
-
-                if (empIdObj != null && roleNameObj != null) {
-                    try {
-                        Long empId = Long.valueOf(empIdObj.toString());
-                        String roleName = roleNameObj.toString();
-                        rolesMap.computeIfAbsent(empId, k -> new java.util.HashSet<>()).add(roleName);
-                    } catch (Exception e) {
-                        log.warn("권한 정보 파싱 오류: row={}, error={}", row, e.getMessage());
-                    }
-                }
-            }
-        }
-
-        Map<Long, Employee> empMap = allEmployees.stream()
-                .collect(Collectors.toMap(Employee::getEmpId, e -> e));
-
-        Map<Long, com.ees.eval.domain.Department> deptMap = allDepts.stream()
-                .collect(Collectors.toMap(com.ees.eval.domain.Department::getDeptId, d -> d));
-
-        Map<Long, List<EvaluatorMapping>> mappingsByEvaluatee = allMappings.stream()
-                .collect(Collectors.groupingBy(EvaluatorMapping::getEvaluateeId));
-
         List<MappingAnomalyDTO> anomalies = new ArrayList<>();
 
-        // 퇴사자 평가자 중복 보고 방지용 키 세트
-        Set<String> retiredAnomalyKeys = new HashSet<>();
+        // 1. 퇴사한 평가자가 매핑된 케이스 (INFO)
+        anomalies.addAll(mappingMapper.selectRetiredEvaluatorAnomalies(periodId));
 
-        for (EvaluatorMapping m : allMappings) {
-            Employee evaluator = empMap.get(m.getEvaluatorId());
-            if (evaluator != null && !EmployeeStatus.EMPLOYED.getCode().equalsIgnoreCase(evaluator.getStatusCode())) {
+        // 2. 본인 평가(SELF) 누락 케이스 (ERROR)
+        anomalies.addAll(mappingMapper.selectMissingSelfAnomalies(periodId));
 
-                Employee evaluatee = empMap.get(m.getEvaluateeId());
-                // 재직 중(EMPLOYED)인 피평가자만 검사 대상 (퇴사자, 승인대기자 등 제외)
-                if (evaluatee == null || !EmployeeStatus.EMPLOYED.getCode().equalsIgnoreCase(evaluatee.getStatusCode()))
-                    continue;
+        // 3. 1차 부서장 평가(MANAGER) 누락 케이스 (WARNING/INFO)
+        anomalies.addAll(mappingMapper.selectMissingManagerAnomalies(periodId));
 
-                // 동일 피평가자-평가자-관계유형 조합의 중복 anomaly 방지
-                String dedupKey = m.getEvaluateeId() + "_" + m.getEvaluatorId() + "_" + m.getRelationTypeCode();
-                if (retiredAnomalyKeys.contains(dedupKey))
-                    continue;
-                retiredAnomalyKeys.add(dedupKey);
+        // 4. 부서원의 다면 평가(SUBORDINATE) 누락 케이스 (WARNING)
+        anomalies.addAll(mappingMapper.selectMissingSubordinateAnomalies(periodId));
 
-                String deptName = evaluatee.getDeptId() != null && deptMap.containsKey(evaluatee.getDeptId())
-                        ? deptMap.get(evaluatee.getDeptId()).getDeptName()
-                        : "알 수 없음";
+        // 5. 임원 평가(EXECUTIVE) 누락 케이스 (ERROR)
+        anomalies.addAll(mappingMapper.selectMissingExecutiveAnomalies(periodId));
 
-                anomalies.add(MappingAnomalyDTO.builder()
-                        .evaluateeId(evaluatee.getEmpId())
-                        .evaluateeName(evaluatee.getName())
-                        .deptName(deptName)
-                        .anomalyType("RETIRED_EVALUATOR")
-                        .description(String.format("매핑된 %s 평가자(%s)가 퇴사 상태입니다.", m.getRelationTypeCode(),
-                                evaluator.getName()))
-                        .severity("INFO") // [Requirement] 퇴사자로 인한 이슈는 블록 방지를 위해 INFO로 격하
-                        .build());
-            }
-        }
-
-        List<Employee> activeEvaluatees = allEmployees.stream()
-                .filter(e -> EmployeeStatus.EMPLOYED.getCode().equalsIgnoreCase(e.getStatusCode()))
-
-                .toList();
-
-        for (Employee evaluatee : activeEvaluatees) {
-            Long empId = evaluatee.getEmpId();
-            Set<String> roles = rolesMap.getOrDefault(empId, Collections.emptySet());
-
-            // 임원은 피평가자가 될 수 없으므로 검사 대상에서 제외
-            if (roles.contains(SystemRole.ROLE_EXECUTIVE.getCode())) {
-                continue;
-            }
-
-            boolean isExecutiveOrAdmin = roles.contains(SystemRole.ROLE_ADMIN.getCode());
-
-            List<EvaluatorMapping> myMappings = mappingsByEvaluatee.getOrDefault(empId, Collections.emptyList());
-
-            String deptName = evaluatee.getDeptId() != null && deptMap.containsKey(evaluatee.getDeptId())
-                    ? deptMap.get(evaluatee.getDeptId()).getDeptName()
-                    : "알 수 없음";
-
-            if (!isExecutiveOrAdmin) {
-                boolean hasSelf = myMappings.stream().anyMatch(m -> RELATION_SELF.equals(m.getRelationTypeCode()));
-                if (!hasSelf) {
-                    anomalies.add(MappingAnomalyDTO.builder()
-                            .evaluateeId(empId).evaluateeName(evaluatee.getName()).deptName(deptName)
-                            .anomalyType("MISSING_SELF").description("본인 평가 매핑이 누락되었습니다.").severity("ERROR").build());
-                }
-            }
-
-            if (!isExecutiveOrAdmin) {
-                // 부서 미배정 사원 별도 처리
-                if (evaluatee.getDeptId() == null) {
-                    boolean hasManager = myMappings.stream().anyMatch(m -> RELATION_MANAGER.equals(m.getRelationTypeCode()));
-                    if (!hasManager) {
-                        anomalies.add(MappingAnomalyDTO.builder()
-                                .evaluateeId(empId).evaluateeName(evaluatee.getName()).deptName(deptName)
-                                .anomalyType("MISSING_MANAGER").description("부서가 미배정 상태이며, 1차 평가자(부서장) 매핑이 누락되었습니다.")
-                                .severity("INFO").build());
-                    }
-
-                } else {
-                    // 부서장 판별: leader_id가 재직 중인 사원인지도 함께 검증
-                    Long leaderId = deptMap.containsKey(evaluatee.getDeptId())
-                            ? deptMap.get(evaluatee.getDeptId()).getLeaderId()
-                            : null;
-                    boolean isLeader = leaderId != null && empId.equals(leaderId);
-
-                    // 부서장이 퇴사 상태이면 부서장으로 인정하지 않음
-                    if (isLeader) {
-                        Employee leaderEmp = empMap.get(leaderId);
-                        if (leaderEmp == null || !EmployeeStatus.EMPLOYED.getCode().equalsIgnoreCase(leaderEmp.getStatusCode())) {
-                            isLeader = false;
-                        }
-
-                    }
-
-                    if (!isLeader) {
-                        boolean hasManager = myMappings.stream()
-                                .anyMatch(m -> RELATION_MANAGER.equals(m.getRelationTypeCode()));
-                        if (!hasManager) {
-                            // 부서장이 퇴사했거나 지정되지 않은 경우(null) 메시지 차별화 및 등급 격하(INFO)
-                            boolean isLeaderUnassigned = (leaderId == null);
-                            boolean isLeaderRetired = leaderId != null &&
-                                    (empMap.get(leaderId) == null
-                                            || !EmployeeStatus.EMPLOYED.getCode().equalsIgnoreCase(empMap.get(leaderId).getStatusCode()));
-
-                            String desc;
-                            String severity;
-
-                            if (isLeaderRetired) {
-                                desc = "부서장 퇴사 (임원 평가 대체)";
-                                severity = "INFO";
-                            } else if (isLeaderUnassigned) {
-                                desc = "부서장 미지정 (임원 평가 대체)";
-                                severity = "INFO";
-
-                            } else {
-                                desc = "1차 평가자(부서장) 매핑이 누락되었습니다.";
-                                severity = "WARNING";
-                            }
-
-                            anomalies.add(MappingAnomalyDTO.builder()
-                                    .evaluateeId(empId).evaluateeName(evaluatee.getName()).deptName(deptName)
-                                    .anomalyType("MISSING_MANAGER").description(desc).severity(severity).build());
-                        }
-
-                    } else {
-                        long subordinateCount = myMappings.stream()
-                                .filter(m -> RELATION_SUBORDINATE.equals(m.getRelationTypeCode())).count();
-                        if (subordinateCount == 0) {
-                            anomalies.add(MappingAnomalyDTO.builder()
-                                    .evaluateeId(empId).evaluateeName(evaluatee.getName()).deptName(deptName)
-                                    .anomalyType("MISSING_SUBORDINATE").description("다면 평가자(부서원) 매핑이 0명입니다.")
-                                    .severity("WARNING").build());
-                        }
-                    }
-                }
-            }
-
-            boolean hasExecutive = myMappings.stream().anyMatch(m -> RELATION_EXECUTIVE.equals(m.getRelationTypeCode()));
-            if (!hasExecutive && !roles.contains(SystemRole.ROLE_ADMIN.getCode())) {
-                anomalies.add(MappingAnomalyDTO.builder()
-                        .evaluateeId(empId).evaluateeName(evaluatee.getName()).deptName(deptName)
-                        .anomalyType("MISSING_EXECUTIVE").description("최종 평가자(임원) 매핑이 누락되었습니다.").severity("ERROR")
-                        .build());
-            }
-        }
-
-        log.info("평가 매핑 정합성 검사 완료 - 발견된 이상 건수: {}", anomalies.size());
+        log.info("평가 매핑 정합성 검사 완료 - 발견된 DB 스캔 이상 건수: {}", anomalies.size());
         return anomalies;
     }
 
@@ -1344,22 +1175,37 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     public MyEvaluationPageDTO getAdminMyEvaluationDashboardTasks(
             Long periodId, String filterStatus, String keyword, Long filterDeptId, int page, int pageSize) {
 
-        // 1. 전체 SELF 매핑 조회 (evaluator_id 필터 없음)
-        List<EvaluatorMapping> allSelfTasks = mappingMapper.findAllByPeriodIdAndRelationType(periodId, RELATION_SELF);
+        // 1. 매핑 조회 (부서/검색어 DB Push-down 적용하여 메모리 오버패칭 방지)
+        List<EvaluatorMapping> allSelfTasks;
+        if (filterDeptId != null || (keyword != null && !keyword.isEmpty())) {
+            allSelfTasks = mappingMapper.findByPeriodIdAndDeptId(periodId, filterDeptId, keyword).stream()
+                    .filter(m -> RELATION_SELF.equals(m.getRelationTypeCode()))
+                    .collect(Collectors.toList());
+        } else {
+            allSelfTasks = mappingMapper.findAllByPeriodIdAndRelationType(periodId, RELATION_SELF);
+        }
 
         if (allSelfTasks.isEmpty()) {
             return new MyEvaluationPageDTO(Collections.emptyList(), 1, 1, 0, pageSize);
         }
 
-        // 2. 관련 데이터 벌크 조회 (N+1 방지)
+        // 2. 관련 데이터 벌크 조회 (N+1 및 MSSQL 2100 파라미터 방어 Chunking 적용)
         List<Long> mappingIds = allSelfTasks.stream().map(EvaluatorMapping::getMappingId).toList();
-        List<Evaluation> allEvals = evaluationMapper.findByMappingIds(mappingIds);
+        List<Evaluation> allEvals = new java.util.ArrayList<>();
+        int chunkSize = 1000;
+        for (int i = 0; i < mappingIds.size(); i += chunkSize) {
+            allEvals.addAll(evaluationMapper.findByMappingIds(mappingIds.subList(i, Math.min(i + chunkSize, mappingIds.size()))));
+        }
         Map<Long, List<Evaluation>> evalGroupMap = allEvals.stream()
                 .collect(Collectors.groupingBy(Evaluation::getMappingId));
 
-        // 피평가자들의 부서 정보를 알아내기 위한 사원 벌크 조회
+        // 피평가자들의 부서 정보를 알아내기 위한 사원 벌크 조회 (Chunking 적용)
         List<Long> evaluateeIds = allSelfTasks.stream().map(EvaluatorMapping::getEvaluateeId).distinct().toList();
-        Map<Long, Employee> employeeMap = employeeMapper.findByIds(evaluateeIds).stream()
+        List<Employee> allEmployees = new java.util.ArrayList<>();
+        for (int i = 0; i < evaluateeIds.size(); i += chunkSize) {
+            allEmployees.addAll(employeeMapper.findByIds(evaluateeIds.subList(i, Math.min(i + chunkSize, evaluateeIds.size()))));
+        }
+        Map<Long, Employee> employeeMap = allEmployees.stream()
                 .collect(Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
 
         // 부서 필터링 적용 (어드민에 의해서만 유효하게 들어올 수 있음)
@@ -1486,22 +1332,38 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     public com.ees.eval.dto.MultiDimensionalEvalPageDTO getAdminMultiDimensionalTasks(
             Long periodId, Long filterDeptId, String filterStatus, String keyword, int page, int pageSize, boolean isPeriodActive) {
 
-        // 1. 전체 SUBORDINATE 매핑 조회 (evaluator_id 필터 없음)
-        List<EvaluatorMapping> allSubTasks = mappingMapper.findAllByPeriodIdAndRelationType(periodId, RELATION_SUBORDINATE);
+        // 1. 매핑 조회 (부서/검색어 DB Push-down 적용하여 메모리 오버패칭 방지)
+        List<EvaluatorMapping> allSubTasks;
+        if (filterDeptId != null || (keyword != null && !keyword.isEmpty())) {
+            allSubTasks = mappingMapper.findByPeriodIdAndDeptId(periodId, filterDeptId, keyword).stream()
+                    .filter(m -> RELATION_SUBORDINATE.equals(m.getRelationTypeCode()))
+                    .collect(Collectors.toList());
+        } else {
+            allSubTasks = mappingMapper.findAllByPeriodIdAndRelationType(periodId, RELATION_SUBORDINATE);
+        }
 
         if (allSubTasks.isEmpty()) {
             return new com.ees.eval.dto.MultiDimensionalEvalPageDTO(Collections.emptyList(), 1, 1, 0, pageSize);
         }
 
-        // 2. 벌크 조회
+        // 2. 벌크 조회 (MSSQL 2100 파라미터 방어 Chunking 적용)
         List<Long> evaluateeIds = allSubTasks.stream().map(EvaluatorMapping::getEvaluateeId).distinct().toList();
-        Map<Long, Employee> evaluateeMap = employeeMapper.findByIds(evaluateeIds).stream()
+        List<Employee> allEmployeesSub = new java.util.ArrayList<>();
+        int chunkSize = 1000;
+        for (int i = 0; i < evaluateeIds.size(); i += chunkSize) {
+            allEmployeesSub.addAll(employeeMapper.findByIds(evaluateeIds.subList(i, Math.min(i + chunkSize, evaluateeIds.size()))));
+        }
+        Map<Long, Employee> evaluateeMap = allEmployeesSub.stream()
                 .collect(Collectors.toMap(Employee::getEmpId, e -> e, (a, b) -> a));
 
         List<Long> allMappingIds = allSubTasks.stream().map(EvaluatorMapping::getMappingId).toList();
         Map<Long, List<Evaluation>> evalGroupMap = new HashMap<>();
         if (!allMappingIds.isEmpty()) {
-            evalGroupMap = evaluationMapper.findByMappingIds(allMappingIds).stream()
+            List<Evaluation> allEvalsSub = new java.util.ArrayList<>();
+            for (int i = 0; i < allMappingIds.size(); i += chunkSize) {
+                allEvalsSub.addAll(evaluationMapper.findByMappingIds(allMappingIds.subList(i, Math.min(i + chunkSize, allMappingIds.size()))));
+            }
+            evalGroupMap = allEvalsSub.stream()
                     .collect(Collectors.groupingBy(Evaluation::getMappingId));
         }
 

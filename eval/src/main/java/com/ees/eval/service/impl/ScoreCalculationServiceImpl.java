@@ -190,8 +190,12 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
                 
         if (empIdsInDept.isEmpty()) return;
 
-        // 실제 평가 대상자로 등록된 인원만 대상 모수로 산정
-        List<EvaluatorMapping> allMappingsInDept = mappingMapper.findByEvaluateeIds(periodId, empIdsInDept);
+        // MSSQL 2100 파라미터 방어: 부서 내 사원 매핑 조회 시 Chunking 적용
+        List<EvaluatorMapping> allMappingsInDept = new java.util.ArrayList<>();
+        int chunkSize = 1000;
+        for (int i = 0; i < empIdsInDept.size(); i += chunkSize) {
+            allMappingsInDept.addAll(mappingMapper.findByEvaluateeIds(periodId, empIdsInDept.subList(i, Math.min(i + chunkSize, empIdsInDept.size()))));
+        }
         List<EvaluatorMapping> mappings = allMappingsInDept.stream()
                 .filter(m -> "EXECUTIVE".equals(m.getRelationTypeCode()))
                 .collect(Collectors.toList());
@@ -211,10 +215,13 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
 
         Set<Long> submittedMappingIds = new HashSet<>();
         if (!execMappingIds.isEmpty()) {
-            evaluationMapper.findByMappingIds(execMappingIds).stream()
-                    .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
-                    .map(Evaluation::getMappingId)
-                    .forEach(submittedMappingIds::add);
+            // MSSQL 2100 파라미터 방어: 평가 제출 상태 확인을 위한 조회 Chunking
+            for (int i = 0; i < execMappingIds.size(); i += chunkSize) {
+                evaluationMapper.findByMappingIds(execMappingIds.subList(i, Math.min(i + chunkSize, execMappingIds.size()))).stream()
+                        .filter(e -> "SUBMITTED".equals(e.getConfirmStatusCode()))
+                        .map(Evaluation::getMappingId)
+                        .forEach(submittedMappingIds::add);
+            }
         }
 
         Set<Long> execCompletedEmpIds = mappings.stream()
@@ -381,8 +388,12 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
         subDeptIds.add(parentDeptId); // 본부(부모 부서) 소속 팀장도 있을 수 있으므로 추가
 
         List<FinalGrade> allGrades = new ArrayList<>();
-        for (Long subDeptId : subDeptIds) {
-            allGrades.addAll(finalGradeMapper.findByPeriodIdAndDeptId(periodId, subDeptId));
+        if (!subDeptIds.isEmpty()) {
+            // MSSQL 2100 파라미터 방어: 부서 목록 Chunking 적용
+            int chunkSize = 1000;
+            for (int i = 0; i < subDeptIds.size(); i += chunkSize) {
+                allGrades.addAll(finalGradeMapper.findByPeriodIdAndDeptIds(periodId, subDeptIds.subList(i, Math.min(i + chunkSize, subDeptIds.size()))));
+            }
         }
 
         // 이들 중 제출 완료자이면서 점수가 있는 팀장들만 추림

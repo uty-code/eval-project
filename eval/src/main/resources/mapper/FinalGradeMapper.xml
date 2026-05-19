@@ -96,6 +96,23 @@
         </if>
     </select>
 
+    <select id="findByPeriodIdAndDeptIds" resultMap="FinalGradeResultMap">
+        SELECT fg.*
+        FROM final_grades_51 fg
+        JOIN employees_51 e ON fg.emp_id = e.emp_id
+        WHERE fg.is_deleted = 'n'
+          AND e.is_deleted = 'n'
+        <if test="periodId != null">
+          AND fg.period_id = #{periodId}
+        </if>
+        <if test="deptIds != null and !deptIds.isEmpty()">
+          AND e.dept_id IN
+          <foreach collection="deptIds" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
+        </if>
+    </select>
+
     <delete id="deleteByPeriodId">
         DELETE FROM final_grades_51
         WHERE period_id = #{periodId}

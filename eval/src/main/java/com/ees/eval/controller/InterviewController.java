@@ -99,7 +99,7 @@ public class InterviewController {
                     targetMappingId = evaluateeToManagerMappingId.getOrDefault(m.evaluateeId(), m.mappingId());
                 }
                 InterviewDTO interview = interviewMap.get(targetMappingId);
-                String combinedContent = getCombinedContent(interview);
+                String previewContent = getPreviewContent(interview);
                 return InterviewTaskDTO.builder()
                         .mappingId(m.mappingId()) // UI 액션 링크 유지를 위해 본인 매핑 ID 사용
                         .empId(m.evaluateeId())
@@ -108,7 +108,7 @@ public class InterviewController {
                         .titleName(m.titleName())
                         .relationTypeCode(m.relationTypeCode())
                         .statusCode(interview != null ? interview.statusCode() : "NOT_STARTED")
-                        .contentSnippet(combinedContent.length() > 50 ? combinedContent.substring(0, 50) + "..." : combinedContent.trim())
+                        .contentSnippet(previewContent.length() > 50 ? previewContent.substring(0, 50) + "..." : previewContent.trim())
                         .build();
             }).collect(Collectors.toList());
 
@@ -122,7 +122,7 @@ public class InterviewController {
 
             List<InterviewTaskDTO> myResults = isHighRank ? java.util.Collections.emptyList() : receivedTasks.stream().map(m -> {
                 InterviewDTO interview = interviewMap.get(m.mappingId());
-                String combinedContent = getCombinedContent(interview);
+                String previewContent = getPreviewContent(interview);
                 com.ees.eval.dto.EmployeeDTO evaluator = employeeService.getEmployeeById(m.evaluatorId());
                 return InterviewTaskDTO.builder()
                         .mappingId(m.mappingId())
@@ -132,7 +132,7 @@ public class InterviewController {
                         .titleName(evaluator.positionName())
                         .relationTypeCode(m.relationTypeCode())
                         .statusCode(interview != null ? interview.statusCode() : "NOT_STARTED")
-                        .contentSnippet(combinedContent.length() > 50 ? combinedContent.substring(0, 50) + "..." : combinedContent.trim())
+                        .contentSnippet(previewContent.length() > 50 ? previewContent.substring(0, 50) + "..." : previewContent.trim())
                         .build();
             }).collect(Collectors.toList());
 
@@ -142,12 +142,9 @@ public class InterviewController {
         return "eval/interview/list";
     }
 
-    private String getCombinedContent(InterviewDTO interview) {
+    private String getPreviewContent(InterviewDTO interview) {
         if (interview == null) return "";
-        return (interview.content1() != null ? interview.content1() : "") + " " +
-               (interview.content2() != null ? interview.content2() : "") + " " +
-               (interview.content3() != null ? interview.content3() : "") + " " +
-               (interview.content4() != null ? interview.content4() : "");
+        return interview.content1() != null ? interview.content1() : "";
     }
 
     @GetMapping("/form")

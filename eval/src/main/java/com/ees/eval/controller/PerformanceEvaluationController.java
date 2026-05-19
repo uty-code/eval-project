@@ -61,6 +61,7 @@ public class PerformanceEvaluationController {
     private final DepartmentMapper departmentMapper;
     private final DepartmentService departmentService;
     private final com.ees.eval.support.ui.EvalFilterConfigFactory filterConfigFactory;
+    private final com.ees.eval.service.EvaluationSubmitFacadeService evaluationSubmitFacadeService;
 
     /**
      * 부서별 평가 요소를 캐싱하여 동일 부서에 대한 중복 DB 호출을 방지합니다.
@@ -668,75 +669,21 @@ public class PerformanceEvaluationController {
             return "redirect:/eval/performance/form?mappingId=" + mappingId;
         }
 
-        // 평가 데이터 Upsert 처리
+        // Facade를 통한 단일 트랜잭션 평가 저장 및 등급 재계산 위임
         try {
-            evaluationService.upsertEvaluations(mappingId, params, empId);
+            evaluationSubmitFacadeService.submitAndProcess(
+                    mappingId, params, empId, 
+                    submitMapping.periodId(), submitMapping.evaluateeId(), submitDeptId, 
+                    submitMapping.relationTypeCode(), false
+            );
         } catch (NumberFormatException e) {
             log.warn("[평가제출] 점수 파싱 실패: mappingId={}", mappingId);
             redirectAttributes.addFlashAttribute("errorMessage", "잘못된 점수 형식입니다.");
             return "redirect:/eval/performance/form?mappingId=" + mappingId;
-        }
-
-        // 제출 후 실시간 등급 재계산 로직 추가
-        try {
-            log.info("[등급재계산] 시작 - periodId={}, evaluateeId={}, deptId={}", submitMapping.periodId(), submitMapping.evaluateeId(), submitDeptId);
-            // 1. 총점 계산
-            Integer totalScore = scoreCalculationService.calculateTotalScore(submitMapping.periodId(), submitMapping.evaluateeId());
-            log.info("[등급재계산] 총점 산출 결과: {}", totalScore);
-            
-            if (totalScore != null) {
-                // 2. FinalGrade 업데이트
-                FinalGrade fg = finalGradeMapper.findByPeriodIdAndEmpId(submitMapping.periodId(), submitMapping.evaluateeId())
-                        .orElse(new FinalGrade());
-                
-                log.info("[등급재계산] 기존 FinalGrade 존재 여부: {}", fg.getGradeId() != null);
-            
-            if (fg.getPeriodId() == null) {
-                fg.setPeriodId(submitMapping.periodId());
-                fg.setEmpId(submitMapping.evaluateeId());
-                fg.setTotalScore(totalScore);
-                fg.setFinalGradeCode("-"); 
-                fg.setIsDeleted("n");
-                fg.setVersion(1);
-                fg.setCreatedAt(java.time.LocalDateTime.now());
-                fg.setCreatedBy(empId);
-                fg.setUpdatedAt(java.time.LocalDateTime.now());
-                fg.setUpdatedBy(empId);
-                finalGradeMapper.insert(fg);
-            } else {
-                fg.setTotalScore(totalScore);
-                fg.setUpdatedAt(java.time.LocalDateTime.now());
-                fg.setUpdatedBy(empId);
-                finalGradeMapper.update(fg);
-            }
-
-            // 3. 부서 전체 등급 재산출 (상대평가) - 2차 평가(EXECUTIVE) 완료 시에만 실행
-            // MANAGER/SELF 제출 시에는 1차 점수를 기반으로 잘못된 등급 코드가 DB에 저장되는 것을 방지
-            if (submitDeptId != null && "EXECUTIVE".equals(submitMapping.relationTypeCode())) {
-                boolean isLeader = departmentMapper.countDepartmentsByLeaderId(submitMapping.evaluateeId()) > 0;
-                if (isLeader) {
-                    // 피평가자가 부서장(팀장)인 경우: 소속 부서의 상위 부서(본부) ID를 조회하여 본부 팀장 상대평가 수행
-                    departmentMapper.findById(submitDeptId).ifPresent(dept -> {
-                        if (dept.getParentDeptId() != null) {
-                            log.info("[등급재계산] 본부 내 팀장 상대평가 시작 - parentDeptId={}", dept.getParentDeptId());
-                            scoreCalculationService.calculateRelativeGradesForLeadersInHQ(submitMapping.periodId(), dept.getParentDeptId());
-                            log.info("[등급재계산] 본부 내 팀장 상대평가 완료");
-                        } else {
-                            log.warn("[등급재계산] 팀장이지만 상위 부서(본부)가 없어 본부 내 팀장 상대평가 건너뜀 - deptId={}", submitDeptId);
-                        }
-                    });
-                } else {
-                    // 피평가자가 일반 사원인 경우: 기존처럼 해당 부서 내의 일반 사원 상대평가 수행 (부서장은 자동 제외됨)
-                    log.info("[등급재계산] 부서 상대평가 시작 - deptId={}", submitDeptId);
-                    scoreCalculationService.calculateRelativeGradesForDepartment(submitMapping.periodId(), submitDeptId);
-                    log.info("[등급재계산] 부서 상대평가 완료");
-                }
-            } else if (!"EXECUTIVE".equals(submitMapping.relationTypeCode())) {
-                log.info("[등급재계산] 1차 평가 제출 - 상대평가 등급 재계산 건너뜀 (relationType={})", submitMapping.relationTypeCode());
-            }
-          } // if (totalScore != null) 닫기
         } catch (Exception e) {
-            log.error("[등급재계산] 오류 발생: mappingId={}, error={}", mappingId, e.getMessage(), e);
+            log.error("[평가제출] 트랜잭션 오류 발생 (전체 롤백됨): mappingId={}, error={}", mappingId, e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("errorMessage", "평가 제출 중 오류가 발생했습니다: " + e.getMessage());
+            return "redirect:/eval/performance/form?mappingId=" + mappingId;
         }
 
         // 제출 후 목록 페이지로 이동
