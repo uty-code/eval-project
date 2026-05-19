@@ -94,7 +94,7 @@ pipeline {
                               # 불변 이미지를 기반으로 무중단 배포 및 누적 고아 컨테이너 Prune 처리
                               docker compose --compatibility -f docker-compose.prod.yml up -d --remove-orphans
                               
-                              chmod +x ./deploy_verify.sh ./rollback.sh
+                              chmod +x ./deploy_verify.sh ./rollback.sh ./init-ssl.sh
                               
                               # 검증 실패 시 기동 실패한 컨테이너를 중지하고 롤백 수행
                               timeout 60 ./deploy_verify.sh || (docker compose --compatibility -f docker-compose.prod.yml down || true; ./rollback.sh && exit 1)

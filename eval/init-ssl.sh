@@ -14,14 +14,13 @@ echo "📌 이메일: $EMAIL"
 
 # Certbot webroot 방식으로 인증서 발급
 # Nginx의 80 포트 → /.well-known/acme-challenge/ 경로를 경유
-docker compose -f docker-compose.prod.yml run --rm ees-certbot \
-  certbot certonly --webroot \
+docker compose -f docker-compose.prod.yml run --rm --entrypoint "certbot" ees-certbot \
+  certonly --webroot \
   --webroot-path=/var/www/certbot \
   --email "$EMAIL" \
   --agree-tos \
   --no-eff-email \
-  -d "$DOMAIN" \
-  -d "www.$DOMAIN"
+  -d "$DOMAIN"
 
 echo "✅ 인증서 발급 완료!"
 echo ""
