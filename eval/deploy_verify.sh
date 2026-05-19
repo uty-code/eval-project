@@ -34,11 +34,11 @@ echo "🔍 [검증 3단계] Nginx HTTPS(443) 보안 터널 경유 스프링 헬�
 SUCCESS_VERIFIED=false
 for i in {1..15}
 do
-  # Host 헤더에 도메인을 정밀 이식하여 Nginx SSL 가상호스트 매칭을 유도하고, JSON 바디를 직접 수신
-  RESPONSE_BODY=$(curl -k -s -H "Host: ees-eval.com" https://localhost/internal-monitor/health || true)
-  
-  # HTTP 상태 코드 획득
-  HTTP_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" -H "Host: ees-eval.com" https://localhost/internal-monitor/health || true)
+  # Host 헤더에 도메인을 정밀 이식하여 Nginx SSL 가상호스트 매칭을 유도
+  # 단일 요청으로 바디와 HTTP 상태 코드를 동시에 원자적으로 획득 (타이밍 불일치 방지)
+  RESPONSE=$(curl -k -s -w "\n%{http_code}" -H "Host: ees-eval.com" https://localhost/internal-monitor/health || true)
+  HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+  RESPONSE_BODY=$(echo "$RESPONSE" | sed '$d')
   
   echo "📡 헬스체크 수신 데이터 확인 중... - 응답 코드: $HTTP_STATUS"
   
