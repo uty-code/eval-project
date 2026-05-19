@@ -1,6 +1,13 @@
 pipeline {
     agent any
 
+    options {
+        // [동시성 차단] 다중 배포 간에 발생할 수 있는 레이스 컨디션 및 롤백/태그 꼬임 원천 제거
+        disableConcurrentBuilds()
+        // [행 방지] 도커 푸시나 SSH 커넥션 중단으로 인한 젠킨스 익스큐터 무한 락 영구 예방
+        timeout(time: 20, unit: 'MINUTES')
+    }
+
     environment {
         REGISTRY_USER = 'siujeong'
         IMAGE_NAME = 'ees-eval-app'
@@ -28,10 +35,11 @@ pipeline {
                     '''
                     
                     // 불변 빌드 번호(${TAG}) 이미지를 빌드 및 푸시 (latest는 보조 참조용으로만 운용)
+                    // --pull 옵션을 병렬 주입하여 항상 최신 베이스 이미지의 보안 패치를 반영합니다.
                     dir('eval') {
                         sh '''
                             set -e
-                            docker build -t "$REGISTRY_USER"/"$IMAGE_NAME":"$TAG" .
+                            docker build --pull -t "$REGISTRY_USER"/"$IMAGE_NAME":"$TAG" .
                             docker push "$REGISTRY_USER"/"$IMAGE_NAME":"$TAG"
                             
                             docker tag "$REGISTRY_USER"/"$IMAGE_NAME":"$TAG" "$REGISTRY_USER"/"$IMAGE_NAME":latest
@@ -84,8 +92,8 @@ pipeline {
                               
                               chmod +x ./deploy_verify.sh ./rollback.sh
                               
-                              # [배포 안정성] 검증 시 젠킨스가 무한 루프에 빠지지 않도록 60초 타임아웃 및 꼬임 없는 이미지 기반 롤백 연동
-                              timeout 60 ./deploy_verify.sh || (./rollback.sh && exit 1)
+                              # [배포 안정성] 검증 실패 시 기존 불안정하게 생성된 실패 컨테이너를 완전 다운시키고 롤백하여 Dangling 상태를 원천 차단
+                              timeout 60 ./deploy_verify.sh || (docker compose -f docker-compose.prod.yml down || true; ./rollback.sh && exit 1)
                             '''
                           )
                         ]
@@ -103,7 +111,8 @@ pipeline {
             echo '❌ 배포 실패! 이전 쌩쌩한 안전 버전으로 무결성 이미지 롤백 완료!'
         }
         always {
-            // [정리 고도화] 로컬 캐시 이미지 정리 및 젠킨스 전용 Dangling 이미지 완전 소거
+            // [정리 고도화] 로컬 캐시 이미지 정리, 도커 허브 로그아웃 및 젠킨스 전용 Dangling 이미지 완전 소거
+            sh 'docker logout || true'
             sh "docker rmi ${REGISTRY_USER}/${IMAGE_NAME}:${TAG} || true"
             sh 'docker image prune -f || true'
             cleanWs()
