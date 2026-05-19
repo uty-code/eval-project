@@ -61,7 +61,7 @@ pipeline {
                             removePrefix: 'eval',
                             remoteDirectory: 'ees-app',
                             execCommand: '''
-                              set +x
+                              set -x
                               set -e
                             ''' + "\nTAG='${TAG}'\n" + '''
                               cd ~/ees-app
