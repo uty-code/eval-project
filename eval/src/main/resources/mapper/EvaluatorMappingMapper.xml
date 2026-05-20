@@ -290,7 +290,7 @@
           and not exists (
               select 1 from employee_roles_51 er 
               inner join roles_51 r on er.role_id = r.role_id 
-              where er.emp_id = e.emp_id and r.role_code in ('ROLE_EXECUTIVE', 'ROLE_ADMIN')
+              where er.emp_id = e.emp_id and r.role_name in ('ROLE_EXECUTIVE', 'ROLE_ADMIN')
           )
           and not exists (
               select 1 from evaluator_mappings_51 m
@@ -327,7 +327,7 @@
           and not exists (
               select 1 from employee_roles_51 er 
               inner join roles_51 r on er.role_id = r.role_id 
-              where er.emp_id = e.emp_id and r.role_code in ('ROLE_EXECUTIVE', 'ROLE_ADMIN')
+              where er.emp_id = e.emp_id and r.role_name in ('ROLE_EXECUTIVE', 'ROLE_ADMIN')
           )
           and (
               e.dept_id is null 
@@ -360,7 +360,7 @@
           and not exists (
               select 1 from employee_roles_51 er 
               inner join roles_51 r on er.role_id = r.role_id 
-              where er.emp_id = e.emp_id and r.role_code in ('ROLE_EXECUTIVE', 'ROLE_ADMIN')
+              where er.emp_id = e.emp_id and r.role_name in ('ROLE_EXECUTIVE', 'ROLE_ADMIN')
           )
           and not exists (
               select 1 from evaluator_mappings_51 m
@@ -386,7 +386,7 @@
           and not exists (
               select 1 from employee_roles_51 er 
               inner join roles_51 r on er.role_id = r.role_id 
-              where er.emp_id = e.emp_id and r.role_code in ('ROLE_EXECUTIVE', 'ROLE_ADMIN')
+              where er.emp_id = e.emp_id and r.role_name in ('ROLE_EXECUTIVE', 'ROLE_ADMIN')
           )
           and not exists (
               select 1 from evaluator_mappings_51 m

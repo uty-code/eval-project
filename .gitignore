@@ -54,6 +54,7 @@ bin/
 /.nb-gradle/
 
 # 5. Config & Secrets
+.env
 
 # AI-Ready Agent Metadata & Reports
 ai_ready_report/
