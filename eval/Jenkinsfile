@@ -1,3 +1,5 @@
+def healthCheckFailed = false
+
 pipeline {
     agent any
 
@@ -50,9 +52,8 @@ pipeline {
             }
         }
 
-        stage('Deploy via SSH to Ubuntu') {
+        stage('Remote Deploy') {
             steps {
-                // 서버에 저장된 Docker 인증 정보를 신뢰하여 로그인 과정 생략
                 sshPublisher(publishers: [
                     sshPublisherDesc(configName: 'ees-ubuntu-server', 
                         verbose: true,
@@ -98,14 +99,62 @@ pipeline {
                               docker restart ees-nginx || true
                               
                               chmod +x ./deploy_verify.sh ./rollback.sh ./init-ssl.sh
-                              
-                              # 검증 실패 시 기동 실패한 컨테이너를 중지하고 롤백 수행
-                              timeout 60 ./deploy_verify.sh || (docker compose --compatibility -f docker-compose.prod.yml down || true; ./rollback.sh && exit 1)
                             '''
                           )
                         ]
                     )
                 ])
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                script {
+                    try {
+                        sshPublisher(publishers: [
+                            sshPublisherDesc(configName: 'ees-ubuntu-server', 
+                                verbose: true,
+                                transfers: [
+                                  sshTransfer(
+                                    execCommand: '''
+                                      cd ~/ees-app
+                                      timeout 60 ./deploy_verify.sh
+                                    '''
+                                  )
+                                ]
+                            )
+                        ])
+                    } catch (Exception e) {
+                        echo "⚠️ Health check failed! Marking build for rollback."
+                        healthCheckFailed = true
+                    }
+                }
+            }
+        }
+
+        stage('Rollback') {
+            when {
+                expression { healthCheckFailed }
+            }
+            steps {
+                script {
+                    echo "🚨 Health check failed. Executing Rollback on remote server..."
+                    sshPublisher(publishers: [
+                        sshPublisherDesc(configName: 'ees-ubuntu-server', 
+                            verbose: true,
+                            transfers: [
+                              sshTransfer(
+                                execCommand: '''
+                                  cd ~/ees-app
+                                  docker compose --compatibility -f docker-compose.prod.yml down || true
+                                  ./rollback.sh
+                                '''
+                              )
+                            ]
+                        )
+                    ])
+                    error "Deploy health check failed. Rollback executed successfully."
+                }
             }
         }
     }
