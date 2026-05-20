@@ -249,6 +249,119 @@
 
             <!-- 2. 평가가 시작되었거나 진행 중인 경우 대상자 목록 -->
             <div th:if="${selectedPeriod == null || selectedPeriod.statusCode() != 'PLANNED'}">
+                
+                <!-- 상대평가 등급 배분 및 평가 진척도 모니터링 대시보드 -->
+                <div th:if="${gradeSummaries != null && !gradeSummaries.isEmpty()}" class="row g-3 mb-4">
+                    <div th:each="summary : ${gradeSummaries}" class="col-12 col-lg-6">
+                        <div class="ees-card p-4 h-100" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); border-radius: 12px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-white fw-bold mb-0 d-flex align-items-center">
+                                    <i class="bi bi-bar-chart-fill text-primary me-2 fs-5"></i>
+                                    <span th:text="${summary.groupName() + ' (' + (summary.roleType() == 'leader' ? '부서장 그룹' : '일반사원 그룹') + ')'}">부서명</span>
+                                </h6>
+                                <span class="badge rounded-pill bg-dark text-muted px-3 py-1.5" style="border: 1px solid rgba(255,255,255,0.1); font-size: 0.7rem;" th:text="${'평가 대상: ' + summary.totalEligible() + '명'}">총원</span>
+                            </div>
+                            
+                            <!-- 진행률 프로그레스 바 -->
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between text-muted small mb-1">
+                                    <span>평가 진행률</span>
+                                    <span class="text-primary fw-bold" th:text="${summary.progressRate() + '% (' + summary.completedCount() + '/' + summary.totalEligible() + '명 완료)'}">80%</span>
+                                </div>
+                                <div class="progress" style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                                    <div class="progress-bar" role="progressbar" 
+                                         th:style="'width: ' + ${summary.progressRate()} + '%; background: linear-gradient(90deg, #6366f1, #a855f7); box-shadow: 0 0 12px rgba(168,85,247,0.6);'"
+                                         th:aria-valuenow="${summary.progressRate()}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- 등급별 목표 대비 실제 배정 현황 그리드 -->
+                            <div class="row g-2">
+                                <!-- S등급 -->
+                                <div class="col">
+                                    <div class="text-center p-2.5 rounded" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+                                        <div class="small fw-bold mb-1" style="color: #10b981;">S</div>
+                                        <div class="text-white fw-semibold" style="font-size: 0.85rem;">
+                                            <span th:text="${summary.actualS()}">0</span>
+                                            <span class="text-muted" style="font-size: 0.75rem;">/</span>
+                                            <span class="text-muted" th:text="${summary.targetS()}">0</span>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="status-badge py-0.5 px-2" style="font-size: 0.6rem; border-radius: 10px;"
+                                                  th:styleappend="${summary.actualS() == summary.targetS() ? 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' : (summary.actualS() > summary.targetS() ? 'background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);' : 'background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);')}"
+                                                  th:text="${summary.actualS() == summary.targetS() ? '일치' : (summary.actualS() > summary.targetS() ? '초과' : '미달')}">상태</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- A등급 -->
+                                <div class="col">
+                                    <div class="text-center p-2.5 rounded" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+                                        <div class="small fw-bold mb-1" style="color: #a855f7;">A</div>
+                                        <div class="text-white fw-semibold" style="font-size: 0.85rem;">
+                                            <span th:text="${summary.actualA()}">0</span>
+                                            <span class="text-muted" style="font-size: 0.75rem;">/</span>
+                                            <span class="text-muted" th:text="${summary.targetA()}">0</span>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="status-badge py-0.5 px-2" style="font-size: 0.6rem; border-radius: 10px;"
+                                                  th:styleappend="${summary.actualA() == summary.targetA() ? 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' : (summary.actualA() > summary.targetA() ? 'background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);' : 'background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);')}"
+                                                  th:text="${summary.actualA() == summary.targetA() ? '일치' : (summary.actualA() > summary.targetA() ? '초과' : '미달')}">상태</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- B등급 -->
+                                <div class="col">
+                                    <div class="text-center p-2.5 rounded" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+                                        <div class="small fw-bold mb-1" style="color: #3b82f6;">B</div>
+                                        <div class="text-white fw-semibold" style="font-size: 0.85rem;">
+                                            <span th:text="${summary.actualB()}">0</span>
+                                            <span class="text-muted" style="font-size: 0.75rem;">/</span>
+                                            <span class="text-muted" th:text="${summary.targetB()}">0</span>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="status-badge py-0.5 px-2" style="font-size: 0.6rem; border-radius: 10px;"
+                                                  th:styleappend="${summary.actualB() == summary.targetB() ? 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' : (summary.actualB() > summary.targetB() ? 'background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);' : 'background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);')}"
+                                                  th:text="${summary.actualB() == summary.targetB() ? '일치' : (summary.actualB() > summary.targetB() ? '초과' : '미달')}">상태</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- C등급 -->
+                                <div class="col">
+                                    <div class="text-center p-2.5 rounded" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+                                        <div class="small fw-bold mb-1" style="color: #f59e0b;">C</div>
+                                        <div class="text-white fw-semibold" style="font-size: 0.85rem;">
+                                            <span th:text="${summary.actualC()}">0</span>
+                                            <span class="text-muted" style="font-size: 0.75rem;">/</span>
+                                            <span class="text-muted" th:text="${summary.targetC()}">0</span>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="status-badge py-0.5 px-2" style="font-size: 0.6rem; border-radius: 10px;"
+                                                  th:styleappend="${summary.actualC() == summary.targetC() ? 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' : (summary.actualC() > summary.targetC() ? 'background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);' : 'background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);')}"
+                                                  th:text="${summary.actualC() == summary.targetC() ? '일치' : (summary.actualC() > summary.targetC() ? '초과' : '미달')}">상태</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- D등급 -->
+                                <div class="col">
+                                    <div class="text-center p-2.5 rounded" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px;">
+                                        <div class="small fw-bold mb-1" style="color: #ef4444;">D</div>
+                                        <div class="text-white fw-semibold" style="font-size: 0.85rem;">
+                                            <span th:text="${summary.actualD()}">0</span>
+                                            <span class="text-muted" style="font-size: 0.75rem;">/</span>
+                                            <span class="text-muted" th:text="${summary.targetD()}">0</span>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="status-badge py-0.5 px-2" style="font-size: 0.6rem; border-radius: 10px;"
+                                                  th:styleappend="${summary.actualD() == summary.targetD() ? 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);' : (summary.actualD() > summary.targetD() ? 'background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);' : 'background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);')}"
+                                                  th:text="${summary.actualD() == summary.targetD() ? '일치' : (summary.actualD() > summary.targetD() ? '초과' : '미달')}">상태</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <h5 class="text-white fw-bold mb-3 mt-2"><i class="bi bi-people-fill text-primary me-2"></i>최종 등급 확정 대상자
                 </h5>
 

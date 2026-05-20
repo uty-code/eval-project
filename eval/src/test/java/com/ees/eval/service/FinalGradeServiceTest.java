@@ -58,6 +58,17 @@ class FinalGradeServiceTest {
     private final Long evaluateeId = 2000L;
     private final Long mappingId = 500L;
 
+    @BeforeEach
+    void setUp() {
+        org.mockito.Mockito.lenient()
+                .when(gradeRatioService.getGradeRatioFromMap(any(), any(), any()))
+                .thenAnswer(invocation -> {
+                    Long periodId = invocation.getArgument(1);
+                    Long deptId = invocation.getArgument(2);
+                    return com.ees.eval.dto.EvaluationGradeRatioDTO.defaultRatio(periodId, deptId);
+                });
+    }
+
     @Test
     @DisplayName("should_return_empty_list_when_no_tasks")
     void should_return_empty_list_when_no_tasks() {
@@ -77,6 +88,7 @@ class FinalGradeServiceTest {
         // given
         EvaluatorMapping task = new EvaluatorMapping();
         task.setMappingId(mappingId);
+        task.setPeriodId(periodId);
         task.setEvaluateeId(evaluateeId);
         task.setEvaluateeName("홍길동");
         task.setDeptName("개발팀");
@@ -90,6 +102,7 @@ class FinalGradeServiceTest {
 
         EvaluatorMapping selfMapping = new EvaluatorMapping();
         selfMapping.setMappingId(501L);
+        selfMapping.setPeriodId(periodId);
         selfMapping.setEvaluateeId(evaluateeId);
         selfMapping.setRelationTypeCode("SELF");
         given(mappingMapper.findByEvaluateeIds(eq(periodId), anyList())).willReturn(List.of(task, selfMapping));
@@ -264,9 +277,9 @@ class FinalGradeServiceTest {
         emp2.setEmpId(empId2);
         emp2.setDeptId(10L);
 
-        // findByIds 및 findByDeptId 모킹
+        // findByIds 및 findByDeptIds 모킹
         given(employeeMapper.findByIds(anyList())).willReturn(List.of(emp1, emp2));
-        given(employeeMapper.findByDeptId(eq(10L))).willReturn(List.of(emp1, emp2));
+        given(employeeMapper.findByDeptIds(anyList())).willReturn(List.of(emp1, emp2));
         given(mappingMapper.findByEvaluateeIds(eq(periodId), anyList())).willReturn(List.of(task1, task2));
         given(departmentMapper.findAll()).willReturn(Collections.emptyList());
         given(evaluationMapper.findByMappingIds(anyList())).willReturn(Collections.emptyList());
@@ -306,5 +319,99 @@ class FinalGradeServiceTest {
         // 90점을 획득한 사원A가 S 등급, 80점을 획득한 사원B가 A 등급을 배분받았는지 검증
         assertThat(dtoA.expectedGrade()).isEqualTo("S");
         assertThat(dtoB.expectedGrade()).isEqualTo("A");
+    }
+
+    @Test
+    @DisplayName("should_calculate_grade_distribution_summaries_correctly")
+    void should_calculate_grade_distribution_summaries_correctly() {
+        // given
+        Long empId1 = 2001L;
+        Long empId2 = 2002L;
+
+        EvaluatorMapping task1 = new EvaluatorMapping();
+        task1.setMappingId(501L);
+        task1.setPeriodId(periodId);
+        task1.setEvaluateeId(empId1);
+        task1.setEvaluateeName("사원A");
+        task1.setRelationTypeCode("EXECUTIVE");
+
+        EvaluatorMapping task2 = new EvaluatorMapping();
+        task2.setMappingId(502L);
+        task2.setPeriodId(periodId);
+        task2.setEvaluateeId(empId2);
+        task2.setEvaluateeName("사원B");
+        task2.setRelationTypeCode("EXECUTIVE");
+
+        given(mappingMapper.findByEvaluatorId(eq(periodId), eq(executiveId), anyString())).willReturn(List.of(task1, task2));
+
+        Employee emp1 = new Employee();
+        emp1.setEmpId(empId1);
+        emp1.setDeptId(10L);
+        Employee emp2 = new Employee();
+        emp2.setEmpId(empId2);
+        emp2.setDeptId(10L);
+
+        given(employeeMapper.findByIds(anyList())).willReturn(List.of(emp1, emp2));
+        given(employeeMapper.findByDeptIds(anyList())).willReturn(List.of(emp1, emp2));
+        given(mappingMapper.findByEvaluateeIds(eq(periodId), anyList())).willReturn(List.of(task1, task2));
+        
+        com.ees.eval.domain.Department dept = new com.ees.eval.domain.Department();
+        dept.setDeptId(10L);
+        dept.setDeptName("개발팀");
+        given(departmentMapper.findAll()).willReturn(List.of(dept));
+        
+        given(evaluationMapper.findByMappingIds(anyList())).willReturn(Collections.emptyList());
+        given(elementService.getElementsByPeriodId(any(), any())).willReturn(Collections.emptyList());
+        given(typeWeightService.isWeightSumValid(any(), any(), anyString())).willReturn(true);
+
+        com.ees.eval.domain.FinalGrade fg1 = new com.ees.eval.domain.FinalGrade();
+        fg1.setPeriodId(periodId);
+        fg1.setEmpId(empId1);
+        fg1.setTotalScore(90);
+        
+        com.ees.eval.domain.FinalGrade fg2 = new com.ees.eval.domain.FinalGrade();
+        fg2.setPeriodId(periodId);
+        fg2.setEmpId(empId2);
+        fg2.setTotalScore(80);
+        
+        given(finalGradeMapper.findByPeriodId(eq(periodId))).willReturn(List.of(fg1, fg2));
+
+        // 등급 비율 모킹: S=50%, A=50%
+        com.ees.eval.dto.EvaluationGradeRatioDTO ratio = new com.ees.eval.dto.EvaluationGradeRatioDTO(
+                1L, periodId, 10L, 50, 50, 0, 0, 0
+        );
+        java.util.Map<Long, com.ees.eval.dto.EvaluationGradeRatioDTO> ratioMap = java.util.Map.of(10L, ratio);
+        given(gradeRatioService.getAllRatiosByPeriodMap(eq(periodId))).willReturn(ratioMap);
+        given(gradeRatioService.getGradeRatioFromMap(any(), eq(periodId), eq(10L))).willReturn(ratio);
+
+        // when
+        List<com.ees.eval.dto.GradeDistributionSummaryDTO> result = finalGradeService.getGradeDistributionSummaries(
+                executiveId, new FinalGradeSearchCondition(periodId, null, null, "staff", null), false
+        );
+
+        // then
+        assertThat(result).hasSize(1);
+        com.ees.eval.dto.GradeDistributionSummaryDTO summary = result.get(0);
+        assertThat(summary.groupName()).isEqualTo("개발팀");
+        assertThat(summary.deptId()).isEqualTo(10L);
+        assertThat(summary.roleType()).isEqualTo("staff");
+        assertThat(summary.totalEligible()).isEqualTo(2);
+        assertThat(summary.targetS()).isEqualTo(1);
+        assertThat(summary.targetA()).isEqualTo(1);
+        assertThat(summary.actualS()).isEqualTo(1); // 사원A(90) -> S
+        assertThat(summary.actualA()).isEqualTo(1); // 사원B(80) -> A
+
+        // 추가 검증: 부서 필터(deptId = 10L) 조회 시 해당 부서만 포함되어야 함
+        List<com.ees.eval.dto.GradeDistributionSummaryDTO> filteredResultMatch = finalGradeService.getGradeDistributionSummaries(
+                executiveId, new FinalGradeSearchCondition(periodId, 10L, null, "staff", null), false
+        );
+        assertThat(filteredResultMatch).hasSize(1);
+        assertThat(filteredResultMatch.get(0).deptId()).isEqualTo(10L);
+
+        // 추가 검증: 일치하지 않는 부서 필터(deptId = 99L) 조회 시 빈 목록이어야 함
+        List<com.ees.eval.dto.GradeDistributionSummaryDTO> filteredResultMismatch = finalGradeService.getGradeDistributionSummaries(
+                executiveId, new FinalGradeSearchCondition(periodId, 99L, null, "staff", null), false
+        );
+        assertThat(filteredResultMismatch).isEmpty();
     }
 }

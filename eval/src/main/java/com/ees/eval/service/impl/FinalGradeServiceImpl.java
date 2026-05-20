@@ -6,6 +6,7 @@ import com.ees.eval.domain.EvaluatorMapping;
 import com.ees.eval.domain.FinalGrade;
 import com.ees.eval.dto.EvaluationElementDTO;
 import com.ees.eval.dto.FinalGradeTaskDTO;
+import com.ees.eval.dto.GradeDistributionSummaryDTO;
 import com.ees.eval.mapper.EmployeeMapper;
 import com.ees.eval.mapper.EvaluationMapper;
 import com.ees.eval.mapper.EvaluatorMappingMapper;
@@ -291,8 +292,8 @@ public class FinalGradeServiceImpl implements FinalGradeService {
                     currentPeriodId, pid -> gradeRatioService.getAllRatiosByPeriodMap(pid)
             );
             
-            // 만약 리더 그룹이거나 global인 경우 ratio Query 시 deptId = null로 처리하여 전사 공통 비율 적용
-            Long ratioDeptId = "staff".equals(roleType) ? deptId : null;
+            // 리더 그룹인 경우 본부 ID(deptId)를, 일반 직원은 소속 부서 ID를 사용하여 비율 조회
+            Long ratioDeptId = deptId;
             com.ees.eval.dto.EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatioFromMap(ratioMap, currentPeriodId, ratioDeptId);
             
             double[] exact = {
@@ -670,5 +671,164 @@ public class FinalGradeServiceImpl implements FinalGradeService {
         }
         // 공통 계산 파이프라인 메서드를 호출하여 전체 직원의 최종 등급 현황을 점수 계산 포함하여 계산
         return buildFinalGradeTaskDTOs(periodId, allExecTasks, condition);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDistributionSummaryDTO> getGradeDistributionSummaries(
+            Long executiveEmpId,
+            com.ees.eval.dto.FinalGradeSearchCondition condition,
+            boolean isAdmin) {
+        
+        Long periodId = condition.periodId();
+        if (periodId == null) {
+            return Collections.emptyList();
+        }
+
+        // 1. 대상 매핑 목록 가져오기
+        List<EvaluatorMapping> targetTasks;
+        if (isAdmin) {
+            targetTasks = mappingMapper.findAllByPeriodIdAndRelationType(periodId, RelationType.EXECUTIVE.getCode());
+        } else {
+            targetTasks = mappingMapper.findByEvaluatorId(periodId, executiveEmpId, RelationType.EXECUTIVE.getCode());
+        }
+        if (targetTasks.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. 검색 조건 없는 상태로 buildFinalGradeTaskDTOs를 실행하여 부서/본부 전체 인원 기준 등급 배정 결과를 획득
+        com.ees.eval.dto.FinalGradeSearchCondition baseCondition = new com.ees.eval.dto.FinalGradeSearchCondition(
+                periodId, null, null, condition.tab(), null
+        );
+        List<FinalGradeTaskDTO> allTasks = buildFinalGradeTaskDTOs(periodId, targetTasks, baseCondition);
+
+        // 3. 부서 정보 맵 구성 (부서 ID -> 부서명)
+        List<com.ees.eval.domain.Department> allDepts = departmentMapper.findAll();
+        Map<Long, String> deptNameMap = allDepts.stream()
+                .collect(Collectors.toMap(com.ees.eval.domain.Department::getDeptId, com.ees.eval.domain.Department::getDeptName, (a, b) -> a));
+        Map<Long, Long> parentDeptIdMap = allDepts.stream()
+                .filter(d -> d.getParentDeptId() != null)
+                .collect(Collectors.toMap(com.ees.eval.domain.Department::getDeptId, com.ees.eval.domain.Department::getParentDeptId, (a, b) -> a));
+
+        // 4. 그룹핑 기준에 맞추어 태스크 분류
+        // key: {roleType}_{groupDeptId}
+        Map<String, List<FinalGradeTaskDTO>> groupedTasks = allTasks.stream()
+                .collect(Collectors.groupingBy(task -> {
+                    String roleType = task.isLeader() ? "leader" : "staff";
+                    Long groupDeptId;
+                    if (task.isLeader()) {
+                        groupDeptId = parentDeptIdMap.get(task.deptId());
+                        if (groupDeptId == null) {
+                            groupDeptId = task.deptId(); // 본부 상위가 없으면 본인 부서 ID 사용
+                        }
+                    } else {
+                        groupDeptId = task.deptId();
+                    }
+                    return roleType + "_" + (groupDeptId != null ? groupDeptId : "null");
+                }));
+
+        List<GradeDistributionSummaryDTO> summaries = new ArrayList<>();
+        Map<Long, Map<Long, com.ees.eval.dto.EvaluationGradeRatioDTO>> periodRatioMapCache = new HashMap<>();
+
+        // 5. 각 그룹별로 목표 등급 배분(TO) 산출 및 실제 할당된 예상 등급 집계
+        for (Map.Entry<String, List<FinalGradeTaskDTO>> entry : groupedTasks.entrySet()) {
+            String[] keyParts = entry.getKey().split("_");
+            String roleType = keyParts[0];
+            Long groupDeptId = "null".equals(keyParts[1]) ? null : Long.parseLong(keyParts[1]);
+            List<FinalGradeTaskDTO> groupTasks = entry.getValue();
+
+            int totalEligible = groupTasks.size();
+            if (totalEligible == 0) continue;
+
+            // 해당 그룹의 등급 비율 정보 가져오기
+            Map<Long, com.ees.eval.dto.EvaluationGradeRatioDTO> ratioMap = periodRatioMapCache.computeIfAbsent(
+                    periodId, pid -> gradeRatioService.getAllRatiosByPeriodMap(pid)
+            );
+            com.ees.eval.dto.EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatioFromMap(ratioMap, periodId, groupDeptId);
+
+            // 최대 잔여법(LRM) 목표 등급 수 계산
+            double[] exact = {
+                    totalEligible * ratio.gradeSRatio() / 100.0,
+                    totalEligible * ratio.gradeARatio() / 100.0,
+                    totalEligible * ratio.gradeBRatio() / 100.0,
+                    totalEligible * ratio.gradeCRatio() / 100.0,
+                    totalEligible * ratio.gradeDRatio() / 100.0
+            };
+
+            int[] targets = new int[5];
+            double[] remainders = new double[5];
+            int assigned = 0;
+            for (int i = 0; i < 5; i++) {
+                targets[i] = (int) exact[i];
+                remainders[i] = exact[i] - targets[i];
+                assigned += targets[i];
+            }
+
+            int remaining = totalEligible - assigned;
+            List<Integer> indices = new ArrayList<>(List.of(0, 1, 2, 3, 4));
+            indices.sort((i1, i2) -> Double.compare(remainders[i2], remainders[i1]));
+            for (int i = 0; i < remaining; i++) {
+                targets[indices.get(i)]++;
+            }
+
+            // 실제 부여된 등급 건수 세기
+            int actualS = 0, actualA = 0, actualB = 0, actualC = 0, actualD = 0;
+            int completedCount = 0;
+            for (FinalGradeTaskDTO t : groupTasks) {
+                if (t.allSubmitted()) {
+                    completedCount++;
+                }
+                String grade = t.expectedGrade();
+                if ("S".equals(grade)) actualS++;
+                else if ("A".equals(grade)) actualA++;
+                else if ("B".equals(grade)) actualB++;
+                else if ("C".equals(grade)) actualC++;
+                else if ("D".equals(grade)) actualD++;
+            }
+
+            String groupName = (groupDeptId != null) ? deptNameMap.getOrDefault(groupDeptId, "알 수 없는 부서") : "전사 공통";
+
+            summaries.add(GradeDistributionSummaryDTO.builder()
+                    .groupName(groupName)
+                    .deptId(groupDeptId)
+                    .roleType(roleType)
+                    .targetS(targets[0])
+                    .targetA(targets[1])
+                    .targetB(targets[2])
+                    .targetC(targets[3])
+                    .targetD(targets[4])
+                    .actualS(actualS)
+                    .actualA(actualA)
+                    .actualB(actualB)
+                    .actualC(actualC)
+                    .actualD(actualD)
+                    .totalEligible(totalEligible)
+                    .completedCount(completedCount)
+                    .build());
+        }
+
+        // 부서 필터가 있을 경우 해당 부서만 필터링하여 대시보드에 노출
+        if (condition.deptId() != null) {
+            Long filterDeptId = condition.deptId();
+            Long targetHqId = parentDeptIdMap.get(filterDeptId);
+            if (targetHqId == null) {
+                targetHqId = filterDeptId;
+            }
+            final Long hqId = targetHqId;
+            summaries = summaries.stream()
+                    .filter(s -> {
+                        if ("leader".equals(s.roleType())) {
+                            return hqId.equals(s.deptId());
+                        } else {
+                            return filterDeptId.equals(s.deptId());
+                        }
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        // 정렬: 부서명 가나다 순
+        summaries.sort(Comparator.comparing(GradeDistributionSummaryDTO::groupName, Comparator.nullsLast(String::compareTo)));
+
+        return summaries;
     }
 }

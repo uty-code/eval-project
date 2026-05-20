@@ -356,8 +356,8 @@ public class ScoreCalculationServiceImpl implements ScoreCalculationService {
         int totalEligible = execCompletedEmpIds.size();
         if (totalEligible == 0) return;
 
-        // Q2 결정사항: 전사 공통 등급 비율 (deptId = null) 조회
-        EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatio(periodId, null);
+        // 본인 소속 본부(parentDeptId) 등급 비율 조회 (미설정 시 전사 공통 비율로 자동 폴백)
+        EvaluationGradeRatioDTO ratio = gradeRatioService.getGradeRatio(periodId, parentDeptId);
         double[] exact = {
             totalEligible * ratio.gradeSRatio() / 100.0,
             totalEligible * ratio.gradeARatio() / 100.0,

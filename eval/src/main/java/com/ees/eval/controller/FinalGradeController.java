@@ -168,7 +168,16 @@ public class FinalGradeController {
             long staffCount = tasks.stream().filter(t -> !t.isLeader()).count();
             model.addAttribute("leaderCount", leaderCount);
             model.addAttribute("staffCount", staffCount);
-            
+
+            // 등급 배분 및 진척도 요약 정보 조회
+            List<com.ees.eval.dto.GradeDistributionSummaryDTO> summaries = finalGradeService.getGradeDistributionSummaries(
+                    executiveEmpId, activeCondition, isAdmin
+            );
+            // 현재 활성화된 탭("leader" 또는 "staff")에 매칭되는 정보만 필터링하여 전달
+            List<com.ees.eval.dto.GradeDistributionSummaryDTO> activeSummaries = summaries.stream()
+                    .filter(s -> activeTab.equals(s.roleType()))
+                    .collect(Collectors.toList());
+            model.addAttribute("gradeSummaries", activeSummaries);
         }
 
         // 공통 필터 바 구성 DTO 전달

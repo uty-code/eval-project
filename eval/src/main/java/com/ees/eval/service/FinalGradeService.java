@@ -26,4 +26,17 @@ public interface FinalGradeService {
      * @return 전체 최종 등급 대상 목록
      */
     List<FinalGradeTaskDTO> getAdminFinalGradeTasks(FinalGradeSearchCondition condition);
+
+    /**
+     * 본부/부서별 상대평가 등급 배분 목표(TO)와 실제 부여 현황 및 진척도를 집계합니다.
+     *
+     * @param executiveEmpId 임원(평가자) 사번 (isAdmin이 true인 경우 null 가능)
+     * @param condition      검색 및 필터 조건
+     * @param isAdmin        관리자 여부
+     * @return 각 그룹별 등급 배분 현황 요약 목록
+     */
+    List<com.ees.eval.dto.GradeDistributionSummaryDTO> getGradeDistributionSummaries(
+            Long executiveEmpId,
+            FinalGradeSearchCondition condition,
+            boolean isAdmin);
 }
