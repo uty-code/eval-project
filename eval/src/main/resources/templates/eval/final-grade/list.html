@@ -187,6 +187,15 @@
                 cursor: not-allowed;
                 opacity: 0.8;
             }
+
+            .action-view {
+                background-color: #475569;
+                color: #fff;
+            }
+
+            .action-view:hover {
+                background-color: #334155;
+            }
         </style>
     </th:block>
 </head>
@@ -355,7 +364,7 @@
                                                 <!-- 진행 버튼 -->
                                                 <td>
                                                     <!-- 어드민: 읽기 전용 '조회' (상세 페이지로 이동) -->
-                                                    <a th:if="${isAdminView}" href="#" class="action-btn action-primary"
+                                                    <a th:if="${isAdminView}" href="#" class="action-btn action-view"
                                                         th:attr="hx-get=@{/eval/final-grade/form(mappingId=${task.mappingId()}, tab='leader')}"
                                                         hx-target="#page-content" hx-select="#page-content"
                                                         hx-swap="outerHTML" hx-push-url="true">
