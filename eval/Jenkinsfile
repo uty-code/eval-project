@@ -89,11 +89,6 @@ pipeline {
                                 && sed -i "s/^TAG=.*/TAG=${TAG}/" .env \
                                 || echo "TAG=${TAG}" >> .env
                               
-                              # 모니터링 스크립트용 디스코드 웹훅 환경변수 자동 주입
-                              grep -q "^DISCORD_MONITOR_WEBHOOK=" .env \
-                                && sed -i "s|^DISCORD_MONITOR_WEBHOOK=.*|DISCORD_MONITOR_WEBHOOK=https://discord.com/api/webhooks/1506176441639899136/FhSvPx_7XqnowsenNtH9Eg7WUHH4RT-XVk8yrad9CR--XiDACiiBYreX8T9iW4wWf_dh|" .env \
-                                || echo "DISCORD_MONITOR_WEBHOOK=https://discord.com/api/webhooks/1506176441639899136/FhSvPx_7XqnowsenNtH9Eg7WUHH4RT-XVk8yrad9CR--XiDACiiBYreX8T9iW4wWf_dh" >> .env
-                              
                               # 새 이미지 정밀 pull (원격 서버의 도커 데몬 자동 캐시 인증 가동)
                               docker compose --compatibility -f docker-compose.prod.yml pull
                               
@@ -205,6 +200,7 @@ pipeline {
                     """
 
                     sh """
+                    set +x
                     curl -s -X POST \
                     -H 'Content-Type: application/json' \
                     -d '${payload}' \
