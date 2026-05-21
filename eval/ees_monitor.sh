@@ -49,7 +49,19 @@ fi
 
 # 앱 다운(장애) 체크
 if [ "$HTTP_STATUS" != "200" ]; then
-    ALERTS="$ALERTS\n\n- 🚨 **서비스 장애 감지 (DOWN)**: Spring Boot 애플리케이션이 응답하지 않습니다! (상태 코드: ${HTTP_STATUS})"
+    if [ -f "/home/ubuntu/ees-app/.deploying" ]; then
+        # 파일이 5분 이상 지났는지 체크 (가비지 파일 방지)
+        if test "`find /home/ubuntu/ees-app/.deploying -mmin +5`"; then
+            rm -f /home/ubuntu/ees-app/.deploying
+            ALERTS="$ALERTS\n\n- 🚨 **서비스 장애 감지 (DOWN)**: Spring Boot 애플리케이션이 응답하지 않습니다! (상태 코드: ${HTTP_STATUS})"
+        else
+            ALERTS="$ALERTS\n\n- ℹ️ **배포 진행 중**: 애플리케이션 응답이 없으나 배포 중이므로 알람을 생략합니다."
+            # 배포 중이므로 알람 색상을 빨간색에서 노란색 계열로 변경
+            COLOR=16776960
+        fi
+    else
+        ALERTS="$ALERTS\n\n- 🚨 **서비스 장애 감지 (DOWN)**: Spring Boot 애플리케이션이 응답하지 않습니다! (상태 코드: ${HTTP_STATUS})"
+    fi
 fi
 
 # 알림 보낼 내용이 있으면 Discord로 전송

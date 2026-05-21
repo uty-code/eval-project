@@ -65,4 +65,5 @@ if [ "$SUCCESS_VERIFIED" = false ]; then
 fi
 
 echo "🎉 [COMPLETE] Nginx 보안 레이어 및 스프링 백엔드가 완벽하게 결합되어 가동 중임을 공식 검증 완료했습니다!"
+rm -f .deploying
 

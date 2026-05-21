@@ -89,6 +89,9 @@ pipeline {
                                 && sed -i "s/^TAG=.*/TAG=${TAG}/" .env \
                                 || echo "TAG=${TAG}" >> .env
                               
+                              # 배포 중 모니터링 데몬 오탐지 방지용 플래그 생성
+                              touch .deploying
+                              
                               # 새 이미지 정밀 pull (원격 서버의 도커 데몬 자동 캐시 인증 가동)
                               docker compose --compatibility -f docker-compose.prod.yml pull
                               

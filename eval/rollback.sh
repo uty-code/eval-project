@@ -34,3 +34,4 @@ echo "🔍 [4단계] 롤백 복원된 컨테이너 상태 최종 검증..."
 ./deploy_verify.sh
 
 echo "✅ [ROLLBACK COMPLETE] 이전 안정화 버전($BACKUP_TAG)으로 복구가 완료되었습니다."
+rm -f .deploying
