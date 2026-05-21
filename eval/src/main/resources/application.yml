@@ -34,7 +34,7 @@ server:
 management:
   endpoints:
     web:
-      base-path: /fail-monitor
+      base-path: /internal-monitor
       exposure:
         include: health
   endpoint:
