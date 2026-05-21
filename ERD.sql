@@ -1,58 +1,133 @@
-erDiagram
-    employees_51 {
-        bigint emp_id PK
-        bigint dept_id FK
-        bigint position_id FK
-        varchar password
-        nvarchar name
-        varchar email
-    }
-    departments_51 {
-        bigint dept_id PK
-        bigint parent_dept_id FK
-        bigint leader_id FK
-        nvarchar dept_name
-    }
-    positions_51 {
-        bigint position_id PK
-        nvarchar position_name
-        int hierarchy_level
-        decimal weight_base
-    }
-    evaluation_periods_51 {
-        bigint period_id PK
-        int period_year
-        nvarchar period_name
-        varchar status_code
-    }
-    evaluator_mappings_51 {
-        bigint mapping_id PK
-        bigint period_id FK
-        bigint evaluatee_id FK
-        bigint evaluator_id FK
-        varchar relation_type_code
-    }
-    evaluations_51 {
-        bigint eval_id PK
-        bigint mapping_id FK
-        bigint element_id FK
-        int score
-        nvarchar reason
-        varchar confirm_status_code
-    }
-    final_grades_51 {
-        bigint grade_id PK
-        bigint period_id FK
-        bigint emp_id FK
-        int total_score
-        varchar final_grade_code
-    }
+-- ==========================================
+-- EES (Employee Evaluation System) DDL 스크립트
+-- ==========================================
 
-    departments_51 ||--o{ employees_51 : "contains"
-    positions_51 ||--o{ employees_51 : "assigns"
-    evaluation_periods_51 ||--o{ evaluator_mappings_51 : "belongs"
-    employees_51 ||--o{ evaluator_mappings_51 : "evaluatee"
-    employees_51 ||--o{ evaluator_mappings_51 : "evaluator"
-    evaluator_mappings_51 ||--o{ evaluations_51 : "records"
-    evaluation_periods_51 ||--o{ final_grades_51 : "belongs"
-    employees_51 ||--o{ final_grades_51 : "receives"
+-- 1. departments_51 (부서)
+CREATE TABLE departments_51 (
+    dept_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    parent_dept_id BIGINT NULL,
+    leader_id BIGINT NULL,
+    dept_name NVARCHAR(100) NOT NULL,
+    
+    -- 공통 속성
+    is_deleted CHAR(1) DEFAULT 'n' NOT NULL,
+    version INT DEFAULT 0 NOT NULL,
+    created_at DATETIME DEFAULT GETDATE() NOT NULL,
+    created_by VARCHAR(50) NULL,
+    updated_at DATETIME DEFAULT GETDATE() NOT NULL,
+    updated_by VARCHAR(50) NULL
+);
+
+-- 2. positions_51 (직책/직급)
+CREATE TABLE positions_51 (
+    position_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    position_name NVARCHAR(50) NOT NULL,
+    hierarchy_level INT NOT NULL,
+    weight_base DECIMAL(5,2) NOT NULL,
+    
+    -- 공통 속성
+    is_deleted CHAR(1) DEFAULT 'n' NOT NULL,
+    version INT DEFAULT 0 NOT NULL,
+    created_at DATETIME DEFAULT GETDATE() NOT NULL,
+    created_by VARCHAR(50) NULL,
+    updated_at DATETIME DEFAULT GETDATE() NOT NULL,
+    updated_by VARCHAR(50) NULL
+);
+
+-- 3. employees_51 (사원)
+CREATE TABLE employees_51 (
+    emp_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    dept_id BIGINT NOT NULL,
+    position_id BIGINT NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    name NVARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    
+    -- 공통 속성
+    is_deleted CHAR(1) DEFAULT 'n' NOT NULL,
+    version INT DEFAULT 0 NOT NULL,
+    created_at DATETIME DEFAULT GETDATE() NOT NULL,
+    created_by VARCHAR(50) NULL,
+    updated_at DATETIME DEFAULT GETDATE() NOT NULL,
+    updated_by VARCHAR(50) NULL,
+    
+    FOREIGN KEY (dept_id) REFERENCES departments_51(dept_id),
+    FOREIGN KEY (position_id) REFERENCES positions_51(position_id)
+);
+
+-- 4. evaluation_periods_51 (평가 차수)
+CREATE TABLE evaluation_periods_51 (
+    period_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    period_year INT NOT NULL,
+    period_name NVARCHAR(100) NOT NULL,
+    status_code VARCHAR(20) NOT NULL, -- 예: PLAN, IN_PROGRESS, CLOSED
+    
+    -- 공통 속성
+    is_deleted CHAR(1) DEFAULT 'n' NOT NULL,
+    version INT DEFAULT 0 NOT NULL,
+    created_at DATETIME DEFAULT GETDATE() NOT NULL,
+    created_by VARCHAR(50) NULL,
+    updated_at DATETIME DEFAULT GETDATE() NOT NULL,
+    updated_by VARCHAR(50) NULL
+);
+
+-- 5. evaluator_mappings_51 (평가 관계 매핑)
+CREATE TABLE evaluator_mappings_51 (
+    mapping_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    period_id BIGINT NOT NULL,
+    evaluatee_id BIGINT NOT NULL,
+    evaluator_id BIGINT NOT NULL,
+    relation_type_code VARCHAR(20) NOT NULL, -- 예: SELF, LEADER_1, LEADER_2
+    
+    -- 공통 속성
+    is_deleted CHAR(1) DEFAULT 'n' NOT NULL,
+    version INT DEFAULT 0 NOT NULL,
+    created_at DATETIME DEFAULT GETDATE() NOT NULL,
+    created_by VARCHAR(50) NULL,
+    updated_at DATETIME DEFAULT GETDATE() NOT NULL,
+    updated_by VARCHAR(50) NULL,
+    
+    FOREIGN KEY (period_id) REFERENCES evaluation_periods_51(period_id),
+    FOREIGN KEY (evaluatee_id) REFERENCES employees_51(emp_id),
+    FOREIGN KEY (evaluator_id) REFERENCES employees_51(emp_id)
+);
+
+-- 6. evaluations_51 (평가 결과 제출)
+CREATE TABLE evaluations_51 (
+    eval_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    mapping_id BIGINT NOT NULL,
+    element_id BIGINT NULL,
+    score INT NOT NULL,
+    reason NVARCHAR(500) NULL,
+    confirm_status_code VARCHAR(20) NOT NULL, -- 예: TEMP, SUBMITTED
+    
+    -- 공통 속성
+    is_deleted CHAR(1) DEFAULT 'n' NOT NULL,
+    version INT DEFAULT 0 NOT NULL,
+    created_at DATETIME DEFAULT GETDATE() NOT NULL,
+    created_by VARCHAR(50) NULL,
+    updated_at DATETIME DEFAULT GETDATE() NOT NULL,
+    updated_by VARCHAR(50) NULL,
+    
+    FOREIGN KEY (mapping_id) REFERENCES evaluator_mappings_51(mapping_id)
+);
+
+-- 7. final_grades_51 (최종 등급)
+CREATE TABLE final_grades_51 (
+    grade_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    period_id BIGINT NOT NULL,
+    emp_id BIGINT NOT NULL,
+    total_score INT NOT NULL,
+    final_grade_code VARCHAR(10) NOT NULL, -- 예: S, A, B, C, D
+    
+    -- 공통 속성
+    is_deleted CHAR(1) DEFAULT 'n' NOT NULL,
+    version INT DEFAULT 0 NOT NULL,
+    created_at DATETIME DEFAULT GETDATE() NOT NULL,
+    created_by VARCHAR(50) NULL,
+    updated_at DATETIME DEFAULT GETDATE() NOT NULL,
+    updated_by VARCHAR(50) NULL,
+    
+    FOREIGN KEY (period_id) REFERENCES evaluation_periods_51(period_id),
+    FOREIGN KEY (emp_id) REFERENCES employees_51(emp_id)
+);
