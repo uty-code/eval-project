@@ -59,7 +59,7 @@ pipeline {
                         verbose: true,
                         transfers: [
                           sshTransfer(
-                            sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh, eval/nginx/nginx.conf, eval/nginx/nginx-ssl.conf, eval/init-ssl.sh, eval/ees_monitor.sh',
+                            sourceFiles: 'eval/docker-compose.prod.yml, eval/.env.example, eval/deploy_verify.sh, eval/rollback.sh, eval/nginx/nginx.conf, eval/nginx/nginx-ssl.conf, eval/init-ssl.sh',
                             removePrefix: 'eval',
                             remoteDirectory: 'ees-app',
                             execCommand: '''
@@ -98,9 +98,7 @@ pipeline {
                               # Nginx 볼륨 마운트 설정(nginx.conf) 갱신을 위해 컨테이너 재시작
                               docker restart ees-nginx || true
                               
-                              chmod +x ./deploy_verify.sh ./rollback.sh ./init-ssl.sh ./ees_monitor.sh
-                              # 임계치 테스트 실행
-                              ./ees_monitor.sh || true
+                              chmod +x ./deploy_verify.sh ./rollback.sh ./init-ssl.sh
                             '''
                           )
                         ]

@@ -4,9 +4,9 @@
 WEBHOOK_URL="https://discord.com/api/webhooks/1506178007948066967/DvSwKzcRjeq1txwvy2iCle6NysntjwJhwRUAdvCgEiXF5Pc1ph6FoxMw6OMt5uq5WaJi"
 
 # 임계치 설정 (%)
-CPU_THRESHOLD=-1
-MEM_THRESHOLD=-1
-DISK_THRESHOLD=-1
+CPU_THRESHOLD=80
+MEM_THRESHOLD=85
+DISK_THRESHOLD=90
 
 # 메트릭 수집
 # CPU는 사용자 + 시스템 사용량 합산
