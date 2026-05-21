@@ -163,21 +163,19 @@ pipeline {
         success {
             echo '🚀 EES KT Cloud Ubuntu 서버 배포 및 검증 성공'
             // Discord 성공 알림 발송
-            withCredentials([string(credentialsId: 'discord-webhook-url', variable: 'DISCORD_WEBHOOK')]) {
-                script {
-                    def payload = """{"embeds":[{"title":"✅ EES 빌드 #${env.BUILD_NUMBER} 배포 성공","description":"커밋이 KT Cloud 서버에 성공적으로 배포되었습니다.","color":3066993,"fields":[{"name":"브랜치","value":"main","inline":true},{"name":"이미지 태그","value":"${env.BUILD_NUMBER}","inline":true}]}]}"""
-                    sh "curl -s -X POST -H 'Content-Type: application/json' -d '${payload}' '${DISCORD_WEBHOOK}' || true"
-                }
+            script {
+                def DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1506176441639899136/FhSvPx_7XqnowsenNtH9Eg7WUHH4RT-XVk8yrad9CR--XiDACiiBYreX8T9iW4wWf_dh"
+                def payload = """{"embeds":[{"title":"✅ EES 빌드 #${env.BUILD_NUMBER} 배포 성공","description":"커밋이 KT Cloud 서버에 성공적으로 배포되었습니다.","color":3066993,"fields":[{"name":"브랜치","value":"main","inline":true},{"name":"이미지 태그","value":"${env.BUILD_NUMBER}","inline":true}]}]}"""
+                sh "curl -s -X POST -H 'Content-Type: application/json' -d '${payload}' '${DISCORD_WEBHOOK}' || true"
             }
         }
         failure {
             echo '❌ 배포 실패! 이전 안정 버전으로 롤백되었습니다.'
             // Discord 실패 알림 발송
-            withCredentials([string(credentialsId: 'discord-webhook-url', variable: 'DISCORD_WEBHOOK')]) {
-                script {
-                    def payload = """{"embeds":[{"title":"❌ EES 빌드 #${env.BUILD_NUMBER} 실패","description":"배포에 실패하여 이전 버전으로 롤백되었습니다.","color":15158332,"fields":[{"name":"브랜치","value":"main","inline":true},{"name":"로그 확인","value":"Jenkins 대시보드에서 콘솔 출력을 확인하세요.","inline":false}]}]}"""
-                    sh "curl -s -X POST -H 'Content-Type: application/json' -d '${payload}' '${DISCORD_WEBHOOK}' || true"
-                }
+            script {
+                def DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1506176441639899136/FhSvPx_7XqnowsenNtH9Eg7WUHH4RT-XVk8yrad9CR--XiDACiiBYreX8T9iW4wWf_dh"
+                def payload = """{"embeds":[{"title":"❌ EES 빌드 #${env.BUILD_NUMBER} 실패","description":"배포에 실패하여 이전 버전으로 롤백되었습니다.","color":15158332,"fields":[{"name":"브랜치","value":"main","inline":true},{"name":"로그 확인","value":"Jenkins 대시보드에서 콘솔 출력을 확인하세요.","inline":false}]}]}"""
+                sh "curl -s -X POST -H 'Content-Type: application/json' -d '${payload}' '${DISCORD_WEBHOOK}' || true"
             }
         }
         always {
