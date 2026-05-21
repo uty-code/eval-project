@@ -176,36 +176,36 @@ pipeline {
                     ? 3066993
                     : 15158332
 
-                def DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1506178007948066967/DvSwKzcRjeq1txwvy2iCle6NysntjwJhwRUAdvCgEiXF5Pc1ph6FoxMw6OMt5uq5WaJi"
+                withCredentials([string(credentialsId: 'discord-webhook-url', variable: 'DISCORD_WEBHOOK')]) {
+                    def payload = """
+                    {
+                      "embeds": [{
+                        "title": "${title}",
+                        "description": "${desc}",
+                        "color": ${color},
+                        "fields": [
+                          {
+                            "name": "브랜치",
+                            "value": "main",
+                            "inline": true
+                          },
+                          {
+                            "name": "빌드 번호",
+                            "value": "${env.BUILD_NUMBER}",
+                            "inline": true
+                          }
+                        ]
+                      }]
+                    }
+                    """
 
-                def payload = """
-                {
-                  "embeds": [{
-                    "title": "${title}",
-                    "description": "${desc}",
-                    "color": ${color},
-                    "fields": [
-                      {
-                        "name": "브랜치",
-                        "value": "main",
-                        "inline": true
-                      },
-                      {
-                        "name": "빌드 번호",
-                        "value": "${env.BUILD_NUMBER}",
-                        "inline": true
-                      }
-                    ]
-                  }]
+                    sh """
+                    curl -s -X POST \
+                    -H 'Content-Type: application/json' \
+                    -d '${payload}' \
+                    "\$DISCORD_WEBHOOK" || true
+                    """
                 }
-                """
-
-                sh """
-                curl -s -X POST \
-                -H 'Content-Type: application/json' \
-                -d '${payload}' \
-                '${DISCORD_WEBHOOK}' || true
-                """
             }
 
             // 사용하지 않는 빌드 이미지 정리 및 로그아웃
