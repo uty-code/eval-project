@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 사용자 제공 디스코드 웹훅 URL
-WEBHOOK_URL="https://discord.com/api/webhooks/1506178007948066967/DvSwKzcRjeq1txwvy2iCle6NysntjwJhwRUAdvCgEiXF5Pc1ph6FoxMw6OMt5uq5WaJi"
+WEBHOOK_URL="https://discord.com/api/webhooks/1506176441639899136/FhSvPx_7XqnowsenNtH9Eg7WUHH4RT-XVk8yrad9CR--XiDACiiBYreX8T9iW4wWf_dh"
 
 # 임계치 설정 (%)
 CPU_THRESHOLD=80
