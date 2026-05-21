@@ -1,237 +1,58 @@
--- ==========================================
--- 1. 기초 시스템 데이터
--- ==========================================
-create table common_codes_51
-(
-    code_id bigint identity(1,1) primary key,
-    group_code varchar(50) not null,
-    code_value varchar(50) not null,
-    code_name nvarchar(100) not null,
-    description nvarchar(255),
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint
-);
+erDiagram
+    employees_51 {
+        bigint emp_id PK
+        bigint dept_id FK
+        bigint position_id FK
+        varchar password
+        nvarchar name
+        varchar email
+    }
+    departments_51 {
+        bigint dept_id PK
+        bigint parent_dept_id FK
+        bigint leader_id FK
+        nvarchar dept_name
+    }
+    positions_51 {
+        bigint position_id PK
+        nvarchar position_name
+        int hierarchy_level
+        decimal weight_base
+    }
+    evaluation_periods_51 {
+        bigint period_id PK
+        int period_year
+        nvarchar period_name
+        varchar status_code
+    }
+    evaluator_mappings_51 {
+        bigint mapping_id PK
+        bigint period_id FK
+        bigint evaluatee_id FK
+        bigint evaluator_id FK
+        varchar relation_type_code
+    }
+    evaluations_51 {
+        bigint eval_id PK
+        bigint mapping_id FK
+        bigint element_id FK
+        int score
+        nvarchar reason
+        varchar confirm_status_code
+    }
+    final_grades_51 {
+        bigint grade_id PK
+        bigint period_id FK
+        bigint emp_id FK
+        int total_score
+        varchar final_grade_code
+    }
 
-create table positions_51
-(
-    position_id bigint identity(1,1) primary key,
-    position_name nvarchar(50) not null,
-    hierarchy_level int not null,
-    weight_base decimal(5,2) not null,
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint
-);
-
-create table roles_51
-(
-    role_id bigint identity(1,1) primary key,
-    role_name varchar(50) not null,
-    description nvarchar(255),
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint
-);
-
--- ==========================================
--- 2. 조직 및 사용자
--- ==========================================
-create table departments_51
-(
-    dept_id bigint identity(1,1) primary key,
-    parent_dept_id bigint,
-    leader_id bigint,
-    dept_name nvarchar(100) not null,
-    is_active char(1) default 'y' not null,
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint,
-    foreign key (parent_dept_id) references departments_51(dept_id)
-);
-
-create table employees_51
-(
-    emp_id bigint primary key,
-    dept_id bigint not null,
-    position_id bigint not null,
-    password varchar(255) not null,
-    name nvarchar(50) not null,
-    email varchar(255),
-    phone varchar(50),
-    status_code varchar(20) default 'employed',
-    -- 재직/휴직/퇴사 상태 관리
-    hire_date date,
-    retire_date date,
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint,
-    foreign key (dept_id) references departments_51(dept_id),
-    foreign key (position_id) references positions_51(position_id)
-);
-
--- departments_51.leader_id FK 추가 (employees_51 생성 이후)
-alter table departments_51
-    add constraint fk_dept_leader
-    foreign key (leader_id) references employees_51(emp_id);
-
-
-create table employee_roles_51
-(
-    emp_id bigint not null,
-    role_id bigint not null,
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint,
-    primary key (emp_id, role_id),
-    foreign key (emp_id) references employees_51(emp_id),
-    foreign key (role_id) references roles_51(role_id)
-);
-
-create table login_logs_51
-(
-    log_id bigint identity(1,1) primary key,
-    emp_id bigint,
-    login_input varchar(255) not null,
-    result_code varchar(20) not null,
-    is_failure char(1) default 'n', -- 로그인 실패 여부 (y/n)
-    ip_address varchar(50),
-    user_agent nvarchar(max),
-    created_at datetime default getdate(),
-    foreign key (emp_id) references employees_51(emp_id)
-);
-
--- ==========================================
--- 3. 평가 기준 및 매핑
--- ==========================================
-create table evaluation_periods_51
-(
-    period_id bigint identity(1,1) primary key,
-    period_year int not null,
-    period_name nvarchar(100) not null,
-    status_code varchar(50) not null,
-    start_date date,
-    end_date date,
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint
-);
-
-create table evaluation_elements_51
-(
-    element_id bigint identity(1,1) primary key,
-    period_id bigint not null,
-    dept_id bigint,
-    element_type_code varchar(50) not null,
-    element_name nvarchar(255) not null,
-    max_score decimal(5,2) not null,
-    weight decimal(5,2) not null,
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint,
-    foreign key (period_id) references evaluation_periods_51(period_id),
-    foreign key (dept_id) references departments_51(dept_id)
-);
-
-create table evaluator_mappings_51
-(
-    mapping_id bigint identity(1,1) primary key,
-    period_id bigint not null,
-    evaluatee_id bigint not null,
-    evaluator_id bigint not null,
-    relation_type_code varchar(50) not null,
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint,
-    foreign key (period_id) references evaluation_periods_51(period_id),
-    foreign key (evaluatee_id) references employees_51(emp_id),
-    foreign key (evaluator_id) references employees_51(emp_id)
-);
-
--- ==========================================
--- 4. 평가 수행
--- ==========================================
-create table evaluations_51
-(
-    eval_id bigint identity(1,1) primary key,
-    mapping_id bigint not null,
-    element_id bigint not null,
-    score decimal(5,2),
-    old_score decimal(5,2),
-    reason nvarchar(255),
-    comments nvarchar(max),
-    -- final_grades 통합을 위한 확정 점수 및 등급 정보
-    total_score decimal(7,2),
-    grade_code varchar(50),
-    confirm_status_code varchar(50),
-    -- 텍스트 피드백/수행과정 기록용
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint,
-    foreign key (mapping_id) references evaluator_mappings_51(mapping_id),
-    foreign key (element_id) references evaluation_elements_51(element_id)
-);
-
-create table interviews_51
-(
-    interview_id bigint identity(1,1) primary key,
-    mapping_id bigint not null,
-    content1 nvarchar(max),
-    content2 nvarchar(max),
-    content3 nvarchar(max),
-    content4 nvarchar(max),
-    status_code varchar(50),
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint,
-    foreign key (mapping_id) references evaluator_mappings_51(mapping_id)
-);
-
-create table evidences_51
-(
-    evidence_id bigint identity(1,1) primary key,
-    eval_id bigint not null,
-    file_name nvarchar(255) not null,
-    file_path nvarchar(500) not null,
-    file_size bigint,
-    is_deleted char(1) default 'n',
-    version int default 0,
-    created_at datetime default getdate(),
-    created_by bigint,
-    updated_at datetime,
-    updated_by bigint,
-    foreign key (eval_id) references evaluations_51(eval_id)
-);
+    departments_51 ||--o{ employees_51 : "contains"
+    positions_51 ||--o{ employees_51 : "assigns"
+    evaluation_periods_51 ||--o{ evaluator_mappings_51 : "belongs"
+    employees_51 ||--o{ evaluator_mappings_51 : "evaluatee"
+    employees_51 ||--o{ evaluator_mappings_51 : "evaluator"
+    evaluator_mappings_51 ||--o{ evaluations_51 : "records"
+    evaluation_periods_51 ||--o{ final_grades_51 : "belongs"
+    employees_51 ||--o{ final_grades_51 : "receives"
