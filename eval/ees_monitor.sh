@@ -1,7 +1,20 @@
 #!/bin/bash
 
-# 사용자 제공 디스코드 웹훅 URL
-WEBHOOK_URL="https://discord.com/api/webhooks/1506176441639899136/FhSvPx_7XqnowsenNtH9Eg7WUHH4RT-XVk8yrad9CR--XiDACiiBYreX8T9iW4wWf_dh"
+# .env 파일에서 환경변수 로드
+if [ -f .env ]; then
+  # export 명령어가 없어도 변수를 사용할 수 있도록 allexport 설정
+  set -a
+  source .env
+  set +a
+fi
+
+# 환경변수에서 디스코드 웹훅 URL 가져오기
+WEBHOOK_URL="${DISCORD_MONITOR_WEBHOOK}"
+
+if [ -z "$WEBHOOK_URL" ]; then
+  echo "⚠️ [WARNING] .env 파일에 DISCORD_MONITOR_WEBHOOK이 설정되어 있지 않습니다. 알림을 생략합니다."
+  exit 0
+fi
 
 # 임계치 설정 (%)
 CPU_THRESHOLD=80
