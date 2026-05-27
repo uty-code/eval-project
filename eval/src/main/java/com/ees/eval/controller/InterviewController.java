@@ -9,6 +9,10 @@ import com.ees.eval.service.EmployeeService;
 import com.ees.eval.service.EvaluationPeriodService;
 import com.ees.eval.service.EvaluatorMappingService;
 import com.ees.eval.service.InterviewService;
+import com.ees.eval.mapper.DepartmentMapper;
+import com.ees.eval.mapper.EvaluatorMappingMapper;
+import com.ees.eval.mapper.EmployeeMapper;
+import com.ees.eval.dto.DepartmentDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +25,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -34,10 +40,15 @@ public class InterviewController {
     private final EvaluatorMappingService mappingService;
     private final InterviewService interviewService;
     private final EmployeeService employeeService;
+    private final DepartmentMapper departmentMapper;
+    private final EvaluatorMappingMapper evaluatorMappingMapper;
+    private final EmployeeMapper employeeMapper;
 
     @GetMapping
     public String list(Model model,
                        @RequestParam(required = false) Long periodId,
+                       @RequestParam(required = false) Long filterDeptId,
+                       @RequestParam(required = false) String searchName,
                        @AuthenticationPrincipal UserDetails userDetails) {
 
         model.addAttribute("activeMenu", "interview-mgmt");
@@ -49,21 +60,89 @@ public class InterviewController {
                 .collect(Collectors.toList());
         model.addAttribute("periods", periods);
 
-        EvaluationPeriodDTO selectedPeriod = periodService.resolveSelectedPeriod(periodId, periods);
+        EvaluationPeriodDTO selectedPeriod = null;
+        boolean isAllPeriods = false;
+        if (periodId != null) {
+            if (periodId == 0L) {
+                isAllPeriods = true;
+            } else {
+                selectedPeriod = periods.stream()
+                        .filter(p -> p.periodId().equals(periodId))
+                        .findFirst()
+                        .orElse(null);
+            }
+        }
+        if (periodId == null && !periods.isEmpty()) {
+            selectedPeriod = periods.stream()
+                    .filter(p -> "IN_PROGRESS".equals(p.statusCode()))
+                    .findFirst()
+                    .orElse(periods.get(0));
+        }
 
-        if (selectedPeriod != null) {
-            model.addAttribute("selectedPeriod", selectedPeriod);
+        // 전체 부서 목록 조회
+        List<DepartmentDTO> allDepartments = departmentMapper.findAll().stream()
+                .map(d -> DepartmentDTO.builder()
+                        .deptId(d.getDeptId())
+                        .deptName(d.getDeptName())
+                        .parentDeptId(d.getParentDeptId())
+                        .build())
+                .collect(Collectors.toList());
+
+        List<DepartmentDTO> departments = new ArrayList<>(allDepartments);
+
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+
+        if (selectedPeriod != null || isAllPeriods) {
+            if (selectedPeriod != null) {
+                model.addAttribute("selectedPeriod", selectedPeriod);
+            }
+            Long queryPeriodId = selectedPeriod != null ? selectedPeriod.periodId() : null;
 
             // 1. 내가 평가자로서 작성해야 할 목록 (부서장용)
-            List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(selectedPeriod.periodId(), empId);
-            List<EvaluatorMappingDTO> teamTasks = myTasks.stream()
-                    .filter(m -> "MANAGER".equals(m.relationTypeCode()) || "EXECUTIVE".equals(m.relationTypeCode()))
-                    .toList();
+            List<EvaluatorMappingDTO> teamTasks;
+            List<EvaluatorMappingDTO> receivedTasks;
+            if (isAdmin) {
+                teamTasks = mappingService.getAllPerformanceTasks(queryPeriodId);
+                receivedTasks = java.util.Collections.emptyList();
+            } else {
+                List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(queryPeriodId, empId);
+                teamTasks = myTasks.stream()
+                        .filter(m -> "MANAGER".equals(m.relationTypeCode()) || "EXECUTIVE".equals(m.relationTypeCode()))
+                        .toList();
 
-            // 2. 피평가자로서의 결과 목록
-            List<EvaluatorMappingDTO> receivedTasks = mappingService.getMyEvaluators(selectedPeriod.periodId(), empId).stream()
-                    .filter(m -> "MANAGER".equals(m.relationTypeCode()))
-                    .toList();
+                // 2. 피평가자로서의 결과 목록
+                receivedTasks = mappingService.getMyEvaluators(queryPeriodId, empId).stream()
+                        .filter(m -> "MANAGER".equals(m.relationTypeCode()))
+                        .toList();
+            }
+
+            // 권한 기반 부서 필터링: Admin이 아니라면 자신이 볼 수 있는 대상(teamTasks, receivedTasks, 본인 부서)의 부서만 드롭다운에 노출
+            if (!isAdmin) {
+                Set<String> allowedDeptNames = new java.util.HashSet<>();
+                teamTasks.forEach(t -> {
+                    if (t.deptName() != null) allowedDeptNames.add(t.deptName());
+                });
+                receivedTasks.forEach(r -> {
+                    if (r.deptName() != null) allowedDeptNames.add(r.deptName());
+                });
+                List<com.ees.eval.domain.Employee> meList = employeeMapper.findByIds(List.of(empId));
+                com.ees.eval.domain.Employee me = meList.isEmpty() ? null : meList.get(0);
+                if (me != null && me.getDeptName() != null) {
+                    allowedDeptNames.add(me.getDeptName());
+                }
+
+                // 계층 구조 유지를 위해 하위 부서의 상위 부서 ID도 함께 수집
+                Set<Long> allowedParentIds = departments.stream()
+                        .filter(d -> allowedDeptNames.contains(d.deptName()))
+                        .map(DepartmentDTO::parentDeptId)
+                        .filter(java.util.Objects::nonNull)
+                        .collect(Collectors.toSet());
+
+                departments = departments.stream()
+                        .filter(d -> allowedDeptNames.contains(d.deptName()) || allowedParentIds.contains(d.deptId()))
+                        .collect(Collectors.toList());
+            }
 
             // 모든 관련 Mapping ID 수집 (N+1 방지)
             List<Long> allMappingIds = new ArrayList<>();
@@ -77,16 +156,17 @@ public class InterviewController {
                     .map(EvaluatorMappingDTO::evaluateeId)
                     .toList();
 
-            for (Long evId : executiveTargetEvaluateeIds) {
-                mappingService.getMyEvaluators(selectedPeriod.periodId(), evId).stream()
-                        .filter(e -> "MANAGER".equals(e.relationTypeCode()))
-                        .findFirst()
-                        .ifPresent(e -> {
-                            evaluateeToManagerMappingId.put(evId, e.mappingId());
-                            if (!allMappingIds.contains(e.mappingId())) {
-                                allMappingIds.add(e.mappingId());
-                            }
-                        });
+            if (!executiveTargetEvaluateeIds.isEmpty()) {
+                List<com.ees.eval.domain.EvaluatorMapping> managerMappings = 
+                        evaluatorMappingMapper.findByEvaluateeIds(queryPeriodId, executiveTargetEvaluateeIds);
+                for (com.ees.eval.domain.EvaluatorMapping m : managerMappings) {
+                    if ("MANAGER".equals(m.getRelationTypeCode())) {
+                        evaluateeToManagerMappingId.put(m.getEvaluateeId(), m.getMappingId());
+                        if (!allMappingIds.contains(m.getMappingId())) {
+                            allMappingIds.add(m.getMappingId());
+                        }
+                    }
+                }
             }
 
             // Batch 조회 실행
@@ -109,10 +189,10 @@ public class InterviewController {
                         .relationTypeCode(m.relationTypeCode())
                         .statusCode(interview != null ? interview.statusCode() : "NOT_STARTED")
                         .contentSnippet(previewContent.length() > 50 ? previewContent.substring(0, 50) + "..." : previewContent.trim())
+                        .evaluatorName(m.evaluatorName())
+                        .periodName(m.periodName())
                         .build();
             }).collect(Collectors.toList());
-
-            model.addAttribute("tasks", tasks);
 
             // 4. 본인 결과 목록 DTO 변환 (부서장급 이상 제외 로직 유지)
             java.util.Collection<? extends org.springframework.security.core.GrantedAuthority> authorities = userDetails.getAuthorities();
@@ -120,24 +200,92 @@ public class InterviewController {
                     .map(a -> a.getAuthority().toUpperCase())
                     .anyMatch(auth -> auth.contains("EXECUTIVE") || auth.contains("ADMIN"));
 
+            List<Long> evaluatorIds = receivedTasks.stream()
+                    .map(EvaluatorMappingDTO::evaluatorId)
+                    .filter(java.util.Objects::nonNull)
+                    .distinct()
+                    .toList();
+
+            java.util.Map<Long, com.ees.eval.domain.Employee> evaluatorMap = new java.util.HashMap<>();
+            if (!isHighRank && !evaluatorIds.isEmpty()) {
+                employeeMapper.findByIds(evaluatorIds).forEach(emp -> evaluatorMap.put(emp.getEmpId(), emp));
+            }
+
             List<InterviewTaskDTO> myResults = isHighRank ? java.util.Collections.emptyList() : receivedTasks.stream().map(m -> {
                 InterviewDTO interview = interviewMap.get(m.mappingId());
                 String previewContent = getPreviewContent(interview);
-                com.ees.eval.dto.EmployeeDTO evaluator = employeeService.getEmployeeById(m.evaluatorId());
+                com.ees.eval.domain.Employee evaluator = evaluatorMap.get(m.evaluatorId());
                 return InterviewTaskDTO.builder()
                         .mappingId(m.mappingId())
                         .empId(m.evaluateeId())
                         .evaluateeName(m.evaluatorName())
-                        .deptName(evaluator.deptName())
-                        .titleName(evaluator.positionName())
+                        .deptName(evaluator != null ? evaluator.getDeptName() : "")
+                        .titleName(evaluator != null ? evaluator.getPositionName() : "")
                         .relationTypeCode(m.relationTypeCode())
                         .statusCode(interview != null ? interview.statusCode() : "NOT_STARTED")
                         .contentSnippet(previewContent.length() > 50 ? previewContent.substring(0, 50) + "..." : previewContent.trim())
+                        .evaluatorName(m.evaluatorName())
+                        .periodName(m.periodName())
                         .build();
             }).collect(Collectors.toList());
 
+            // 5. 서버 사이드 부서 및 검색 필터 적용
+            if (filterDeptId != null) {
+                // 선택된 부서 및 모든 하위 부서의 ID 수집 (재귀적 탐색)
+                Set<Long> targetDeptIds = new HashSet<>();
+                targetDeptIds.add(filterDeptId);
+                
+                // 전체 부서 목록 로드 (중복 쿼리 제거 및 재사용)
+                List<DepartmentDTO> allDepts = allDepartments;
+
+                boolean added;
+                do {
+                    added = false;
+                    for (DepartmentDTO dept : allDepts) {
+                        if (dept.parentDeptId() != null && targetDeptIds.contains(dept.parentDeptId())) {
+                            if (targetDeptIds.add(dept.deptId())) {
+                                added = true;
+                            }
+                        }
+                    }
+                } while (added);
+
+                Set<String> targetDeptNames = allDepts.stream()
+                        .filter(d -> targetDeptIds.contains(d.deptId()))
+                        .map(DepartmentDTO::deptName)
+                        .filter(java.util.Objects::nonNull)
+                        .collect(Collectors.toSet());
+
+                if (!targetDeptNames.isEmpty()) {
+                    tasks = tasks.stream()
+                            .filter(t -> t.deptName() != null && targetDeptNames.contains(t.deptName()))
+                            .collect(Collectors.toList());
+                    myResults = myResults.stream()
+                            .filter(r -> r.deptName() != null && targetDeptNames.contains(r.deptName()))
+                            .collect(Collectors.toList());
+                }
+            }
+
+            if (searchName != null && !searchName.trim().isEmpty()) {
+                final String query = searchName.trim().toLowerCase();
+                tasks = tasks.stream()
+                        .filter(t -> (t.evaluateeName() != null && t.evaluateeName().toLowerCase().contains(query)) ||
+                                     (t.empId() != null && String.valueOf(t.empId()).contains(query)))
+                        .collect(Collectors.toList());
+                myResults = myResults.stream()
+                        .filter(r -> (r.evaluateeName() != null && r.evaluateeName().toLowerCase().contains(query)) ||
+                                     (r.empId() != null && String.valueOf(r.empId()).contains(query)))
+                        .collect(Collectors.toList());
+            }
+
+            model.addAttribute("tasks", tasks);
             model.addAttribute("myResults", myResults);
         }
+        
+        model.addAttribute("isAdmin", isAdmin);
+        model.addAttribute("departments", departments);
+        model.addAttribute("selectedDeptId", filterDeptId);
+        model.addAttribute("searchName", searchName);
 
         return "eval/interview/list";
     }
@@ -156,14 +304,17 @@ public class InterviewController {
         EvaluatorMappingDTO mapping = mappingService.getMappingById(mappingId);
         Long empId = Long.parseLong(userDetails.getUsername());
 
-        // 권한 확인: 본인이 평가자이거나 피평가자인지 확인 (null-safe)
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+
+        // 권한 확인: 본인이 평가자이거나 피평가자 또는 관리자인지 확인 (null-safe)
         boolean isEvaluator = java.util.Objects.equals(mapping.evaluatorId(), empId);
         boolean isEvaluatee = java.util.Objects.equals(mapping.evaluateeId(), empId);
 
-        log.info("Interview form request - mappingId: {}, empId: {}, isEvaluator: {}, isEvaluatee: {}", 
-                mappingId, empId, isEvaluator, isEvaluatee);
+        log.info("Interview form request - mappingId: {}, empId: {}, isEvaluator: {}, isEvaluatee: {}, isAdmin: {}", 
+                mappingId, empId, isEvaluator, isEvaluatee, isAdmin);
 
-        if (!isEvaluator && !isEvaluatee) {
+        if (!isEvaluator && !isEvaluatee && !isAdmin) {
             log.warn("Unauthorized access attempt to interview form - empId: {}, mappingId: {}", empId, mappingId);
             redirectAttributes.addFlashAttribute("errorMessage", "잘못된 접근입니다.");
             return "redirect:/eval/interview";
@@ -182,6 +333,9 @@ public class InterviewController {
             
             // 임원은 수정 불가 (읽기 전용)
             isEvaluator = false;
+            model.addAttribute("isExecutiveReadOnly", true);
+        } else if (isAdmin && !isEvaluator) {
+            // 관리자이면서 실제 평가자가 아닌 경우 읽기 전용 처리
             model.addAttribute("isExecutiveReadOnly", true);
         } else {
             model.addAttribute("isExecutiveReadOnly", false);
@@ -240,6 +394,15 @@ public class InterviewController {
                        RedirectAttributes redirectAttributes) {
 
         Long empId = Long.parseLong(userDetails.getUsername());
+        
+        // 권한 확인: 본인이 평가자인지 확인
+        EvaluatorMappingDTO mapping = mappingService.getMappingById(mappingId);
+        boolean isEvaluator = java.util.Objects.equals(mapping.evaluatorId(), empId);
+        if (!isEvaluator) {
+            log.warn("Unauthorized save attempt to interview - empId: {}, mappingId: {}", empId, mappingId);
+            redirectAttributes.addFlashAttribute("errorMessage", "잘못된 접근입니다.");
+            return "redirect:/eval/interview";
+        }
         
         try {
             interviewService.saveInterview(mappingId, content1, content2, content3, content4, statusCode, empId);

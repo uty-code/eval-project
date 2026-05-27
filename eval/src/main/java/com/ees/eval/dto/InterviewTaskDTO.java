@@ -14,6 +14,8 @@ public record InterviewTaskDTO(
     String titleName,     // 직급
     String relationTypeCode,
     String statusCode,    // 면담 상태 (미작성, DRAFT, COMPLETED)
-    String contentSnippet // 내용 미리보기 (필요시)
+    String contentSnippet, // 내용 미리보기 (필요시)
+    String evaluatorName,  // 평가자 성명
+    String periodName     // 평가 차수명
 ) {
 }

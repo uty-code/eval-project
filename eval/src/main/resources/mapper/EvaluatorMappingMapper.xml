@@ -86,7 +86,7 @@
         inner join evaluation_periods_51 ep on m.period_id = ep.period_id
         <include refid="deptAndPositionJoins" />
         <where>
-            <if test="periodId != null">
+            <if test="periodId != null and periodId != 0">
                 and m.period_id = #{periodId}
             </if>
             and m.evaluator_id = #{evaluatorId}
@@ -107,10 +107,14 @@
             p.position_name      as TITLE_NAME
         <include refid="coreJoinsBasic" />
         <include refid="deptAndPositionJoins" />
-        where m.period_id = #{periodId}
-          and m.evaluatee_id = #{evaluateeId}
-          and m.is_deleted = 'n'
-          and e1.status_code = 'EMPLOYED'
+        <where>
+            <if test="periodId != null and periodId != 0">
+                and m.period_id = #{periodId}
+            </if>
+            and m.evaluatee_id = #{evaluateeId}
+            and m.is_deleted = 'n'
+            and e1.status_code = 'EMPLOYED'
+        </where>
         order by m.relation_type_code asc, m.evaluator_id asc
     </select>
 
@@ -227,11 +231,13 @@
         inner join evaluation_periods_51 ep on m.period_id = ep.period_id
         <include refid="deptAndPositionJoins" />
         <where>
-            <if test="periodId != null">
+            <if test="periodId != null and periodId != 0">
                 and m.period_id = #{periodId}
             </if>
             and m.relation_type_code = #{relationTypeCode}
             and m.is_deleted = 'n'
+            and ep.is_deleted = 'n'
+            and ep.status_code != 'PLANNED'
             and e1.status_code = 'EMPLOYED'
         </where>
         order by ep.start_date desc, d.dept_name asc, e1.name asc

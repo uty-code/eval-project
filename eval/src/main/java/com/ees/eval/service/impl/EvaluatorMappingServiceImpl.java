@@ -655,6 +655,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
                 .evaluatorName(mapping.getEvaluatorName() != null ? mapping.getEvaluatorName() : "알 수 없음")
                 .deptName(mapping.getDeptName())
                 .titleName(mapping.getTitleName())
+                .periodName(mapping.getPeriodName())
                 .isDeleted(mapping.getIsDeleted())
                 .version(mapping.getVersion())
                 .createdAt(mapping.getCreatedAt())
@@ -1485,6 +1486,10 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
 
         return allTasks.stream()
                 .map(this::enrichDto)
+                .sorted(Comparator.comparing(EvaluatorMappingDTO::periodId, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(EvaluatorMappingDTO::deptName, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(EvaluatorMappingDTO::evaluateeName, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(EvaluatorMappingDTO::relationTypeCode, Comparator.nullsLast(Comparator.naturalOrder())))
                 .collect(Collectors.toList());
     }
 }
