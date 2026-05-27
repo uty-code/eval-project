@@ -360,18 +360,40 @@ public class FinalGradeServiceImpl implements FinalGradeService {
             }
 
             int currentGradeIndex = 0;
+            Integer prevScore = null;
+            String prevGrade = null;
+
             for (Long empId : deptEmpIds) {
-                if (!expectedGradeMap.containsKey(empId)) {
-                    while (currentGradeIndex < 5 && remainingTargets[currentGradeIndex] <= 0) {
-                        currentGradeIndex++;
-                    }
-                    if (currentGradeIndex < 5) {
-                        expectedGradeMap.put(empId, gradeNames[currentGradeIndex]);
-                        remainingTargets[currentGradeIndex]--;
+                Integer score = totalScoreMap.get(empId);
+                String assignedGrade;
+
+                if (expectedGradeMap.containsKey(empId)) {
+                    assignedGrade = expectedGradeMap.get(empId);
+                } else {
+                    if (score != null && prevScore != null && score.equals(prevScore) && prevGrade != null && !"-".equals(prevGrade)) {
+                        assignedGrade = prevGrade;
+                        for (int i = 0; i < 5; i++) {
+                            if (gradeNames[i].equals(assignedGrade)) {
+                                remainingTargets[i]--;
+                                break;
+                            }
+                        }
                     } else {
-                        expectedGradeMap.put(empId, "D");
+                        while (currentGradeIndex < 5 && remainingTargets[currentGradeIndex] <= 0) {
+                            currentGradeIndex++;
+                        }
+                        if (currentGradeIndex < 5) {
+                            assignedGrade = gradeNames[currentGradeIndex];
+                            remainingTargets[currentGradeIndex]--;
+                        } else {
+                            assignedGrade = "D";
+                        }
                     }
+                    expectedGradeMap.put(empId, assignedGrade);
                 }
+
+                prevScore = score;
+                prevGrade = assignedGrade;
             }
         }
 
