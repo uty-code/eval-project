@@ -9,6 +9,7 @@
             .result-table-wrap { padding: 1rem 1.5rem 1.5rem; overflow-x: auto; background: var(--glass); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid var(--glass-border); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); }
             .result-table {
                 width: 100%;
+                table-layout: fixed;
                 border-collapse: separate;
                 border-spacing: 0;
                 font-size: .78rem;
@@ -110,30 +111,74 @@
 <div id="page-content" class="container-fluid py-4" th:fragment="content">
     <th:block th:replace="~{::extraStyles}"></th:block>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="text-white fw-bold fs-3 mb-1">면담 관리 <span class="text-info">(정성평가)</span></h1>
-            <p class="text-muted small mb-0">부서원들의 성과와 역량에 대한 심층적인 정성평가를 기록하고 관리합니다.</p>
-        </div>
-        
-        <div class="dropdown">
-            <button class="btn ees-btn-glass dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                <i class="bi bi-calendar-event me-2"></i>
-                <span th:text="${selectedPeriod != null ? selectedPeriod.periodName() : '차수 선택'}"></span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg border-0">
-                <li th:each="p : ${periods}">
-                    <a class="dropdown-item py-2" href="#"
-                       th:hx-get="'/eval/interview?periodId=' + ${p.periodId()}"
-                       hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span th:text="${p.periodName()}"></span>
-                            <span th:if="${p.statusCode() == 'ACTIVE'}" class="badge bg-info text-dark ms-2 small">진행중</span>
-                        </div>
-                    </a>
-                </li>
-            </ul>
-        </div>
+    <div class="mb-4">
+        <h1 class="text-white fw-bold fs-3 mb-1">면담 관리 <span class="text-info">(정성평가)</span></h1>
+        <p class="text-muted small mb-0">부서원들의 성과와 역량에 대한 심층적인 정성평가를 기록하고 관리합니다.</p>
+    </div>
+
+    <!-- 검색 및 필터 영역 -->
+    <div th:if="${(tasks != null && !tasks.isEmpty()) || (myResults != null && !myResults.isEmpty()) || (selectedPeriod != null)}" class="ees-card mb-4 p-4">
+        <form id="filterForm" th:action="@{/eval/interview}" method="get" 
+              hx-get="/eval/interview" hx-target="#page-content" hx-select="#page-content" 
+              hx-swap="outerHTML" hx-push-url="true" class="ees-filter-form">
+            
+            <!-- 1. 평가 차수 필터 -->
+            <div class="ees-filter-group" style="flex: 1 1 250px;">
+                <label for="periodSelect" class="ees-filter-label">
+                    <i class="bi bi-calendar-event me-1"></i>평가 차수
+                </label>
+                <div class="ees-filter-control-wrap">
+                    <select id="periodSelect" name="periodId" class="ees-filter-control form-select"
+                            onchange="this.form.requestSubmit()">
+                        <option value="0" th:selected="${selectedPeriod == null}">전체 차수</option>
+                        <option th:each="p : ${periods}" th:value="${p.periodId()}"
+                                th:text="${p.periodName()}"
+                                th:selected="${selectedPeriod?.periodId() == p.periodId()}">차수</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 2. 부서 필터 -->
+            <div class="ees-filter-group" style="flex: 1 1 200px;">
+                <label for="filterDeptId" class="ees-filter-label">
+                    <i class="bi bi-diagram-3 me-1"></i>부서 필터
+                </label>
+                <div class="ees-filter-control-wrap">
+                    <div th:replace="~{fragments/dept-select :: deptSelect(
+                        ${departments}, 
+                        ${selectedDeptId}, 
+                        'filterDeptId', 
+                        '전체 부서', 
+                        false)}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 이름/사번 검색 -->
+            <div class="ees-filter-group flex-grow-1">
+                <label for="interviewSearchName" class="ees-filter-label">
+                    <i class="bi bi-person-search me-1"></i>이름/사번 검색
+                </label>
+                <div class="ees-filter-control-wrap">
+                    <input type="text" id="interviewSearchName" name="searchName" 
+                           class="ees-filter-control form-control"
+                           placeholder="사원명 또는 사번 입력..." th:value="${searchName}" autocomplete="off">
+                </div>
+            </div>
+            
+            <div class="ees-filter-actions">
+                <label class="ees-filter-label"></label>
+                <button type="submit" class="btn-ees-filter" id="btn-interview-search">
+                    <i class="bi bi-search"></i>조회
+                </button>
+                <a th:href="@{/eval/interview(periodId=${selectedPeriod != null ? selectedPeriod.periodId() : 0})}" 
+                   class="btn-ees-filter bg-secondary bg-opacity-25" id="btn-interview-reset" title="초기화"
+                   hx-get="/eval/interview" th:attr="hx-vals=|{&quot;periodId&quot;: ${selectedPeriod != null ? selectedPeriod.periodId() : 0}}|"
+                   hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
     </div>
 
     <!-- 1. 면담 대상자 목록 (평가자용) -->
@@ -144,23 +189,38 @@
         
         <div class="result-table-wrap">
             <table class="result-table">
+                <colgroup>
+                    <col style="width: 12%;">
+                    <col style="width: 12%;">
+                    <col style="width: 8%;">
+                    <col style="width: 8%;">
+                    <col style="width: 10%;">
+                    <col th:if="${isAdmin}" style="width: 10%;">
+                    <col th:style="${isAdmin ? 'width: 24%;' : 'width: 34%;'}">
+                    <col style="width: 8%;">
+                    <col style="width: 8%;">
+                </colgroup>
                 <thead>
                     <tr>
-                        <th style="width: 12%;">부서명</th>
-                        <th style="width: 10%;">직급</th>
-                        <th style="width: 10%;">사번</th>
-                        <th style="width: 10%; border-right:2px solid rgba(255,255,255,.35)">성명</th>
-                        <th class="th-group text-start px-4" style="width: 40%; border-right:2px solid rgba(255,255,255,.35)">면담 내용 미리보기</th>
-                        <th class="th-group" style="width: 8%; border-right:2px solid rgba(255,255,255,.35)">상태</th>
-                        <th class="th-group" style="width: 10%;">진행</th>
+                        <th>평가 차수</th>
+                        <th>부서명</th>
+                        <th>직급</th>
+                        <th>사번</th>
+                        <th style="border-right:2px solid rgba(255,255,255,.35)">성명</th>
+                        <th th:if="${isAdmin}" style="border-right:2px solid rgba(255,255,255,.35)">평가자</th>
+                        <th class="th-group text-start px-4" style="border-right:2px solid rgba(255,255,255,.35)">면담 내용 미리보기</th>
+                        <th class="th-group" style="border-right:2px solid rgba(255,255,255,.35)">상태</th>
+                        <th class="th-group">진행</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr th:each="task : ${tasks}">
+                        <td th:text="${task.periodName()}">2024년 상반기 정기평가</td>
                         <td th:text="${task.deptName()}">개발팀</td>
                         <td th:text="${task.titleName()}">대리</td>
                         <td th:text="${task.empId()}">1001</td>
                         <td class="fw-bold" style="border-right:2px solid rgba(255,255,255,.35)" th:text="${task.evaluateeName()}">홍길동</td>
+                        <td th:if="${isAdmin}" style="border-right:2px solid rgba(255,255,255,.35)" th:text="${task.evaluatorName()}">이팀장</td>
                         <td class="text-start px-4" style="border-right:2px solid rgba(255,255,255,.35)">
                             <div class="snippet-text" style="max-width: 100%;" 
                                  th:text="${#strings.isEmpty(task.contentSnippet()) ? '작성된 면담 내용이 없습니다.' : task.contentSnippet()}"
@@ -178,8 +238,8 @@
                                hx-get th:attr="hx-get=@{/eval/interview/form(mappingId=${task.mappingId()})}"
                                hx-target="#page-content" hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true"
                                class="action-btn action-primary">
-                                <i class="bi" th:classappend="${(task.statusCode() == 'COMPLETED' || task.relationTypeCode() == 'EXECUTIVE') ? 'bi-search' : 'bi-pencil-square'}"></i>
-                                <span th:text="${(task.statusCode() == 'COMPLETED' || task.relationTypeCode() == 'EXECUTIVE') ? '내용 조회' : '면담 작성'}"></span>
+                                <i class="bi" th:classappend="${(task.statusCode() == 'COMPLETED' || task.relationTypeCode() == 'EXECUTIVE' || isAdmin) ? 'bi-search' : 'bi-pencil-square'}"></i>
+                                <span th:text="${(task.statusCode() == 'COMPLETED' || task.relationTypeCode() == 'EXECUTIVE' || isAdmin) ? '내용 조회' : '면담 작성'}"></span>
                             </a>
                         </td>
                     </tr>
@@ -196,14 +256,22 @@
         
         <div class="result-table-wrap">
             <table class="result-table">
+                <colgroup>
+                    <col style="width: 15%;">
+                    <col style="width: 12%;">
+                    <col style="width: 12%;">
+                    <col style="width: 45%;">
+                    <col style="width: 8%;">
+                    <col style="width: 8%;">
+                </colgroup>
                 <thead>
                     <tr>
-                        <th style="width: 15%;">부서명</th>
-                        <th style="width: 12%;">직급</th>
-                        <th style="width: 12%; border-right:2px solid rgba(255,255,255,.35)">성명</th>
-                        <th class="th-group text-start px-4" style="width: 45%; border-right:2px solid rgba(255,255,255,.35)">면담 내용 미리보기</th>
-                        <th class="th-group" style="width: 8%; border-right:2px solid rgba(255,255,255,.35)">상태</th>
-                        <th class="th-group" style="width: 8%;">진행</th>
+                        <th>부서명</th>
+                        <th>직급</th>
+                        <th style="border-right:2px solid rgba(255,255,255,.35)">성명</th>
+                        <th class="th-group text-start px-4" style="border-right:2px solid rgba(255,255,255,.35)">면담 내용 미리보기</th>
+                        <th class="th-group" style="border-right:2px solid rgba(255,255,255,.35)">상태</th>
+                        <th class="th-group">진행</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -250,9 +318,16 @@
 
     <!-- 데이터 없을 때 -->
     <div th:if="${(tasks == null || tasks.isEmpty()) && (myResults == null || myResults.isEmpty())}" class="ees-card text-center py-5">
-        <i class="bi bi-person-x fs-1 text-muted mb-3 d-block"></i>
-        <h5 class="text-white fw-bold">표시할 면담 데이터가 없습니다.</h5>
-        <p class="text-muted small">평가 차수 설정 및 평가자 매핑을 확인해 주세요.</p>
+        <th:block th:if="${selectedDeptId != null || (searchName != null && !searchName.isEmpty())}">
+            <i class="bi bi-search fs-1 text-muted mb-3 d-block opacity-50"></i>
+            <h5 class="text-white fw-bold">검색 결과가 없습니다.</h5>
+            <p class="text-muted small">필터 조건을 변경하거나 검색어를 확인해 주세요.</p>
+        </th:block>
+        <th:block th:unless="${selectedDeptId != null || (searchName != null && !searchName.isEmpty())}">
+            <i class="bi bi-person-x fs-1 text-muted mb-3 d-block"></i>
+            <h5 class="text-white fw-bold">표시할 면담 데이터가 없습니다.</h5>
+            <p class="text-muted small">평가 차수 설정 및 평가자 매핑을 확인해 주세요.</p>
+        </th:block>
     </div>
 </div>
 </body>
