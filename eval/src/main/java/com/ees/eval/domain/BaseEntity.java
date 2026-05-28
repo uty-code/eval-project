@@ -25,7 +25,7 @@ public abstract class BaseEntity {
      */
     public void prePersist() {
         this.isDeleted = "n";
-        this.version = 0;
+        this.version = 1;
         this.createdAt = LocalDateTime.now();
         this.createdBy = com.ees.eval.util.SecurityUtil.getCurrentEmployeeId();
         this.updatedAt = this.createdAt;

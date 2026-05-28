@@ -339,6 +339,8 @@
                        th:data-max="${element.maxScore()}"
                        oninput="calculateTotalConvertedScore()"
                        min="0" th:max="${element.maxScore()}" step="1" required>
+                <input type="hidden" th:name="'version_' + ${element.elementId()}"
+                       th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getVersion() : 0}">
                 <div class="guide-text">
                     <i class="bi bi-info-circle"></i>
                     <span>구체적인 사례와 수치를 포함하여 작성하면 더 좋은 평가를 받을 수 있습니다.</span>

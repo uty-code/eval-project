@@ -197,6 +197,8 @@
                                oninput="calculateTotalConvertedScore()"
                                min="0" th:max="${element.maxScore()}" step="1" 
                                th:required="${not isAdminView}">
+                        <input type="hidden" th:name="'version_' + ${element.elementId()}"
+                               th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getVersion() : 0}">
                     </div>
 
                     <!-- 코멘트 영역 (본인이 아닐 때만 노출) -->

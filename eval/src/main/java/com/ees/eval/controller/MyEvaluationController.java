@@ -113,7 +113,7 @@ public class MyEvaluationController {
         } catch (Exception e) {
             log.warn("[MyEvaluation] submit error: mappingId={}, msg={}", mappingId, e.getMessage());
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-            return "redirect:/eval/my-evaluation/wizard?mappingId=" + mappingId;
+            return "redirect:/eval/my-evaluation";
         }
     }
 }

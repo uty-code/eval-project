@@ -62,6 +62,15 @@ public class EvaluationServiceImpl implements EvaluationService {
 
             if (existingMap.containsKey(elementId)) {
                 Evaluation existing = existingMap.get(elementId);
+                
+                // 핵심 락 검증: 화면의 버전과 DB 최신 버전이 다르면 즉시 튕겨냄
+                String versionStr = params.get("version_" + elementId);
+                int uiVersion = (versionStr != null && !versionStr.isEmpty()) ? Integer.parseInt(versionStr) : 0;
+                
+                if (existing.getVersion() != uiVersion) {
+                    throw new com.ees.eval.exception.EesOptimisticLockException("평가 데이터가 다른 세션에 의해 수정되었습니다.");
+                }
+
                 existing.setReason(finalComment);
                 existing.setScore(finalScore);
                 existing.setConfirmStatusCode(ConfirmStatus.SUBMITTED.getCode());
@@ -88,7 +97,12 @@ public class EvaluationServiceImpl implements EvaluationService {
             evaluationMapper.insertBatch(toInsert);
         }
         if (!toUpdate.isEmpty()) {
-            evaluationMapper.updateBatch(toUpdate);
+            for (Evaluation eval : toUpdate) {
+                int updatedRows = evaluationMapper.update(eval);
+                if (updatedRows == 0) {
+                    throw new com.ees.eval.exception.EesOptimisticLockException("평가 데이터가 다른 세션에 의해 수정되었습니다.");
+                }
+            }
         }
 
         return elementIds;

@@ -40,18 +40,36 @@ public class GlobalExceptionHandler {
         throw ex;
     }
 
+    /**
+     * 오픈 리다이렉트 취약점을 방어하며 안전하게 이전 페이지로 리다이렉트합니다.
+     */
+    private String getSafeRedirectUrl(HttpServletRequest request) {
+        String referer = request.getHeader("Referer");
+        if (referer != null && !referer.isEmpty()) {
+            try {
+                java.net.URI uri = new java.net.URI(referer);
+                if (request.getServerName().equals(uri.getHost())) {
+                    return "redirect:" + referer;
+                }
+            } catch (Exception e) {
+                log.warn("Referer URI 파싱 실패: {}", referer);
+            }
+        }
+        return "redirect:/";
+    }
+
     @ExceptionHandler(EesOptimisticLockException.class)
     public String handleOptimisticLockException(EesOptimisticLockException ex, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         logClientError(request, "낙관적 락 충돌: " + ex.getMessage());
-        redirectAttributes.addFlashAttribute("errorMessage", "다른 관리자가 동일한 데이터를 수정 중입니다. 페이지를 새로고침하고 다시 시도해 주세요.");
-        return "redirect:/eval/periods";
+        redirectAttributes.addFlashAttribute("errorMessage", "다른 요청에 의해 데이터가 변경되었습니다. 페이지를 새로고침하고 다시 시도해 주세요.");
+        return getSafeRedirectUrl(request);
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public String handleIllegalStateException(IllegalStateException ex, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         logClientError(request, "비즈니스 규칙 위반: " + ex.getMessage());
         redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
-        return "redirect:/eval/periods";
+        return getSafeRedirectUrl(request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

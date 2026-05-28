@@ -274,7 +274,7 @@ public class MultiDimensionalEvaluationController {
         if ((Boolean) lockInfo.get("isLocked")) {
             redirectAttributes.addFlashAttribute("errorMessage", 
                 lockInfo.get("lockedBy") + "가 평가를 완료하여 더 이상 수정할 수 없습니다.");
-            return "redirect:/eval/multi-dimensional/form?mappingId=" + mappingId;
+            return "redirect:/eval/multi-dimensional?periodId=" + mapping.periodId();
         }
 
         // 평가 데이터 Upsert 처리
@@ -283,7 +283,11 @@ public class MultiDimensionalEvaluationController {
         } catch (NumberFormatException e) {
             log.warn("[다면평가 제출] 점수 파싱 실패: mappingId={}", mappingId);
             redirectAttributes.addFlashAttribute("errorMessage", "잘못된 점수 형식입니다.");
-            return "redirect:/eval/multi-dimensional/form?mappingId=" + mappingId;
+            return "redirect:/eval/multi-dimensional?periodId=" + mapping.periodId();
+        } catch (Exception e) {
+            log.error("[다면평가 제출] 저장 실패: mappingId={}, error={}", mappingId, e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "평가 제출 중 오류가 발생했습니다: " + e.getMessage());
+            return "redirect:/eval/multi-dimensional?periodId=" + mapping.periodId();
         }
 
         EvaluatorMappingDTO submitMapping = mappingService.getMappingById(mappingId);

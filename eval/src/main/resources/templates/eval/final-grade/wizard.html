@@ -274,6 +274,8 @@
                                     th:data-max="${element.maxScore()}"
                                     oninput="calculateTotalConvertedScore()"
                                     min="0" th:max="${element.maxScore()}" step="1">
+                                <input type="hidden" th:name="'version_' + ${element.elementId()}"
+                                       th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getVersion() : 0}">
                             </div>
                             <div class="col-md-9">
                                 <div class="field-label">
@@ -397,6 +399,8 @@
                                     th:data-max="${element.maxScore()}"
                                     oninput="calculateTotalConvertedScore()"
                                     min="0" th:max="${element.maxScore()}" step="1">
+                                <input type="hidden" th:name="'version_' + ${element.elementId()}"
+                                       th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getVersion() : 0}">
                             </div>
                             <div class="col-md-9">
                                 <div class="field-label">

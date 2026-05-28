@@ -657,7 +657,7 @@ public class PerformanceEvaluationController {
         if ((Boolean) lockInfo.get("isLocked")) {
             redirectAttributes.addFlashAttribute("errorMessage", 
                 lockInfo.get("lockedBy") + "가 평가를 완료하여 더 이상 수정할 수 없습니다.");
-            return "redirect:/eval/performance/form?mappingId=" + mappingId;
+            return "redirect:/eval/performance?periodId=" + submitMapping.periodId();
         }
 
         // 부서별 유형별 가중치 합계 100 검증
@@ -666,7 +666,7 @@ public class PerformanceEvaluationController {
         if (!typeWeightService.isWeightSumValid(submitMapping.periodId(), submitDeptId, "STAFF")) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "유형별 가중치 합계가 100%가 아니어서 평가를 제출할 수 없습니다.");
-            return "redirect:/eval/performance/form?mappingId=" + mappingId;
+            return "redirect:/eval/performance?periodId=" + submitMapping.periodId();
         }
 
         // Facade를 통한 단일 트랜잭션 평가 저장 및 등급 재계산 위임
@@ -679,11 +679,11 @@ public class PerformanceEvaluationController {
         } catch (NumberFormatException e) {
             log.warn("[평가제출] 점수 파싱 실패: mappingId={}", mappingId);
             redirectAttributes.addFlashAttribute("errorMessage", "잘못된 점수 형식입니다.");
-            return "redirect:/eval/performance/form?mappingId=" + mappingId;
+            return "redirect:/eval/performance?periodId=" + submitMapping.periodId();
         } catch (Exception e) {
             log.error("[평가제출] 트랜잭션 오류 발생 (전체 롤백됨): mappingId={}, error={}", mappingId, e.getMessage(), e);
             redirectAttributes.addFlashAttribute("errorMessage", "평가 제출 중 오류가 발생했습니다: " + e.getMessage());
-            return "redirect:/eval/performance/form?mappingId=" + mappingId;
+            return "redirect:/eval/performance?periodId=" + submitMapping.periodId();
         }
 
         // 제출 후 목록 페이지로 이동
