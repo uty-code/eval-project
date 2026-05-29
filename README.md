@@ -43,22 +43,7 @@
 ## 시스템 아키텍처
 
 ### 1. 무중단 배포 및 CI/CD 인프라 아키텍처
-```mermaid
-flowchart TD
-    A[GitHub Repository] -->|Webhook Trigger| B[Jenkins CI/CD <br> Azure VM]
-    
-    B -->|1. Docker Build & Push| C[(Docker Hub Registry)]
-    B -->|2. SSH Remote Deploy| D[KT Cloud VM <br> Docker Compose]
-    
-    C -->|3. Docker Image Pull| D
-    
-    D -->|4. Container Run| E[Nginx Container <br> Port 80/443]
-    E -->|5. Reverse Proxy| F[Spring Boot Container <br> Port 8080]
-    F -->|6. JDBC Connection| G[(Database: MSSQL)]
-    
-    D -.->|배포 검증 실패 시| H[rollback.sh 자동 롤백]
-    D -.->|시스템 자원 임계치 초과 시| I[Discord 실시간 경보]
-```
+<img width="1600" height="1720" alt="image" src="https://github.com/user-attachments/assets/3e6760cc-a460-4e9b-87c5-e4c05307f342" />
 
 ### 2. 백엔드 논리적 레이어
 ```mermaid
