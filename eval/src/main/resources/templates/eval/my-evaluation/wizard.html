@@ -197,43 +197,44 @@
             </div>
 
             <form id="evaluationForm" th:action="@{/eval/my-evaluation/submit}" method="post">
-                <fieldset th:disabled="${isLocked or isAdminView}" style="border:none; padding:0; margin:0;">
                 <input type="hidden" name="mappingId" th:value="${mappingId}">
 
                 <!-- [CASE 1] 부서원: 성과 + 역량 -->
                 <th:block th:if="${!evaluateeIsLeader}">
                     <!-- STEP 1: 성과 평가 -->
                     <div class="wizard-step active" id="step-1">
-                        <div class="d-flex justify-content-between align-items-end mb-4">
-                            <h3 class="text-white mb-0"><i class="bi bi-rocket-takeoff text-indigo-400 me-2"></i>성과 평가 항목</h3>
-                            <div class="total-score-badge">
-                                <span class="text-muted small">성과 환산점수:</span>
-                                <span class="text-indigo-400 fw-bold fs-4 ms-2" id="score-display-1">0.0</span>
+                        <fieldset th:disabled="${isLocked or isAdminView}" style="border:none; padding:0; margin:0;">
+                            <div class="d-flex justify-content-between align-items-end mb-4">
+                                <h3 class="text-white mb-0"><i class="bi bi-rocket-takeoff text-indigo-400 me-2"></i>성과 평가 항목</h3>
+                                <div class="total-score-badge">
+                                    <span class="text-muted small">성과 환산점수:</span>
+                                    <span class="text-indigo-400 fw-bold fs-4 ms-2" id="score-display-1">0.0</span>
+                                </div>
                             </div>
-                        </div>
 
-                        <div th:each="element : ${perfElements}" class="eval-card">
-                            <div class="eval-card-header">
-                                <div class="eval-title">
-                                    <span th:text="${element.elementName()}">성과 항목</span>
+                            <div th:each="element : ${perfElements}" class="eval-card">
+                                <div class="eval-card-header">
+                                    <div class="eval-title">
+                                        <span th:text="${element.elementName()}">성과 항목</span>
+                                    </div>
+                                    <div class="weight-badge">가중치 <span th:text="${element.weight() + '%'}"></span></div>
                                 </div>
-                                <div class="weight-badge">가중치 <span th:text="${element.weight() + '%'}"></span></div>
-                            </div>
-                            <div class="row justify-content-center">
-                                <div class="col-md-6 text-center">
-                                    <div class="field-label perf justify-content-center">본인 점수 (0~[[${element.maxScore()}]])</div>
-                                    <input type="number" class="eval-textarea score-input perf-score"
-                                        th:name="'score_' + ${element.elementId()}"
-                                        th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
-                                        th:data-weight="${element.weight()}"
-                                        th:data-max="${element.maxScore()}"
-                                        oninput="calculateScores()" min="0" th:max="${element.maxScore()}" th:required="${not isAdminView}">
-                                    <input type="hidden" th:name="'version_' + ${element.elementId()}"
-                                           th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getVersion() : 0}">
-                                    <div class="text-muted small mt-2">해당 성과 항목에 대한 자가 점수를 입력하세요.</div>
+                                <div class="row justify-content-center">
+                                    <div class="col-md-6 text-center">
+                                        <div class="field-label perf justify-content-center">본인 점수 (0~[[${element.maxScore()}]])</div>
+                                        <input type="number" class="eval-textarea score-input perf-score"
+                                            th:name="'score_' + ${element.elementId()}"
+                                            th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                                            th:data-weight="${element.weight()}"
+                                            th:data-max="${element.maxScore()}"
+                                            oninput="calculateScores()" min="0" th:max="${element.maxScore()}" th:required="${not isAdminView}">
+                                        <input type="hidden" th:name="'version_' + ${element.elementId()}"
+                                               th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getVersion() : 0}">
+                                        <div class="text-muted small mt-2">해당 성과 항목에 대한 자가 점수를 입력하세요.</div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </fieldset>
 
                         <div class="d-flex justify-content-end mt-4">
                             <button type="button" class="btn btn-primary btn-lg py-3 px-5 rounded-pill shadow-lg"
@@ -246,42 +247,44 @@
 
                     <!-- STEP 2: 역량 평가 -->
                     <div class="wizard-step" id="step-2">
-                        <div class="d-flex justify-content-between align-items-end mb-4">
-                            <h3 class="text-white mb-0"><i class="bi bi-lightning-charge text-emerald-400 me-2"></i>역량 평가 항목</h3>
-                            <div class="total-score-badge">
-                                <span class="text-muted small">역량 환산점수:</span>
-                                <span class="text-emerald-400 fw-bold fs-4 ms-2" id="score-display-2">0.0</span>
+                        <fieldset th:disabled="${isLocked or isAdminView}" style="border:none; padding:0; margin:0;">
+                            <div class="d-flex justify-content-between align-items-end mb-4">
+                                <h3 class="text-white mb-0"><i class="bi bi-lightning-charge text-emerald-400 me-2"></i>역량 평가 항목</h3>
+                                <div class="total-score-badge">
+                                    <span class="text-muted small">역량 환산점수:</span>
+                                    <span class="text-emerald-400 fw-bold fs-4 ms-2" id="score-display-2">0.0</span>
+                                </div>
                             </div>
-                        </div>
 
-                        <div th:each="element : ${compElements}" class="eval-card">
-                            <div class="eval-card-header">
-                                <div class="eval-title">
-                                    <span th:text="${element.elementName()}">역량 항목</span>
+                            <div th:each="element : ${compElements}" class="eval-card">
+                                <div class="eval-card-header">
+                                    <div class="eval-title">
+                                        <span th:text="${element.elementName()}">역량 항목</span>
+                                    </div>
+                                    <div class="weight-badge">가중치 <span th:text="${element.weight() + '%'}"></span></div>
                                 </div>
-                                <div class="weight-badge">가중치 <span th:text="${element.weight() + '%'}"></span></div>
-                            </div>
-                            <div class="row justify-content-center">
-                                <div class="col-md-6 text-center">
-                                    <div class="field-label comp justify-content-center">본인 점수 (0~[[${element.maxScore()}]])</div>
-                                    <input type="number" class="eval-textarea score-input comp-score"
-                                        th:name="'score_' + ${element.elementId()}"
-                                        th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
-                                        th:data-weight="${element.weight()}"
-                                        th:data-max="${element.maxScore()}"
-                                        oninput="calculateScores()" min="0" th:max="${element.maxScore()}" th:required="${not isAdminView}">
-                                    <input type="hidden" th:name="'version_' + ${element.elementId()}"
-                                           th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getVersion() : 0}">
-                                    <div class="text-muted small mt-2">해당 역량 항목에 대한 자가 점수를 입력하세요.</div>
+                                <div class="row justify-content-center">
+                                    <div class="col-md-6 text-center">
+                                        <div class="field-label comp justify-content-center">본인 점수 (0~[[${element.maxScore()}]])</div>
+                                        <input type="number" class="eval-textarea score-input comp-score"
+                                            th:name="'score_' + ${element.elementId()}"
+                                            th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                                            th:data-weight="${element.weight()}"
+                                            th:data-max="${element.maxScore()}"
+                                            oninput="calculateScores()" min="0" th:max="${element.maxScore()}" th:required="${not isAdminView}">
+                                        <input type="hidden" th:name="'version_' + ${element.elementId()}"
+                                               th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getVersion() : 0}">
+                                        <div class="text-muted small mt-2">해당 역량 항목에 대한 자가 점수를 입력하세요.</div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </fieldset>
 
                         <div class="d-flex justify-content-between mt-4">
                             <button type="button" class="btn btn-outline-light border-opacity-25 py-3 px-5 rounded-pill" onclick="prevStep(2)">
                                 <i class="bi bi-arrow-left me-2"></i> 이전 (성과 평가)
                             </button>
-                            <button th:unless="${isAdminView}" type="submit" class="btn btn-success btn-lg py-3 px-5 rounded-pill shadow-lg"
+                            <button th:if="${!isLocked and !isAdminView}" type="submit" class="btn btn-success btn-lg py-3 px-5 rounded-pill shadow-lg"
                                 style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border:none;">
                                 <i class="bi bi-check2-circle me-2"></i> 자가평가 최종 제출
                             </button>
@@ -293,47 +296,47 @@
                 <th:block th:if="${evaluateeIsLeader}">
                     <!-- STEP 1: 다면 평가 (부서장용 단일 단계) -->
                     <div class="wizard-step active" id="step-1">
-                        <div class="d-flex justify-content-between align-items-end mb-4">
-                            <h3 class="text-white mb-0"><i class="bi bi-people text-pink-400 me-2"></i>다면 자가평가 항목</h3>
-                            <div class="total-score-badge">
-                                <span class="text-muted small">다면 환산점수:</span>
-                                <span class="text-pink-400 fw-bold fs-4 ms-2" id="score-display-3">0.0</span>
+                        <fieldset th:disabled="${isLocked or isAdminView}" style="border:none; padding:0; margin:0;">
+                            <div class="d-flex justify-content-between align-items-end mb-4">
+                                <h3 class="text-white mb-0"><i class="bi bi-people text-pink-400 me-2"></i>다면 자가평가 항목</h3>
+                                <div class="total-score-badge">
+                                    <span class="text-muted small">다면 환산점수:</span>
+                                    <span class="text-pink-400 fw-bold fs-4 ms-2" id="score-display-3">0.0</span>
+                                </div>
                             </div>
-                        </div>
 
-                        <div th:each="element : ${peerElements}" class="eval-card">
-                            <div class="eval-card-header">
-                                <div class="eval-title">
-                                    <span th:text="${element.elementName()}">다면 항목</span>
+                            <div th:each="element : ${peerElements}" class="eval-card">
+                                <div class="eval-card-header">
+                                    <div class="eval-title">
+                                        <span th:text="${element.elementName()}">다면 항목</span>
+                                    </div>
+                                    <div class="weight-badge">가중치 <span th:text="${element.weight() + '%'}"></span></div>
                                 </div>
-                                <div class="weight-badge">가중치 <span th:text="${element.weight() + '%'}"></span></div>
-                            </div>
-                            <div class="row justify-content-center">
-                                <div class="col-md-6 text-center">
-                                    <div class="field-label peer justify-content-center">본인 점수 (0~[[${element.maxScore()}]])</div>
-                                    <input type="number" class="eval-textarea score-input peer-score"
-                                        th:name="'score_' + ${element.elementId()}"
-                                        th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
-                                        th:data-weight="${element.weight()}"
-                                        th:data-max="${element.maxScore()}"
-                                        oninput="calculateScores()" min="0" th:max="${element.maxScore()}" th:required="${not isAdminView}">
-                                    <input type="hidden" th:name="'version_' + ${element.elementId()}"
-                                           th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getVersion() : 0}">
-                                    <div class="text-muted small mt-2">협업 및 리더십에 대한 자가 점수를 입력하세요.</div>
+                                <div class="row justify-content-center">
+                                    <div class="col-md-6 text-center">
+                                        <div class="field-label peer justify-content-center">본인 점수 (0~[[${element.maxScore()}]])</div>
+                                        <input type="number" class="eval-textarea score-input peer-score"
+                                            th:name="'score_' + ${element.elementId()}"
+                                            th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getScore() : ''}"
+                                            th:data-weight="${element.weight()}"
+                                            th:data-max="${element.maxScore()}"
+                                            oninput="calculateScores()" min="0" th:max="${element.maxScore()}" th:required="${not isAdminView}">
+                                        <input type="hidden" th:name="'version_' + ${element.elementId()}"
+                                               th:value="${savedMap != null and savedMap.containsKey(element.elementId()) ? savedMap.get(element.elementId()).getVersion() : 0}">
+                                        <div class="text-muted small mt-2">협업 및 리더십에 대한 자가 점수를 입력하세요.</div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </fieldset>
 
                         <div class="d-flex justify-content-end mt-4">
-                            <button th:unless="${isAdminView}" type="submit" class="btn btn-danger btn-lg py-3 px-5 rounded-pill shadow-lg"
+                            <button th:if="${!isLocked and !isAdminView}" type="submit" class="btn btn-danger btn-lg py-3 px-5 rounded-pill shadow-lg"
                                 style="background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); border:none;">
                                 <i class="bi bi-check2-circle me-2"></i> 자가평가 최종 제출
                             </button>
                         </div>
                     </div>
                 </th:block>
-
-                </fieldset>
             </form>
         </div>
 
