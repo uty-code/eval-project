@@ -23,7 +23,7 @@ import java.util.Map;
 @Controller
 @RequestMapping("/eval/my-evaluation")
 @RequiredArgsConstructor
-@PreAuthorize("isAuthenticated()")
+@PreAuthorize("isAuthenticated() and !hasRole('EXECUTIVE')")
 public class MyEvaluationController {
 
     private final MyEvaluationFacadeService myEvaluationFacadeService;

@@ -69,12 +69,19 @@
     <div class="px-3 mb-4">
         <h6 class="text-uppercase text-muted fw-bold small px-3 mb-3">평가 수행 및 관리</h6>
         <nav class="nav flex-column">
-            <a class="nav-link" th:href="@{/eval/my-evaluation}" hx-get="/eval/my-evaluation" hx-target="#page-content"
+            <!-- 관리자용: 자가평가 현황 -->
+            <a sec:authorize="hasRole('ADMIN')" class="nav-link" th:href="@{/eval/my-evaluation}" hx-get="/eval/my-evaluation" hx-target="#page-content"
                 hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
                 th:classappend="${activeMenu == 'my-evaluation' ? 'active' : ''}">
                 <i class="bi bi-person-workspace"></i>
-                <span sec:authorize="!hasRole('ADMIN')">나의 자가평가</span>
-                <span sec:authorize="hasRole('ADMIN')">자가평가 현황</span>
+                <span>자가평가 현황</span>
+            </a>
+            <!-- 일반 사원/부서장용 (임원 제외): 나의 자가평가 -->
+            <a sec:authorize="isAuthenticated() and !hasAnyRole('ADMIN', 'EXECUTIVE')" class="nav-link" th:href="@{/eval/my-evaluation}" hx-get="/eval/my-evaluation" hx-target="#page-content"
+                hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
+                th:classappend="${activeMenu == 'my-evaluation' ? 'active' : ''}">
+                <i class="bi bi-person-workspace"></i>
+                <span>나의 자가평가</span>
             </a>
             <a class="nav-link" th:href="@{/eval/performance}" hx-get="/eval/performance" hx-target="#page-content"
                 hx-select="#page-content" hx-swap="outerHTML" hx-push-url="true" hx-sync="body:replace"
