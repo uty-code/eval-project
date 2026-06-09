@@ -103,7 +103,15 @@ public class InterviewController {
             List<EvaluatorMappingDTO> teamTasks;
             List<EvaluatorMappingDTO> receivedTasks;
             if (isAdmin) {
-                teamTasks = mappingService.getAllPerformanceTasks(queryPeriodId);
+                List<EvaluatorMappingDTO> allTasks = mappingService.getAllPerformanceTasks(queryPeriodId);
+                // 중복 제거: 피평가자 1명당 1개의 row만 노출 (MANAGER 우선)
+                java.util.Map<Long, EvaluatorMappingDTO> uniqueTasks = new java.util.HashMap<>();
+                for (EvaluatorMappingDTO task : allTasks) {
+                    if (!uniqueTasks.containsKey(task.evaluateeId()) || "MANAGER".equals(task.relationTypeCode())) {
+                        uniqueTasks.put(task.evaluateeId(), task);
+                    }
+                }
+                teamTasks = new java.util.ArrayList<>(uniqueTasks.values());
                 receivedTasks = java.util.Collections.emptyList();
             } else {
                 List<EvaluatorMappingDTO> myTasks = mappingService.getMyEvaluationTasks(queryPeriodId, empId);
