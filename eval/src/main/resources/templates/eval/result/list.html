@@ -776,9 +776,14 @@
 
                 /* 엑셀 다운로드 */
                 window.downloadExcel = function () {
-                    const periodId = document.querySelector('select[name="periodId"]').value;
-                    const deptId = document.querySelector('select[name="deptId"]').value;
-                    const search = document.querySelector('input[name="search"]').value;
+                    const periodEl = document.querySelector('select[name="periodId"]');
+                    const deptEl = document.querySelector('select[name="filterDeptId"]') || document.querySelector('select[name="deptId"]');
+                    const searchEl = document.querySelector('input[name="keyword"]') || document.querySelector('input[name="search"]');
+                    
+                    const periodId = periodEl ? periodEl.value : '0';
+                    const deptId = deptEl ? deptEl.value : '';
+                    const search = searchEl ? searchEl.value : '';
+                    
                     const url = `/eval/result/excel?periodId=${periodId}&deptId=${deptId}&search=${encodeURIComponent(search)}`;
                     window.location.href = url;
                 };
