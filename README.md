@@ -62,10 +62,11 @@ graph LR
 별도의 데이터베이스 설치나 Docker 설정 없이, **Java 21 환경에서 명령어 단 한 줄로 즉시 실행**할 수 있습니다. (개발/테스트용 공용 DB 자동 연결)
 
 ### 1. 실행 명령어
-- **Windows (PowerShell)**:
+- **Windows (PowerShell / CMD)**:
   ```powershell
   cd eval
   .\mvnw.cmd spring-boot:run
+  # 또는 CMD 환경: mvnw spring-boot:run
   ```
 - **Linux / macOS**:
   ```bash
@@ -74,10 +75,13 @@ graph LR
   ```
 
 ### 2. 접속 URL 및 테스트 계정
-브라우저에서 **`http://localhost:8080`**으로 접속합니다.
+브라우저에서 **`http://localhost:8080`**으로 접속합니다. (기본 리다이렉트 `/login`)
 
-- **인사 관리자**: `1000` / `admin123` (ROLE_ADMIN)
-- **일반 사원/팀장/임원**: `1001` ~ `1041` / `1234` (ROLE_USER, ROLE_LEADER, ROLE_EXECUTIVE)
+- **인사 관리자 (ROLE_ADMIN)**: `1000` / `admin123`
+- **부서장/팀장 (ROLE_MANAGER)**: `1001` / `1234` (김철수 과장 / DX전략팀장)
+- **일반 사원 (ROLE_USER)**: `1002` / `1234` (이영희 대리 / 피평가자)
+- **임원 (ROLE_EXECUTIVE)**: `1041` / `1234` (본부장DX / 최종확정)
+- *(사번 `1001` ~ `1042` 계정의 기본 비밀번호는 모두 `1234`입니다.)*
 
 ---
 
