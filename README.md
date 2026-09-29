@@ -1,69 +1,115 @@
-<div align="center">
-  
-# 사원 평가 시스템 (EES)
-**대규모 트래픽 환경의 동시성 제어와 CI/CD 무중단 배포를 적용한 엔터프라이즈 백엔드 프로젝트**
+# EES (Employee Evaluation System)
+사내 평가 마감 시점의 동시 제출 경합 제어와 대량 매핑 I/O 최적화를 구현한 B2B 사원 평가 시스템
+
+<br>
 
 ![Java](https://img.shields.io/badge/Java_21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
-![MSSQL](https://img.shields.io/badge/MSSQL-CC292B?style=for-the-badge&logo=microsoft-sql-server&logoColor=white)
-![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)
+![MSSQL](https://img.shields.io/badge/MSSQL_2022-CC292B?style=for-the-badge&logo=microsoft-sql-server&logoColor=white)
+![MyBatis](https://img.shields.io/badge/MyBatis-000000?style=for-the-badge&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Azure](https://img.shields.io/badge/Azure-0089D6?style=for-the-badge&logo=microsoft-azure&logoColor=white)
+![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)
 
-<br>
-
-[**운영 서버 접속 (ees-eval.com)**](https://ees-eval.com/) &nbsp; | &nbsp; [**WBS (일정 관리)**](https://docs.google.com/spreadsheets/d/1ZLVCVKlmdRchz_vIjrUE8szmNvLjTK5t4vgLfzbg3JQ/edit?usp=sharing)
-
-<br>
-</div>
-<br>
-관리자 계정 ID: 1000 PW: admin123
-<br>
-사원 계정 ID:1001~1041 PW: 1234
-<br>
 ---
 
 ## 프로젝트 개요
-사원 평가 과정에서 발생하는 **동시성 이슈와 쿼리 지연을 개선**한 백엔드 개발 프로젝트입니다. 평상시에는 트래픽이 적지만, **평가 마감일 직전에 전사 직원이 동시에 몰려 평가서를 제출하는 특성**을 고려하여 아키텍처를 설계했습니다.
+임직원의 정기 및 다면 평가를 진행하고, 인사 부서에서 전체 평가 프로세스를 통제할 수 있는 B2B 사내 평가 시스템입니다. 평상시에는 접속량이 적지만 **평가 마감일 직전에 평가서 제출이 집중되는 특성**을 고려하여 동시성 제어 및 데이터베이스 최적화를 중점적으로 설계했습니다.
 
-## 주요 기능 
+- **기간**: 2026.04.10 ~ 2026.06.15 (약 10주)
+- **팀**: 2명 (백엔드 기여도 50%)
+- **담당 역할**:
+  - 다면 평가 매핑 및 상대평가 등급 산정 비즈니스 로직 설계/구현
+  - Version 기반 낙관적 락을 통한 동시 수정 충돌 제어
+  - MSSQL 필터드/커버링 인덱스 설계 및 대량 매핑 I/O 최적화
+  - Testcontainers (MSSQL 2022) 기반 격리 통합 테스트 환경 구축 (총 48개 테스트 케이스)
+  - Jenkins & Docker Compose 기반 배포 파이프라인 및 헬스체크/롤백 구축
 
-### 1. 인사 관리자 전용 프로세스 제어
-- **평가 차수 라이프사이클 관리**: 매년 진행되는 정기/수시 평가를 '계획(PLAN) -> 진행(IN_PROGRESS) -> 마감(CLOSED)' 상태로 통제하여 프로세스의 안정성을 보장합니다.
-- **다단계 다면 평가 자동 매핑**: 개별 사원의 부서 및 직책 계층 구조를 시스템이 분석하여, 본인 평가, 1차 평가(팀장), 2차 평가(본부장/임원) 관계를 대량으로 자동 생성합니다.
-- **실시간 통계 및 등급 산정 대시보드**: 전사 직원들의 평가 참여율을 실시간으로 추적하며, 직책별 가중치를 합산하여 최종 상대평가 등급(S, A, B, C, D)을 산출하고 확정합니다.
+---
 
-### 2. 일반 임직원 다면 평가 인터페이스
-- **직관적인 평가 대상자 관리**: 본인이 작성해야 할 피평가자 목록을 한눈에 확인하고, 정량적 점수 및 서술형 피드백을 안전하게 임시저장하거나 최종 제출할 수 있습니다.
-- **마감 직전 대규모 트래픽 방어**: 평가 마감일 직전에 전 직원이 동시에 접속하여 점수를 제출하더라도, 데이터 덮어쓰기나 유실이 발생하지 않도록 견고한 동시성 제어 구조로 보호됩니다.
-- **투명한 결과 및 피드백 조회**: 인사팀에서 최종 확정한 본인의 평가 등급과 피드백을 투명하게 열람하여 인사 고과의 신뢰성을 높입니다.
+## 주요 기능
+- **평가 차수 관리**: 연도별 평가 차수를 오픈하고 `계획(PLANNED) → 진행(IN_PROGRESS) → 마감(CLOSED)` 상태로 프로세스 엄격 통제
+- **다면 평가 매핑**: 사원 계층 구조를 기반으로 본인(SELF), 팀장(MANAGER), 임원(EXECUTIVE), 부서원(SUBORDINATE) 다단계 평가 관계 일괄 자동 생성
+- **평가 작성 및 제출**: 피평가자별 점수 및 서술형 피드백 작성, 임시저장 및 최종 제출
+- **상대평가 등급 산정**: 최대 잔여법(LRM) 기반 소수점 오차 없는 부서별 상대평가 등급(S, A, B, C, D) 산출 및 확정
+- **평가 결과 조회**: 최종 확정된 개인별 평가 등급 및 피드백 열람
+
+---
+
+## 기술적 특징
+- **대량 평가 매핑 DB I/O 최적화**: 사원 100명 기준 개별 반복 조회를 All-in-one 일괄 조회 및 500건 Chunking Batch Insert로 개선하여 DB I/O 400회 → 6회 감축 (약 98.5% 감소)
+- **Version 기반 낙관적 락**: 동일 평가서에 대한 동시 수정 및 중복 클릭(Lost Update) 방어, 충돌 시 500 오류 대신 302 Redirect 및 Flash Message 안내
+- **LRM 기반 상대평가**: 최대 잔여법(Largest Remainder Method)을 적용하여 소수점 잔여 인원을 순차 배분함으로써 100% 일치하는 정수 TO 할당 및 동점자 처리 연계
+- **MSSQL Testcontainers 통합 테스트**: H2 방언 한계를 극복하고 실제 운영 환경과 동일한 MSSQL 2022 컨테이너 환경에서 총 48개 테스트 케이스 운영
 
 ---
 
 ## 시스템 아키텍처
 
-### 1. 무중단 배포 및 CI/CD 인프라 아키텍처
-<img width="1600" height="1720" alt="image" src="https://github.com/user-attachments/assets/3e6760cc-a460-4e9b-87c5-e4c05307f342" />
-
-### 2. 백엔드 논리적 레이어
 ```mermaid
 graph LR
-    A[Controller Layer] -->|DTO| B[Service Layer]
-    B -->|트랜잭션/동시성 제어| C[Mapper Layer]
-    C -->|최적화된 SQL Query| D[(MSSQL 2022)]
+    Client[Web Browser] --> Controller[Controller Layer]
+    Controller -->|Record DTO| Service[Service Layer]
+    Service -->|Entity / Parameter| Mapper[Mapper Layer]
+    Mapper -->|MyBatis SQL| DB[(MSSQL 2022)]
 ```
 
----
-
-## 인프라 자동화 및 DevOps
-
-### 장애 없는 CI/CD 파이프라인 
-- **정밀 헬스체크**: Nginx 리다이렉트(301/302) 및 Spring Boot Actuator 내부 상태(`"status":"UP"`)를 교차 검증합니다.
-- **자동 롤백**: 배포 실패 또는 헬스체크 응답 타임아웃 발생 시, 스크립트(`rollback.sh`)가 이전 안정 버전 컨테이너로 즉각 원상 복구하여 가용성을 보장합니다.
-
-### 실시간 관측성 및 알람 생략 로직
-- 서버 CPU, 메모리 자원 고갈 시 Discord Webhook을 통해 즉각적인 장애 경보를 발송하는 크론 데몬(`ees_monitor.sh`)을 자체 구축했습니다.
-- 배포가 진행 중인 짧은(10~20초) 다운타임 구간에는 서버 장애로 오탐지하지 않도록 `.deploying` 플래그를 활용한 Mute 로직을 구현했습니다.
+- Controller - Service - ServiceImpl - Mapper 계층 분리를 엄격히 준수하고, Java 21 `Record` 불변 DTO를 활용해 계층 간 데이터 무결성을 보장합니다.
 
 ---
-> *ERD 등 상세한 데이터베이스 DDL 스크립트는 최상단 `ERD.sql` 파일을 참고해 주세요.*
+
+## 빠른 시작
+
+### 1. 사전 요구사항
+- **Java 21**
+- **Docker & Docker Compose**
+
+### 2. 로컬 데이터베이스 기동
+```bash
+cd eval
+docker compose up -d mssql
+```
+- **포트**: `1433` (컨테이너명: `ees_mssql_local`)
+- **기본 계정**: `sa` / `EesLocal@2026!`
+- **데이터베이스**: `EES_LOCAL`
+
+### 3. 실행 명령어
+- **Linux / macOS**:
+  ```bash
+  cd eval
+  ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+  ```
+- **Windows (PowerShell)**:
+  ```powershell
+  cd eval
+  .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=local
+  ```
+
+### 4. 접속 URL 및 테스트 계정
+브라우저에서 **`http://localhost:8080`**으로 접속합니다.
+
+- **관리자**: `1000` / `admin123` (ROLE_ADMIN)
+- **일반 사원/팀장/임원**: `1001` ~ `1041` / `1234` (ROLE_USER, ROLE_LEADER, ROLE_EXECUTIVE)
+
+---
+
+## 테스트
+
+운영 DB와 동일한 환경에서 동작하도록 **Testcontainers 기반 MSSQL 2022 컨테이너**가 자동으로 기동되어 테스트를 수행합니다. (Docker 데몬 필요)
+
+```bash
+cd eval
+./mvnw test
+```
+- Controller 슬라이스 테스트, Service 비즈니스 로직 단위 테스트, Mapper 쿼리 슬라이스 테스트 등 **총 48개 테스트 케이스** 검증
+
+---
+
+## 배포
+- 프로젝트 진행 당시 **Jenkins + Docker Compose + KT Cloud VM** 기반으로 CI/CD 배포 파이프라인 및 Actuator 헬스체크(`/internal-monitor/health`) 기반 무중단 롤백(`rollback.sh`) 환경을 구축했습니다.
+- *(현재 외부 운영 서버는 비용 및 클라우드 리소스 관리 목적으로 중지된 상태이며, 로컬 환경에서 실행 및 테스트 가능합니다.)*
+
+---
+
+## 상세 기술 문서
+- 📄 [EES 백엔드 상세 포트폴리오 (Notion)](https://www.notion.so/EES-35d072048a65800f998ce051ccf8a8ff)
+- 📊 [WBS 일정 관리 (Google Sheets)](https://docs.google.com/spreadsheets/d/1ZLVCVKlmdRchz_vIjrUE8szmNvLjTK5t4vgLfzbg3JQ/edit?usp=sharing)
