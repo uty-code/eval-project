@@ -49,6 +49,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
     private final EvaluationPeriodMapper periodMapper;
     private final EvaluationMapper evaluationMapper;
     private final com.ees.eval.mapper.EvaluationElementMapper elementMapper;
+    private final com.ees.eval.repository.EvaluatorMappingJdbcRepository evaluatorMappingJdbcRepository;
 
     /** 평가자 매핑 수정이 허용되는 유일한 상태 */
     private static final String STATUS_PLANNED = EvaluationPeriodStatus.PLANNED.getCode();
@@ -245,7 +246,7 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
         }
         
         if (!mappingsToInsert.isEmpty()) {
-            mappingMapper.insertBatch(mappingsToInsert);
+            evaluatorMappingJdbcRepository.insertBatch(mappingsToInsert);
         }
         return results;
     }
@@ -403,13 +404,9 @@ public class EvaluatorMappingServiceImpl implements EvaluatorMappingService {
             }
         }
 
-        // 3. 일괄 삽입 (Chunking 처리로 DB 파라미터 제한 방지)
+        // 3. 일괄 삽입 (Spring JdbcTemplate 기반 PreparedStatement.addBatch 처리로 파라미터 2,100개 제한 원천 해소)
         if (!newMappings.isEmpty()) {
-            int batchSize = 500;
-            for (int i = 0; i < newMappings.size(); i += batchSize) {
-                int end = Math.min(i + batchSize, newMappings.size());
-                mappingMapper.insertBatch(newMappings.subList(i, end));
-            }
+            evaluatorMappingJdbcRepository.insertBatch(newMappings);
         }
 
         log.info("평가자 자동 매핑 완료 - 생성된 매핑 수: {}", newMappings.size());
